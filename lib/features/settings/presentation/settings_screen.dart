@@ -17,9 +17,14 @@ class SettingsScreen extends ConsumerWidget {
   final VoidCallback? onAbout;
 
   Future<void> _changeUrl(BuildContext context, WidgetRef ref) async {
+    // Read both notifiers before the await: this row's element is disposed by
+    // the redirect the moment the first reset lands. Clearing the URL first
+    // sends the gate straight to Configure rather than via Login.
+    final serverConfig = ref.read(serverConfigControllerProvider.notifier);
+    final session = ref.read(sessionControllerProvider.notifier);
     if (!await showConfirmDialog(context)) return;
-    await ref.read(sessionControllerProvider.notifier).logout();
-    await ref.read(serverConfigControllerProvider.notifier).reset();
+    await serverConfig.reset();
+    await session.logout();
   }
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {

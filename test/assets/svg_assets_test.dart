@@ -7,14 +7,17 @@ void main() {
   // encodeSvg's default optimizers (masking/clipping/overdraw) require the
   // native PathOps library from the Flutter engine cache; without this,
   // parsing throws regardless of SVG content.
+  var pathOps = false;
   setUpAll(() {
-    if (!initializePathOpsFromFlutterCache()) {
-      fail('Could not initialize PathOps from the Flutter cache; run `flutter precache`.');
-    }
+    pathOps = initializePathOpsFromFlutterCache();
   });
 
   for (final name in ['blank_canvas.svg', 'add_tomogram.svg', 'hms_circle.svg']) {
     test('$name parses as vector graphics', () {
+      if (!pathOps) {
+        markTestSkipped('PathOps is not in the Flutter cache; run `flutter precache`.');
+        return;
+      }
       final xml = File('assets/images/$name').readAsStringSync();
       final bytes = encodeSvg(xml: xml, debugName: name);
       expect(bytes, isNotEmpty);

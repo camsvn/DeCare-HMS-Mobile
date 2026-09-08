@@ -45,7 +45,7 @@ Dependencies:
 | flutter_secure_storage | access and refresh tokens |
 | image_picker | camera and gallery |
 | permission_handler | runtime permissions and "open settings" |
-| path_provider | temp directory for picked files |
+| flutter_svg | renders the converted SVG illustrations |
 | uuid | draft ids |
 | url_launcher | tel: and https: links on About |
 | flutter_localizations, intl | ARB-based strings |
@@ -160,7 +160,7 @@ Server responses are `{ "status": "success" | "fail" | "error", "data": ..., "me
 | `cannotConnect` | DioException connectionError, socket errors, unknown with SocketException | Could not reach the server |
 | `timeout` | connection/send/receive timeout | The server took too long to respond |
 | `unauthorized` | 401, 403 | Session expired (login screen overrides: Invalid username or password) |
-| `notFound` | 404 | Not found (login: Invalid username or password; patient: No patient with that OP number) |
+| `notFound` | 404 | Not found (login: Invalid username or password; patient lookup shows the server's message, e.g. "Invalid OP Number") |
 | `server` | 5xx | server `message` if present, else Server error |
 | `rejected` | other 4xx, or `status != success` | server `message` |
 | `badData` | JSON shape mismatch, parse errors | Unexpected response from server |
@@ -201,7 +201,7 @@ Spacing scale: 0, 4, 8, 12, 16, 24, 32, 48, 64 as named constants (`xxs` … `xx
 
 Typography: platform default font, body 15, header 24 bold, field label 13 dim, brand title 40 on login and 28 in the home header. Light theme only; the original loaded a dark navigation theme but no screen used it.
 
-Icons: the twelve SVG icons are converted to Dart `CustomPainter` paths or Material equivalents where a one-to-one glyph exists (check, close, search, delete, arrow, arrow-left, logout, visibility, visibility-off, camera). Screen illustrations (login logo, blank canvas, add-tomogram, add-button) are exported to PNG assets at 1x/2x/3x from the source SVGs; the login logo already embeds a JPEG so a raster export loses nothing. This avoids a runtime SVG dependency.
+Icons: the twelve SVG icons are converted to Dart `CustomPainter` paths or Material equivalents where a one-to-one glyph exists (check, close, search, delete, arrow, arrow-left, logout, visibility, visibility-off, camera). Screen illustrations are kept as SVG and rendered at runtime with `flutter_svg` (the login mark `hms_circle.svg`, `blank_canvas.svg`, `add_tomogram.svg`); the installation-URL artwork ships as a PNG and the About logo as a JPEG, since both are raster in the source.
 
 Shared widgets reproduce the source components: `AppHeader` (centered title, optional left/right icon buttons), `AppTextField` and `SearchTextField`, `PrimaryButton` and `LinkButton`, `LoaderModal` ("Please wait", spinner, ". . . text . . ."), `ConfirmDialog` ("Are you sure?", "No, I'm Not" / "Yes, I am"), `AppBottomSheet` (drag to dismiss), `FlashBanner` (top overlay, types danger/warning/success/info, auto-dismiss), `HideWithKeyboard`.
 

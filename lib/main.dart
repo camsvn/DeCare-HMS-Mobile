@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -24,6 +26,14 @@ Future<void> main() async {
   // Load persisted state before the first frame so the redirect gate is exact.
   await container.read(serverConfigControllerProvider.future);
   await container.read(sessionControllerProvider.future);
+
+  // Keep framework errors visible and stop an unhandled async error from
+  // taking the isolate down in release.
+  FlutterError.onError = (d) => FlutterError.presentError(d);
+  PlatformDispatcher.instance.onError = (e, st) {
+    debugPrint('Unhandled: $e\n$st');
+    return true;
+  };
 
   runApp(UncontrolledProviderScope(container: container, child: const HmsApp()));
   FlutterNativeSplash.remove();

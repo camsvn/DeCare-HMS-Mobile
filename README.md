@@ -26,6 +26,11 @@ flutter analyze
 
 Debug APK: `flutter build apk --debug` (output in `build/app/outputs/flutter-apk/`).
 
+Note: re-running `dart run flutter_native_splash:create` rewrites
+`android/app/src/main/AndroidManifest.xml` and drops the
+`android:screenOrientation="portrait"` attribute from the launcher activity.
+Restore it afterwards, or the app will rotate out of portrait.
+
 ## Structure
 
 ```
