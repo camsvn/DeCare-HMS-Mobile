@@ -1,0 +1,48 @@
+name: hms_uploader
+description: DeCare HMS tomogram uploader.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: any
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.6.2
+  dio: ^5.11.1
+  shared_preferences: ^2.2.3
+  flutter_secure_storage: ^9.2.4
+  image_picker: ^1.0.0
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.4
+  uuid: ^4.6.0
+  url_launcher: ^6.3.1
+  flutter_svg: ^2.0.10
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  mocktail: ^1.0.5
+  flutter_native_splash: ^2.4.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - assets/images/
+
+flutter_native_splash:
+  color: "#16142a"
+  image: assets/images/hms_square.png
+  android_12:
+    color: "#16142a"
+    image: assets/images/hms_square.png
+  android: true
+  ios: true
+  web: false
