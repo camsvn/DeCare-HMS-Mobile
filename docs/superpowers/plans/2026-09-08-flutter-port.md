@@ -2391,7 +2391,7 @@ git commit -m "feat(server_config): url configuration with health check"
 - Test: `test/features/auth/session_test.dart`, `test/features/auth/session_controller_test.dart`, `test/features/auth/login_screen_test.dart`
 
 **Interfaces:**
-- Consumes: `SecureStore`/`secureStoreProvider`, `dioProvider`, `unwrapEnvelope`, `ApiFailure`, `isJwtValid`, widgets from Task 5, `configureRoutePath`.
+- Consumes: `SecureStore`/`secureStoreProvider`, `dioProvider`, `unwrapEnvelope`, `ApiFailure`, `isJwtValid`, widgets from Task 5, `RoutePaths.configure`.
 - Produces:
   - `class Session { const Session({required this.accessToken, required this.refreshToken}); bool isValid({DateTime? now}); }`.
   - `class SessionRepository { SessionRepository(SecureStore store); Future<Session?> read(); Future<void> save(Session s); Future<void> clear(); }`, `sessionRepositoryProvider`.
