@@ -74,6 +74,7 @@ void main() {
     ]);
     await tester.pump();
     await tester.enterText(find.byType(TextField), '7');
+    await tester.pump();
     await tester.tap(find.byIcon(Icons.check));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

@@ -58,17 +58,14 @@ class _OpSearchBarState extends State<OpSearchBar> {
                   : const Icon(Icons.search, color: AppColors.dim),
             ),
           ),
-          const SizedBox(width: AppSpacing.xs),
-          // Always present (not gated on `hasText`): a TextEditingController
-          // listener updates `hasText` via setState, which only takes effect
-          // on the next pumped frame, so a widget test that submits right
-          // after entering text (with no intervening pump) must still be
-          // able to find and tap this button.
-          IconButton.filled(
-            style: IconButton.styleFrom(backgroundColor: AppColors.primary),
-            icon: const Icon(Icons.check, color: AppColors.goGreen),
-            onPressed: _submit,
-          ),
+          if (hasText) ...[
+            const SizedBox(width: AppSpacing.xs),
+            IconButton.filled(
+              style: IconButton.styleFrom(backgroundColor: AppColors.primary),
+              icon: const Icon(Icons.check, color: AppColors.goGreen),
+              onPressed: _submit,
+            ),
+          ],
         ],
       ),
     );
