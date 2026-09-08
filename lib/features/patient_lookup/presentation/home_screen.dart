@@ -6,7 +6,6 @@ import 'package:hms_uploader/core/theme/app_spacing.dart';
 import 'package:hms_uploader/core/theme/app_text_styles.dart';
 import 'package:hms_uploader/core/widgets/app_buttons.dart';
 import 'package:hms_uploader/core/widgets/app_header.dart';
-import 'package:hms_uploader/core/widgets/exit_on_double_back.dart';
 import 'package:hms_uploader/core/widgets/flash_banner.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/core/widgets/loader_modal.dart';
@@ -46,48 +45,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final loading = ref.watch(patientLookupControllerProvider).isLoading;
     final recents = ref.watch(recentSearchesControllerProvider);
 
-    return ExitOnDoubleBack(
-      child: LoaderModal(
-        visible: loading,
-        text: l10n.homeFetchingPatient,
-        child: Scaffold(
-          resizeToAvoidBottomInset: true,
-          body: Column(
-            children: [
-              AppHeader(title: l10n.commonHeader),
-              Expanded(
-                child: recents.isEmpty
-                    ? const HomeEmptyState()
-                    : ListView(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(l10n.homeRecentSearches, style: AppTextStyles.bold),
-                              LinkButton(
-                                label: l10n.homeClearAll,
-                                color: AppColors.dim,
-                                onPressed: () => ref.read(recentSearchesControllerProvider.notifier).clear(),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          for (final p in recents)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                              child: RecentSearchRow(
-                                patient: p,
-                                onTap: () => _lookup(p.opid),
-                                onDelete: () => ref.read(recentSearchesControllerProvider.notifier).remove(p.id),
-                              ),
+    // No back-press handling here: this is a StatefulShellRoute branch page, so
+    // the system back press goes to the root navigator and AppShell owns it.
+    return LoaderModal(
+      visible: loading,
+      text: l10n.homeFetchingPatient,
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: Column(
+          children: [
+            AppHeader(title: l10n.commonHeader),
+            Expanded(
+              child: recents.isEmpty
+                  ? const HomeEmptyState()
+                  : ListView(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(l10n.homeRecentSearches, style: AppTextStyles.bold),
+                            LinkButton(
+                              label: l10n.homeClearAll,
+                              color: AppColors.dim,
+                              onPressed: () => ref.read(recentSearchesControllerProvider.notifier).clear(),
                             ),
-                        ],
-                      ),
-              ),
-              OpSearchBar(onSubmit: _lookup),
-            ],
-          ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        for (final p in recents)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                            child: RecentSearchRow(
+                              patient: p,
+                              onTap: () => _lookup(p.opid),
+                              onDelete: () => ref.read(recentSearchesControllerProvider.notifier).remove(p.id),
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
+            OpSearchBar(onSubmit: _lookup),
+          ],
         ),
       ),
     );

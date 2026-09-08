@@ -38,6 +38,7 @@ Future<ProviderContainer> containerWith({String? url, bool session = false}) asy
 void main() {
   testWidgets('starts on configure when no url', (tester) async {
     final c = await containerWith();
+    addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
     expect(find.text('Installation URL'), findsOneWidget);
@@ -45,6 +46,7 @@ void main() {
 
   testWidgets('starts on login when url but no session', (tester) async {
     final c = await containerWith(url: 'http://x');
+    addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
     expect(find.text('Sign In'), findsOneWidget);
@@ -52,6 +54,7 @@ void main() {
 
   testWidgets('starts on home with tabs when session is valid, and logout returns to login', (tester) async {
     final c = await containerWith(url: 'http://x', session: true);
+    addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
     expect(find.text('Enter OP Number'), findsOneWidget);
@@ -64,5 +67,37 @@ void main() {
     await tester.tap(find.text('Yes, I am'));
     await tester.pumpAndSettle();
     expect(find.text('Sign In'), findsOneWidget);
+  });
+
+  testWidgets('system back on the Home tab arms double-press-to-exit', (tester) async {
+    final c = await containerWith(url: 'http://x', session: true);
+    addTearDown(c.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter OP Number'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('App: Press back again to exit'), findsOneWidget);
+    // Still on Home: the shell swallowed the pop instead of exiting.
+    expect(find.text('Enter OP Number'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('system back on the Settings tab returns to the Home tab', (tester) async {
+    final c = await containerWith(url: 'http://x', session: true);
+    addTearDown(c.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.text('Logout'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Enter OP Number'), findsOneWidget);
   });
 }

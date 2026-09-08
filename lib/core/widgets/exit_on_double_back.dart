@@ -6,17 +6,29 @@ import 'package:hms_uploader/core/widgets/flash_banner.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 
 /// Double-press back to exit, matching the React Native `useBackButtonHandler`.
+///
+/// By default this installs its own [PopScope], which works only where the
+/// widget sits directly under the navigator that receives the back press (the
+/// root routes: Login and Configure). Inside a `StatefulShellRoute` branch the
+/// back press is delivered to the ROOT navigator, so the branch page's own
+/// [PopScope] is never consulted; there, set [interceptPop] to false and have
+/// the shell's [PopScope] call [ExitOnDoubleBackState.handleBack] instead.
 class ExitOnDoubleBack extends StatefulWidget {
   const ExitOnDoubleBack({
     super.key,
     required this.child,
     this.exit,
     this.window = const Duration(seconds: 3),
+    this.interceptPop = true,
   });
 
   final Widget child;
   final VoidCallback? exit;
   final Duration window;
+
+  /// When false, no [PopScope] is installed and the caller drives
+  /// [ExitOnDoubleBackState.handleBack] itself.
+  final bool interceptPop;
 
   @override
   State<ExitOnDoubleBack> createState() => ExitOnDoubleBackState();
@@ -45,6 +57,7 @@ class ExitOnDoubleBackState extends State<ExitOnDoubleBack> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.interceptPop) return widget.child;
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
