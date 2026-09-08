@@ -28,6 +28,7 @@ void main() {
         DioExceptionType.connectionTimeout,
         DioExceptionType.sendTimeout,
         DioExceptionType.receiveTimeout,
+        DioExceptionType.transformTimeout,
       ]) {
         expect(ApiFailure.from(_dio(t)), isA<TimeoutFailure>());
       }
