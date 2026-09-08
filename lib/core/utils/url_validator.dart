@@ -1,5 +1,5 @@
 final RegExp _serverUrlPattern = RegExp(
-  r'^(https?:\/\/)?((localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d{1,5})?|(www\.)?[\w\-]+\.[a-z]{2,}|([A-Za-z0-9_-]+\.?[A-Za-z0-9_-]*:[0-9]+))(\/\S*)?$',
+  r'^(https?:\/\/)?((localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d{1,5})?|(www\.)?[\w\-]+(\.[\w\-]+)*\.[a-z]{2,}(:\d{1,5})?|([A-Za-z0-9_-]+\.?[A-Za-z0-9_-]*:[0-9]+))(\/\S*)?$',
   caseSensitive: false,
 );
 
