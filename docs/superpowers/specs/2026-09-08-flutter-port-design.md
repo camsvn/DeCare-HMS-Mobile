@@ -191,7 +191,7 @@ Server responses are `{ "status": "success" | "fail" | "error", "data": ..., "me
 
 - **settings**: no data layer. "Change Installation URL" confirm resets server config and session; "Logout" confirm clears the session. Redirect performs the navigation.
 
-Permissions: Android 13+ needs `READ_MEDIA_IMAGES` instead of storage; camera needs `CAMERA`. `permission_handler` requests `Permission.camera` for camera and `Permission.photos` for gallery (falls back to `storage` below API 33 automatically). PermissionScreen shows the names of denied permissions, a "Grant Permission" button calling `openAppSettings()`, and re-checks on app resume via `WidgetsBindingObserver`; it pops automatically once everything is granted.
+Permissions: gallery picking goes through the system picker (`ACTION_GET_CONTENT` / the Android photo picker), which grants per-file read access and needs no runtime permission on any API level, so nothing is requested for it; only the camera is requested (`Permission.camera`, manifest `CAMERA`). PermissionScreen shows the names of denied permissions, a "Grant Permission" button calling `openAppSettings()`, and re-checks on app resume via `WidgetsBindingObserver`; it pops automatically once everything is granted.
 
 ## 6. UI and theme
 

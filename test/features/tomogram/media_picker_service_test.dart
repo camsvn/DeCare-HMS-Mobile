@@ -32,8 +32,12 @@ void main() {
   test('deniedPermissions requests and returns what was refused', () async {
     when(() => permissions.request(Permission.camera)).thenAnswer((_) async => false);
     expect(await service.deniedPermissions(MediaSource.camera), [Permission.camera]);
-    when(() => permissions.request(Permission.photos)).thenAnswer((_) async => true);
+  });
+
+  test('gallery needs no runtime permission, so nothing is requested', () async {
+    expect(service.permissionsFor(MediaSource.gallery), isEmpty);
     expect(await service.deniedPermissions(MediaSource.gallery), isEmpty);
+    verifyNever(() => permissions.request(any()));
   });
 
   test('gallery pick keeps at most two JPEGs and counts rejects', () async {

@@ -32,10 +32,16 @@ class DefaultMediaPickerService implements MediaPickerService {
   final ImagePicker _picker;
   final PermissionGateway _permissions;
 
+  /// Only the camera needs a runtime permission. Gallery picking goes through
+  /// the system picker (`ACTION_GET_CONTENT` / the Android photo picker), which
+  /// grants per-file read access without any manifest permission on every API
+  /// level. Asking for [Permission.photos] here would be a dead end below API
+  /// 33, where permission_handler maps it to no manifest permission and
+  /// auto-denies it without ever showing a dialog.
   @override
   List<Permission> permissionsFor(MediaSource source) => switch (source) {
         MediaSource.camera => const [Permission.camera],
-        MediaSource.gallery => const [Permission.photos],
+        MediaSource.gallery => const <Permission>[],
       };
 
   @override
