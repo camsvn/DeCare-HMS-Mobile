@@ -181,7 +181,7 @@ Server responses are `{ "status": "success" | "fail" | "error", "data": ..., "me
 - **server_config**: `ServerConfigRepository` (shared_preferences key `server_url`). `ServerConfigController extends Notifier<String?>` with `connect(String rawUrl)`: validate with the regex below, run health check, save on success. The controller state is `AsyncValue<String?>`, so `isLoading` doubles as the connecting indicator.
 
   URL regex (from the source app, with the domain alternative widened to multi-level hosts with an optional port, because the original rejects the production host `cutis.decare.team`):
-  `^(https?:\/\/)?((localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d{1,5})?|(www\.)?[\w\-]+\.[a-z]{2,}|([A-Za-z0-9_-]+\.?[A-Za-z0-9_-]*:[0-9]+))(\/\S*)?$` (case-insensitive). If the scheme is absent, `http://` is prepended before use.
+  `^(https?:\/\/)?((localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d{1,5})?|(www\.)?[\w\-]+(\.[\w\-]+)*\.[a-z]{2,}(:\d{1,5})?|([A-Za-z0-9_-]+\.?[A-Za-z0-9_-]*:[0-9]+))(\/\S*)?$` (case-insensitive). If the scheme is absent, `http://` is prepended before use.
 
 - **auth**: `Session(accessToken, refreshToken)`. `SessionRepository` stores both in secure storage (`access_token`, `refresh_token`). `SessionController extends Notifier<Session?>` with `login(username, password)`, `logout()`. `Session.isValid` decodes the refresh token payload (base64url, no signature check) and checks `exp * 1000 > now`.
 
