@@ -1,19 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Generator: Adobe Illustrator 24.3.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 205 205" style="enable-background:new 0 0 205 205;" xml:space="preserve">
-<style type="text/css">
-	.st0{fill:#16142A;}
-	.st1{fill:url(#SVGID_1_);}
-	.st2{fill:#E4E4E3;}
-	.st3{fill:url(#SVGID_2_);}
-	.st4{clip-path:url(#SVGID_4_);}
-	.st5{clip-path:url(#SVGID_6_);}
-	.st6{clip-path:url(#SVGID_8_);}
-	.st7{clip-path:url(#SVGID_10_);}
-</style>
+
 <g>
-	<circle class="st0" cx="102.51" cy="102.49" r="102.49"/>
+	<circle fill="#16142A" cx="102.51" cy="102.49" r="102.49"/>
 	<g>
 
 			<linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="336.3166" y1="-76.5268" x2="336.3166" y2="-157.3821" gradientTransform="matrix(-1 0 0 1 498.6926 203.5537)">
@@ -21,8 +12,8 @@
 			<stop  offset="0" style="stop-color:#16142A"/>
 			<stop  offset="1" style="stop-color:#10B394"/>
 		</linearGradient>
-		<polygon class="st1" points="153.85,127.03 170.9,127.03 170.9,46.17 153.85,46.17 		"/>
-		<path class="st2" d="M41.5,29.92v0.09c-0.02,0-0.04,0-0.06,0.01C41.46,29.98,41.49,29.96,41.5,29.92z"/>
+		<polygon fill="url(#SVGID_1_)" points="153.85,127.03 170.9,127.03 170.9,46.17 153.85,46.17 		"/>
+		<path fill="#E4E4E3" d="M41.5,29.92v0.09c-0.02,0-0.04,0-0.06,0.01C41.46,29.98,41.49,29.96,41.5,29.92z"/>
 
 			<linearGradient id="SVGID_2_" gradientUnits="userSpaceOnUse" x1="42.6442" y1="133.7453" x2="42.6442" y2="52.8899" gradientTransform="matrix(1 0 0 -1 0 204.7244)">
 			<stop  offset="0" style="stop-color:#161329"/>
@@ -38,7 +29,7 @@
 			<stop  offset="1" style="stop-color:#19152E"/>
 			<stop  offset="1" style="stop-color:#16142A"/>
 		</linearGradient>
-		<rect x="34.12" y="70.98" class="st3" width="17.05" height="80.86"/>
+		<rect x="34.12" y="70.98" fill="url(#SVGID_2_)" width="17.05" height="80.86"/>
 		<g>
 			<g>
 				<g>
@@ -58,7 +49,7 @@
 					<clipPath id="SVGID_4_">
 						<use xlink:href="#SVGID_3_"  style="overflow:visible;"/>
 					</clipPath>
-					<g class="st4">
+					<g clip-path="url(#SVGID_4_)">
 						<g>
 							<g>
 								<defs>
@@ -67,7 +58,7 @@
 								<clipPath id="SVGID_6_">
 									<use xlink:href="#SVGID_5_"  style="overflow:visible;"/>
 								</clipPath>
-								<g class="st5">
+								<g clip-path="url(#SVGID_6_)">
 
 										<image style="overflow:visible;enable-background:new    ;" width="975" height="994" xlink:href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAgEB9QH1AAD/7AARRHVja3kAAQAEAAAAHgAA/+4AIUFkb2JlAGTAAAAAAQMA
 EAMCAwYAACLiAAA0eAAAU/P/2wCEABALCwsMCxAMDBAXDw0PFxsUEBAUGx8XFxcXFx8eFxoaGhoX
@@ -467,7 +458,7 @@ Q5xFWHC3iV3o+2tCx1g+mPJJyEGPIMeQY8gx5BjyDHkGPIMeQY8gx5BjyDHkGPIVHkGPIMeQY8gx
 					<clipPath id="SVGID_8_">
 						<use xlink:href="#SVGID_7_"  style="overflow:visible;"/>
 					</clipPath>
-					<g class="st6">
+					<g clip-path="url(#SVGID_8_)">
 						<g>
 							<g>
 								<defs>
@@ -476,7 +467,7 @@ Q5xFWHC3iV3o+2tCx1g+mPJJyEGPIMeQY8gx5BjyDHkGPIMeQY8gx5BjyDHkGPIVHkGPIMeQY8gx
 								<clipPath id="SVGID_10_">
 									<use xlink:href="#SVGID_9_"  style="overflow:visible;"/>
 								</clipPath>
-								<g class="st7">
+								<g clip-path="url(#SVGID_10_)">
 
 										<image style="overflow:visible;enable-background:new    ;" width="419" height="648" xlink:href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAgEB9wH3AAD/7AARRHVja3kAAQAEAAAAHgAA/+4AIUFkb2JlAGTAAAAAAQMA
 EAMCAwYAAAq3AAAQHQAAGfb/2wCEABALCwsMCxAMDBAXDw0PFxsUEBAUGx8XFxcXFx8eFxoaGhoX
