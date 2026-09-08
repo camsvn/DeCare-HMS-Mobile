@@ -153,6 +153,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramOnlyJpeg => 'Tomogram: Only JPEG images are supported';
 
   @override
+  String tomogramPickLimit(int limit) {
+    return 'Tomogram: Only $limit images per pick';
+  }
+
+  @override
   String permissionTitle(String name) {
     return 'Grant Permission to access $name';
   }

@@ -47,9 +47,11 @@ class _ConfigureUrlScreenState extends ConsumerState<ConfigureUrlScreen> {
         }
         return;
       }
-      // A freshly connected URL: continue to login (the redirect gate sends a
-      // still-valid session on to home).
-      if (next.value != null && prev?.value != next.value) {
+      // A connect that just finished successfully: continue to login (the
+      // redirect gate sends a still-valid session on to home). Keyed on the
+      // loading-to-data transition, not on the value changing, so re-entering
+      // the URL that is already saved still moves the user on.
+      if (prev != null && prev.isLoading && next.hasValue && next.value != null) {
         context.go(RoutePaths.login);
       }
     });

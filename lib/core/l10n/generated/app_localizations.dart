@@ -367,6 +367,12 @@ abstract class AppLocalizations {
   /// **'Tomogram: Only JPEG images are supported'**
   String get tomogramOnlyJpeg;
 
+  /// No description provided for @tomogramPickLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomogram: Only {limit} images per pick'**
+  String tomogramPickLimit(int limit);
+
   /// No description provided for @permissionTitle.
   ///
   /// In en, this message translates to:

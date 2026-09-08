@@ -55,8 +55,12 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
     final result = await picker.pick(source);
     if (!mounted) return;
     ref.read(tomogramControllerProvider(_opid).notifier).addFiles(result.accepted);
+    final l10n = context.l10n;
+    if (result.overLimit > 0) {
+      showFlash(context, l10n.tomogramPickLimit(galleryPickLimit), type: FlashType.warning);
+    }
     if (result.rejected > 0) {
-      showFlash(context, context.l10n.tomogramOnlyJpeg, type: FlashType.warning);
+      showFlash(context, l10n.tomogramOnlyJpeg, type: FlashType.warning);
     }
   }
 

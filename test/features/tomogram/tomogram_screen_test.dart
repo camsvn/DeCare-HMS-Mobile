@@ -71,6 +71,21 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('over-limit gallery picks are reported instead of dropped silently', (tester) async {
+    final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
+    when(() => picker.pick(MediaSource.gallery))
+        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0, overLimit: 1));
+    await pump(tester);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose from Gallery'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Tomogram: Only 2 images per pick'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('upload success flashes and clears drafts', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
     when(() => picker.pick(MediaSource.camera))

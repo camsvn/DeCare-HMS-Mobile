@@ -56,6 +56,8 @@
   "tomogramUploadError": "Tomogram Upload: {message}",
   "@tomogramUploadError": {"placeholders": {"message": {"type": "String"}}},
   "tomogramOnlyJpeg": "Tomogram: Only JPEG images are supported",
+  "tomogramPickLimit": "Tomogram: Only {limit} images per pick",
+  "@tomogramPickLimit": {"placeholders": {"limit": {"type": "int"}}},
 
   "permissionTitle": "Grant Permission to access {name}",
   "@permissionTitle": {"placeholders": {"name": {"type": "String"}}},

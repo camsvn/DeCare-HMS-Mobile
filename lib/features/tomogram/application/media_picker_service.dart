@@ -10,10 +10,16 @@ enum MediaSource { camera, gallery }
 const int galleryPickLimit = 2;
 
 class MediaPickResult {
-  const MediaPickResult({required this.accepted, required this.rejected});
+  const MediaPickResult({required this.accepted, required this.rejected, this.overLimit = 0});
 
   final List<String> accepted;
+
+  /// JPEG-check failures.
   final int rejected;
+
+  /// JPEGs the user picked beyond [galleryPickLimit], so the screen can say so
+  /// instead of dropping them silently.
+  final int overLimit;
 
   static const empty = MediaPickResult(accepted: [], rejected: 0);
 }
@@ -61,15 +67,20 @@ class DefaultMediaPickerService implements MediaPickerService {
     };
     final accepted = <String>[];
     var rejected = 0;
+    var overLimit = 0;
     for (final f in files) {
       if (f == null) continue;
       if (!await isJpegFile(f.path)) {
         rejected++;
         continue;
       }
-      if (accepted.length < galleryPickLimit) accepted.add(f.path);
+      if (accepted.length < galleryPickLimit) {
+        accepted.add(f.path);
+      } else {
+        overLimit++;
+      }
     }
-    return MediaPickResult(accepted: accepted, rejected: rejected);
+    return MediaPickResult(accepted: accepted, rejected: rejected, overLimit: overLimit);
   }
 }
 

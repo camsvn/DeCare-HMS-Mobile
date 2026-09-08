@@ -52,6 +52,10 @@ class _TomogramCardState extends State<TomogramCard> {
                 File(widget.draft.filePath),
                 height: 200,
                 fit: BoxFit.cover,
+                // Decode down: the preview is 200 px tall, the source is a
+                // full-resolution camera JPEG. Upload bytes are read from the
+                // file separately and stay untouched.
+                cacheWidth: 1080,
                 errorBuilder: (_, __, ___) => Container(
                   height: 200,
                   color: AppColors.rowGrey,

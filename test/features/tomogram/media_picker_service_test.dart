@@ -40,7 +40,7 @@ void main() {
     verifyNever(() => permissions.request(any()));
   });
 
-  test('gallery pick keeps at most two JPEGs and counts rejects', () async {
+  test('gallery pick keeps at most two JPEGs and counts rejects and over-limit picks', () async {
     final a = jpeg('a.jpg');
     final b = png('b.png');
     final c = jpeg('c.jpg');
@@ -49,6 +49,7 @@ void main() {
     final result = await service.pick(MediaSource.gallery);
     expect(result.accepted, [a.path, c.path]);
     expect(result.rejected, 1);
+    expect(result.overLimit, 1);
   });
 
   test('camera pick returns single JPEG or nothing', () async {
