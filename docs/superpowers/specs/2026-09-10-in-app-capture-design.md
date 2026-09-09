@@ -119,12 +119,20 @@ deleted, mirroring `TomogramController`.
 
 ### 5.3 Capture screen (`lib/features/tomogram/presentation/capture_screen.dart` + widgets)
 
-- `CaptureScreen` is a `ConsumerStatefulWidget` with `WidgetsBindingObserver`: `start()` in
-  `initState`, `stop()` on `paused`/`inactive`, `start()` on `resumed`.
+- `CaptureScreen` is a `ConsumerStatefulWidget` with `WidgetsBindingObserver`: `start()` from a
+  post-frame callback in `initState` (not in `initState` itself — `start()` moves the session's
+  state, and a provider may not be modified while the tree reading it is building), `stop()` on
+  any non-`resumed` lifecycle state, `start()` again on `resumed`. The release is latched by a
+  `_backgrounded` flag, because one real pause arrives as three states (`inactive`, `hidden`,
+  `paused`) and only the first of them should hand the device back.
 - Layout, top to bottom, on `ds.shell`:
-  - Preview area: the camera preview scaled to cover the area (`FittedBox(fit: BoxFit.cover)`
-    inside `ClipRect`), with a `GestureDetector` that maps the tap to normalised coordinates,
-    calls `focusAt`, and shows a 64 dp focus ring at the tap point for `DsMotion.base`.
+  - Preview area: the camera preview scaled to cover the area
+    (`ClipRect(FittedBox(fit: BoxFit.cover, child: SizedBox(width: previewAspectRatio * 1000,
+    height: 1000, child: preview)))`, where `previewAspectRatio` is the ratio the preview is
+    *displayed* at — a portrait preview of a landscape sensor, so `1 / sensorRatio` — not the
+    sensor's own ratio), with a `GestureDetector` that maps the tap through that same cover crop
+    into the frame's own 0..1 coordinates, calls `focusAt`, and shows a 64 dp focus ring at the
+    tap point for `DsMotion.base`.
   - Top overlay row: close button (left, `MaterialLocalizations.closeButtonTooltip`), torch toggle
     (right, `Icons.flashlight_on_outlined` / `flashlight_off_outlined`, tooltips
     `captureTorchOn` / `captureTorchOff`).
@@ -187,12 +195,14 @@ draft has a non-empty description different from this one.
 | `captureErrorBody` | Could not start the camera. Check that no other app is using it and try again. |
 | `captureRetry` | Try again |
 | `captureLimit` | Up to {limit} photos per session (`limit` int) |
+| `captureFailed` | Could not take the photo. Try again. |
 | `tomogramApplyToAll` | Apply to all |
 | `tomogramApplyAllTitle` | Apply to all photos? |
 | `tomogramApplyAllBody` | This replaces the descriptions of the other photos. |
 
-Reused: `tomogramDiscardTitle`, `tomogramDiscardBody`, `commonDiscard`, `commonCancel`,
-`tomogramUploadError` (for a failed capture, with the generic failure text).
+Reused: `tomogramDiscardTitle`, `tomogramDiscardBody`, `commonDiscard`, `commonCancel`. A failed
+shot gets its own `captureFailed` rather than the generic `tomogramUploadError`: nothing was
+uploaded, and the user's next move is to press the shutter again.
 
 ## 7. Platform
 

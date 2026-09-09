@@ -11,7 +11,9 @@ import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 /// system back press to the ROOT navigator whenever the active branch navigator
 /// cannot pop, so a [PopScope] inside a branch page is never consulted. Off the
 /// first tab, back returns to it (react-navigation's `firstRoute` behaviour);
-/// on the first tab, back arms double-press-to-exit.
+/// on the first tab, back arms double-press-to-exit. Pages pushed on the root
+/// navigator instead — the capture screen — sit above this shell, so its
+/// [PopScope] is not consulted for them and each owns its own back handling.
 class AppShell extends StatefulWidget {
   const AppShell({super.key, required this.navigationShell});
 
