@@ -6,21 +6,24 @@ import 'package:hms_uploader/features/tomogram/application/media_picker_service.
 
 Future<MediaSource?> showAddSourceSheet(BuildContext context) {
   final l10n = context.l10n;
-  return showAppBottomSheet<MediaSource>(context, children: [
-    ListTile(
-      leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
-      title: Text(l10n.tomogramChooseGallery),
-      onTap: () => Navigator.of(context).pop(MediaSource.gallery),
-    ),
-    ListTile(
-      leading: const Icon(Icons.photo_camera_outlined, color: AppColors.primary),
-      title: Text(l10n.tomogramTakePhoto),
-      onTap: () => Navigator.of(context).pop(MediaSource.camera),
-    ),
-    const Divider(height: 1),
-    ListTile(
-      title: Text(l10n.commonCancel, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.dim)),
-      onTap: () => Navigator.of(context).pop(),
-    ),
-  ]);
+  return showAppBottomSheet<MediaSource>(
+    context,
+    builder: (sheet) => [
+      ListTile(
+        leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+        title: Text(l10n.tomogramChooseGallery),
+        onTap: () => Navigator.of(sheet).pop(MediaSource.gallery),
+      ),
+      ListTile(
+        leading: const Icon(Icons.photo_camera_outlined, color: AppColors.primary),
+        title: Text(l10n.tomogramTakePhoto),
+        onTap: () => Navigator.of(sheet).pop(MediaSource.camera),
+      ),
+      const Divider(height: 1),
+      ListTile(
+        title: Text(l10n.commonCancel, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.dim)),
+        onTap: () => Navigator.of(sheet).pop(),
+      ),
+    ],
+  );
 }
