@@ -163,6 +163,76 @@ void main() {
     expect(shots.any((p) => File(p).existsSync()), isFalse);
   });
 
+  test('stop releases the camera and keeps the shots', () async {
+    await capture().start();
+    await capture().shoot();
+    await capture().toggleTorch();
+    final shots = state().shots;
+
+    await capture().stop();
+
+    expect(state().status, CaptureStatus.starting);
+    expect(state().torch, isFalse);
+    expect(fake.stopCount, 1);
+    expect(state().shots, shots);
+    expect(shots.every((p) => File(p).existsSync()), isTrue);
+  });
+
+  test('the torch is ignored while the camera is not ready', () async {
+    await capture().toggleTorch();
+
+    expect(state().torch, isFalse);
+    expect(fake.torchCalls, isEmpty);
+  });
+
+  test('focus is forwarded only while the camera is ready', () async {
+    await capture().start();
+
+    await capture().focusAt(const Offset(0.25, 0.75));
+
+    expect(fake.focusCalls, [const Offset(0.25, 0.75)]);
+
+    await capture().stop();
+    await capture().focusAt(const Offset(0.5, 0.5));
+
+    expect(fake.focusCalls, [const Offset(0.25, 0.75)]);
+  });
+
+  test('the session holds one camera for its whole life', () async {
+    var created = 0;
+    var disposed = 0;
+    final linked = ProviderContainer(overrides: [
+      cameraServiceProvider.overrideWith((ref) {
+        created++;
+        ref.onDispose(() => disposed++);
+        return FakeCameraService(dir: dir);
+      }),
+    ]);
+    addTearDown(linked.dispose);
+    linked.listen(captureControllerProvider, (_, __) {});
+    final session = linked.read(captureControllerProvider.notifier);
+
+    // `pump` lets Riverpod run its pending auto-dispose pass between calls,
+    // as a frame does in the app: a provider merely `read` by the session
+    // (never watched) has no listener and would be torn down here.
+    await session.start();
+    await linked.pump();
+    await session.shoot();
+    await linked.pump();
+    await session.shoot();
+    await session.toggleTorch();
+    await linked.pump();
+
+    // The camera is a device, not a value: it must not be rebuilt (and the
+    // live one stopped) mid-session.
+    expect(created, 1);
+    expect(disposed, 0);
+
+    linked.dispose();
+
+    expect(disposed, 1);
+  });
+
   test('toggleTorch flips the torch and forwards it', () async {
     await capture().start();
 

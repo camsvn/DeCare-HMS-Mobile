@@ -44,16 +44,21 @@ class CaptureState {
 /// mirroring `TomogramController`, so a screen closed by the back gesture or a
 /// route change does not leave photos in the cache.
 class CaptureController extends AutoDisposeNotifier<CaptureState> {
+  /// Resolved once, in [build]. Reading `cameraServiceProvider` per call would
+  /// not do: `read` on an `autoDispose` provider that nothing listens to
+  /// schedules its disposal, so mid-session the app would build a second
+  /// `PluginCameraService` and stop the one holding the device.
+  late CameraService _camera;
+
   @override
   CaptureState build() {
+    _camera = ref.watch(cameraServiceProvider);
     ref.onDispose(() {
       final paths = state.shots;
       if (paths.isNotEmpty) deleteFiles(paths);
     });
     return const CaptureState();
   }
-
-  CameraService get _camera => ref.read(cameraServiceProvider);
 
   /// Opens the camera. A failure is reported as [CaptureStatus.failed] rather
   /// than thrown: the screen offers a retry, which is another [start].
@@ -72,7 +77,12 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   /// until a [start] re-opens the device, and the torch is off with it.
   Future<void> stop() async {
     state = state.copyWith(status: CaptureStatus.starting, torch: false);
-    await _camera.stop();
+    try {
+      await _camera.stop();
+    } catch (_) {
+      // ignore: the device is being handed back; there is nothing to recover
+      // and nothing the screen could tell the user to do about it.
+    }
   }
 
   /// Takes one photo. Returns false when the session cannot shoot (not ready,
@@ -91,19 +101,31 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
     }
   }
 
-  /// Drops one shot and deletes its file.
+  /// Drops one shot and deletes its file. Only the first match goes, so the
+  /// list and the one deleted file stay in step.
   Future<void> remove(String path) async {
-    state = state.copyWith(shots: state.shots.where((p) => p != path).toList());
+    final shots = List<String>.of(state.shots);
+    final index = shots.indexOf(path);
+    if (index < 0) return;
+    shots.removeAt(index);
+    state = state.copyWith(shots: shots);
     await deleteFiles([path]);
   }
 
+  /// Ignored until the camera is ready: there is no device to light up, and
+  /// the state must not claim a torch that is off.
   Future<void> toggleTorch() async {
+    if (state.status != CaptureStatus.ready) return;
     final on = !state.torch;
     state = state.copyWith(torch: on);
     await _camera.setTorch(on);
   }
 
-  Future<void> focusAt(Offset normalized) => _camera.focusAt(normalized);
+  /// Ignored until the camera is ready, for the same reason as [toggleTorch].
+  Future<void> focusAt(Offset normalized) async {
+    if (state.status != CaptureStatus.ready) return;
+    await _camera.focusAt(normalized);
+  }
 
   /// Abandons the session: every shot's file is deleted.
   Future<void> discardAll() async {

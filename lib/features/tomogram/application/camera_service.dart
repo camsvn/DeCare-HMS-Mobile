@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -47,6 +49,8 @@ class PluginCameraService implements CameraService {
   @override
   double get previewAspectRatio => isReady ? _controller!.value.aspectRatio : 1;
 
+  /// A failed `initialize` disposes its controller before the error leaves, so
+  /// a retry is not met with "camera in use" by the half-open one it left.
   @override
   Future<void> start() async {
     if (isReady) return;
@@ -64,7 +68,12 @@ class PluginCameraService implements CameraService {
       enableAudio: false,
       imageFormatGroup: ImageFormatGroup.jpeg,
     );
-    await controller.initialize();
+    try {
+      await controller.initialize();
+    } catch (_) {
+      await controller.dispose();
+      rethrow;
+    }
     await _tryOptional(() => controller.lockCaptureOrientation(DeviceOrientation.portraitUp));
     _controller = controller;
   }
@@ -89,8 +98,12 @@ class PluginCameraService implements CameraService {
 
   @override
   Future<void> focusAt(Offset normalized) async {
-    await _tryOptional(() => _controller!.setFocusPoint(normalized));
-    await _tryOptional(() => _controller!.setExposurePoint(normalized));
+    // Outside 0..1 the plugin throws `ArgumentError`, which is a programming
+    // error `_tryOptional` deliberately does not swallow: clamp instead of
+    // trusting the caller's hit-test arithmetic.
+    final point = Offset(normalized.dx.clamp(0.0, 1.0), normalized.dy.clamp(0.0, 1.0));
+    await _tryOptional(() => _controller!.setFocusPoint(point));
+    await _tryOptional(() => _controller!.setExposurePoint(point));
   }
 
   /// Runs a call the device may not support. Only the plugin's "cannot do
@@ -112,8 +125,8 @@ class PluginCameraService implements CameraService {
 /// the screen is gone, so the OS camera app (and the next screen) can have it.
 final cameraServiceProvider = Provider.autoDispose<CameraService>((ref) {
   final service = PluginCameraService();
-  ref.onDispose(() {
-    service.stop();
-  });
+  // Fire and forget, but never unhandled: a platform error while handing the
+  // device back must not escape a dispose callback into the zone handler.
+  ref.onDispose(() => unawaited(service.stop().catchError((Object _) {})));
   return service;
 });
