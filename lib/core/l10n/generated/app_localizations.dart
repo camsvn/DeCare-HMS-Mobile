@@ -289,6 +289,12 @@ abstract class AppLocalizations {
   /// **'Server unreachable'**
   String get dashboardUnreachable;
 
+  /// No description provided for @dashboardRecheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check connection again'**
+  String get dashboardRecheck;
+
   /// No description provided for @dashboardPending.
   ///
   /// In en, this message translates to:

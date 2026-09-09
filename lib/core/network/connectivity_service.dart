@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Whether the device has a network route at all. This says nothing about the
 /// HMS server being reachable — the upload attempt itself decides that — it
-/// only tells the queue when it is worth trying again.
+/// tells the upload queue when a retry is worth attempting and the dashboard
+/// when its health check should run again.
 abstract class ConnectivityService {
   Stream<bool> get onlineChanges;
   Future<bool> isOnline();

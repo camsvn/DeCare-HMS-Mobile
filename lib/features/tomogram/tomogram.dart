@@ -9,7 +9,8 @@ import 'package:hms_uploader/features/tomogram/presentation/tomogram_screen.dart
 import 'package:hms_uploader/features/tomogram/presentation/widgets/recent_count_badge.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-export 'application/connectivity_provider.dart';
+// Connectivity lives in core (the dashboard uses it too); re-exported for callers of this barrel.
+export 'package:hms_uploader/core/network/connectivity_service.dart';
 export 'application/media_picker_service.dart';
 export 'application/permission_gateway.dart';
 export 'application/tomogram_controller.dart';

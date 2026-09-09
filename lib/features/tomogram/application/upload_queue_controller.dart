@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/network/dio_client.dart';
-import 'package:hms_uploader/features/tomogram/application/connectivity_provider.dart';
+import 'package:hms_uploader/core/network/connectivity_service.dart';
 import 'package:hms_uploader/features/tomogram/application/tomogram_controller.dart';
 import 'package:hms_uploader/features/tomogram/application/tomogram_history_controller.dart';
 import 'package:hms_uploader/features/tomogram/data/pending_upload.dart';

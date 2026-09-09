@@ -113,6 +113,48 @@ void main() {
     expect(find.text('Server unreachable'), findsOneWidget);
   });
 
+  testWidgets('losing the network flips the strip to unreachable, regaining it re-checks', (tester) async {
+    await pumpDashboard(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Connected'), findsOneWidget);
+
+    connectivity.emit(false);
+    await tester.pumpAndSettle();
+    expect(find.text('Server unreachable'), findsOneWidget);
+    verify(() => api.check(any())).called(1);
+
+    connectivity.emit(true);
+    await tester.pumpAndSettle();
+    expect(find.text('Connected'), findsOneWidget);
+    verify(() => api.check(any())).called(1);
+  });
+
+  testWidgets('returning to the foreground re-runs the health check', (tester) async {
+    await pumpDashboard(tester);
+    await tester.pumpAndSettle();
+    verify(() => api.check(any())).called(1);
+
+    when(() => api.check(any())).thenThrow(Exception('down'));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(find.text('Server unreachable'), findsOneWidget);
+    verify(() => api.check(any())).called(1);
+  });
+
+  testWidgets('tapping the status re-runs the health check', (tester) async {
+    when(() => api.check(any())).thenThrow(Exception('down'));
+    await pumpDashboard(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Server unreachable'), findsOneWidget);
+
+    when(() => api.check(any())).thenAnswer((_) async {});
+    await tester.tap(find.byTooltip('Check connection again'));
+    await tester.pumpAndSettle();
+    expect(find.text('Connected'), findsOneWidget);
+    verify(() => api.check(any())).called(2);
+  });
+
   testWidgets('a module badge renders through the no-argument builder', (tester) async {
     await pumpApp(
       tester,

@@ -39,6 +39,7 @@
   "dashboardChecking": "Checking…",
   "dashboardConnected": "Connected",
   "dashboardUnreachable": "Server unreachable",
+  "dashboardRecheck": "Check connection again",
   "dashboardPending": "{count, plural, =1{1 pending} other{{count} pending}}",
   "@dashboardPending": {"placeholders": {"count": {"type": "int"}}},
 

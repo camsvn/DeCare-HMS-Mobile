@@ -110,6 +110,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardUnreachable => 'Server unreachable';
 
   @override
+  String get dashboardRecheck => 'Check connection again';
+
+  @override
   String dashboardPending(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

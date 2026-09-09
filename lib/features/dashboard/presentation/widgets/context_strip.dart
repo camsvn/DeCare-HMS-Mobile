@@ -10,11 +10,39 @@ import 'package:hms_uploader/features/tomogram/tomogram.dart';
 
 /// Navy strip under the app bar: server host, username, queued uploads,
 /// connection dot.
-class ContextStrip extends ConsumerWidget {
+///
+/// The reachability check re-runs when the app returns to the foreground and
+/// when the status is tapped; connectivity changes are handled by the
+/// controller itself.
+class ContextStrip extends ConsumerStatefulWidget {
   const ContextStrip({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ContextStrip> createState() => _ContextStripState();
+}
+
+class _ContextStripState extends ConsumerState<ContextStrip> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _recheck();
+  }
+
+  void _recheck() => ref.read(connectionStatusProvider.notifier).refresh();
+
+  @override
+  Widget build(BuildContext context) {
     final ds = context.ds;
     final type = context.dsType;
     final l10n = context.l10n;
@@ -57,9 +85,25 @@ class ContextStrip extends ConsumerWidget {
             ),
             const SizedBox(width: DsSpace.x3),
           ],
-          DsStatusDot(ok: ok, color: checking ? ds.textOnShellMuted : null),
-          const SizedBox(width: DsSpace.x2),
-          Text(statusLabel, style: type.label.withColor(ds.textOnShellMuted)),
+          // Tappable so a doubtful reading can be re-checked on the spot.
+          Tooltip(
+            message: l10n.dashboardRecheck,
+            child: InkWell(
+              onTap: checking ? null : _recheck,
+              borderRadius: BorderRadius.circular(DsRadius.full),
+              child: Padding(
+                padding: const EdgeInsets.all(DsSpace.x1),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DsStatusDot(ok: ok, color: checking ? ds.textOnShellMuted : null),
+                    const SizedBox(width: DsSpace.x2),
+                    Text(statusLabel, style: type.label.withColor(ds.textOnShellMuted)),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
