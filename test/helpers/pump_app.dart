@@ -6,6 +6,8 @@ import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/l10n/generated/app_localizations.dart';
 
 Future<void> pumpApp(WidgetTester tester, Widget child, {List<Override> overrides = const []}) async {
+  // The banner queue is a singleton; drop anything a previous test left in it.
+  resetDsBannersForTest();
   await tester.pumpWidget(
     ProviderScope(
       overrides: overrides,

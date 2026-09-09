@@ -14,12 +14,23 @@ void showDsBanner(BuildContext context, String message, {DsBannerKind kind = DsB
   _DsBannerQueue.instance.enqueue(Overlay.of(context, rootOverlay: true), message, kind);
 }
 
+/// The queue is a process-wide singleton, so a banner left mid-flight by one
+/// test would suppress the next test's banners. Widget tests reset it first.
+@visibleForTesting
+void resetDsBannersForTest() => _DsBannerQueue.instance.resetForTest();
+
 class _DsBannerQueue {
   _DsBannerQueue._();
   static final instance = _DsBannerQueue._();
 
   final Queue<(OverlayState, String, DsBannerKind)> _pending = Queue();
   bool _showing = false;
+
+  @visibleForTesting
+  void resetForTest() {
+    _pending.clear();
+    _showing = false;
+  }
 
   void enqueue(OverlayState overlay, String message, DsBannerKind kind) {
     _pending.add((overlay, message, kind));
