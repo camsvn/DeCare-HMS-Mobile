@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/navigation/route_paths.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
-import 'package:hms_uploader/core/theme/app_spacing.dart';
-import 'package:hms_uploader/core/theme/app_text_styles.dart';
-import 'package:hms_uploader/core/widgets/app_buttons.dart';
-import 'package:hms_uploader/core/widgets/app_text_field.dart';
 import 'package:hms_uploader/core/widgets/exit_on_double_back.dart';
-import 'package:hms_uploader/core/widgets/flash_banner.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/server_config/application/server_config_controller.dart';
 
@@ -21,6 +17,7 @@ class ConfigureUrlScreen extends ConsumerStatefulWidget {
 
 class _ConfigureUrlScreenState extends ConsumerState<ConfigureUrlScreen> {
   final _controller = TextEditingController();
+  String? _fieldError;
 
   @override
   void dispose() {
@@ -41,9 +38,10 @@ class _ConfigureUrlScreenState extends ConsumerState<ConfigureUrlScreen> {
       if (next.hasError) {
         final error = next.error;
         if (error is InvalidServerUrlException) {
-          showFlash(context, l10n.configureUrlInvalid, type: FlashType.warning);
+          setState(() => _fieldError = l10n.configureUrlInvalidField);
+          showDsBanner(context, l10n.configureUrlInvalid, kind: DsBannerKind.warning);
         } else if (error is ApiFailure) {
-          showFlash(context, l10n.configureUrlHostError(error.describe(l10n)), type: FlashType.danger);
+          showDsBanner(context, l10n.configureUrlHostError(error.describe(l10n)), kind: DsBannerKind.danger);
         }
         return;
       }
@@ -58,32 +56,27 @@ class _ConfigureUrlScreenState extends ConsumerState<ConfigureUrlScreen> {
     final connecting = ref.watch(serverConfigControllerProvider).isLoading;
 
     return ExitOnDoubleBack(
-      child: Scaffold(
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: AppSpacing.xl),
-                Image.asset('assets/images/installation_url.png', height: 220, fit: BoxFit.contain),
-                const SizedBox(height: AppSpacing.lg),
-                Text(l10n.configureUrlTitle, style: AppTextStyles.header, textAlign: TextAlign.center),
-                const SizedBox(height: AppSpacing.xs),
-                Text(l10n.configureUrlBody, style: AppTextStyles.fieldLabel, textAlign: TextAlign.center),
-                const SizedBox(height: AppSpacing.lg),
-                AppTextField(
-                  controller: _controller,
-                  hint: l10n.configureUrlPlaceholder,
-                  keyboardType: TextInputType.url,
-                  textInputAction: TextInputAction.go,
-                  onSubmitted: (_) => _connect(),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                PrimaryButton(label: l10n.configureUrlConnect, loading: connecting, onPressed: _connect),
-              ],
+      child: DsOnboardingScaffold(
+        card: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.configureUrlHeading, style: context.dsType.heading),
+            const SizedBox(height: DsSpace.x1),
+            Text(l10n.configureUrlBody, style: context.dsType.body.withColor(context.ds.textSecondary)),
+            const SizedBox(height: DsSpace.x5),
+            DsTextField(
+              controller: _controller,
+              hint: l10n.configureUrlPlaceholder,
+              errorText: _fieldError,
+              prefix: const Icon(Icons.link, size: 20),
+              keyboardType: TextInputType.url,
+              textInputAction: TextInputAction.go,
+              onChanged: (_) => setState(() => _fieldError = null),
+              onSubmitted: (_) => _connect(),
             ),
-          ),
+            const SizedBox(height: DsSpace.x4),
+            DsButton.primary(label: l10n.configureUrlConnect, loading: connecting, onPressed: _connect),
+          ],
         ),
       ),
     );

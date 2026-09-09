@@ -26,7 +26,7 @@ void main() {
       healthCheckApiProvider.overrideWithValue(api),
     ]);
     await tester.pumpAndSettle();
-    expect(find.text('Installation URL'), findsOneWidget);
+    expect(find.text('Connect to your server'), findsOneWidget);
     expect(find.text('Connect'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'not a url');
@@ -34,6 +34,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Invalid URL: Please provide a valid URL'), findsOneWidget);
+    expect(find.text('Enter a valid server address'), findsOneWidget);
     verifyNever(() => api.check(any()));
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
@@ -93,7 +94,7 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    expect(find.text('Installation URL'), findsOneWidget);
+    expect(find.text('Connect to your server'), findsOneWidget);
     // The saved URL is re-entered verbatim, so the controller's value never
     // changes; only the loading-to-data transition marks the connect as done.
     await tester.enterText(find.byType(TextField), 'http://decare.team');

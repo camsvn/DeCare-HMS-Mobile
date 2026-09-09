@@ -22,17 +22,20 @@
   "errorInvalidCredentials": "Invalid username or password",
 
   "configureUrlTitle": "Installation URL",
+  "configureUrlHeading": "Connect to your server",
   "configureUrlBody": "Input server URL of your self-hosted DeCare-HMS installation.",
   "configureUrlPlaceholder": "Eg: http://your-hms-server-url.com",
   "configureUrlConnect": "Connect",
   "configureUrlInvalid": "Invalid URL: Please provide a valid URL",
+  "configureUrlInvalidField": "Enter a valid server address",
   "configureUrlHostError": "Host: {message}",
   "@configureUrlHostError": {"placeholders": {"message": {"type": "String"}}},
 
+  "loginHeading": "Sign in",
   "loginUsername": "Username",
   "loginPassword": "Password",
   "loginSignIn": "Sign In",
-  "loginChangeUrl": "Change URL",
+  "loginChangeUrl": "Change server",
   "loginError": "Login: {message}",
   "@loginError": {"placeholders": {"message": {"type": "String"}}},
 

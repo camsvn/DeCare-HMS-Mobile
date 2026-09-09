@@ -15,6 +15,7 @@ export 'widgets/ds_empty_state.dart';
 export 'widgets/ds_fab.dart';
 export 'widgets/ds_icon_tile.dart';
 export 'widgets/ds_list_row.dart';
+export 'widgets/ds_onboarding_scaffold.dart';
 export 'widgets/ds_progress_bar.dart';
 export 'widgets/ds_sheet.dart';
 export 'widgets/ds_skeleton.dart';

@@ -211,6 +211,12 @@ abstract class AppLocalizations {
   /// **'Installation URL'**
   String get configureUrlTitle;
 
+  /// No description provided for @configureUrlHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect to your server'**
+  String get configureUrlHeading;
+
   /// No description provided for @configureUrlBody.
   ///
   /// In en, this message translates to:
@@ -235,11 +241,23 @@ abstract class AppLocalizations {
   /// **'Invalid URL: Please provide a valid URL'**
   String get configureUrlInvalid;
 
+  /// No description provided for @configureUrlInvalidField.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid server address'**
+  String get configureUrlInvalidField;
+
   /// No description provided for @configureUrlHostError.
   ///
   /// In en, this message translates to:
   /// **'Host: {message}'**
   String configureUrlHostError(String message);
+
+  /// No description provided for @loginHeading.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get loginHeading;
 
   /// No description provided for @loginUsername.
   ///
@@ -262,7 +280,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginChangeUrl.
   ///
   /// In en, this message translates to:
-  /// **'Change URL'**
+  /// **'Change server'**
   String get loginChangeUrl;
 
   /// No description provided for @loginError.

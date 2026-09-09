@@ -65,6 +65,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get configureUrlTitle => 'Installation URL';
 
   @override
+  String get configureUrlHeading => 'Connect to your server';
+
+  @override
   String get configureUrlBody => 'Input server URL of your self-hosted DeCare-HMS installation.';
 
   @override
@@ -77,9 +80,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get configureUrlInvalid => 'Invalid URL: Please provide a valid URL';
 
   @override
+  String get configureUrlInvalidField => 'Enter a valid server address';
+
+  @override
   String configureUrlHostError(String message) {
     return 'Host: $message';
   }
+
+  @override
+  String get loginHeading => 'Sign in';
 
   @override
   String get loginUsername => 'Username';
@@ -91,7 +100,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginSignIn => 'Sign In';
 
   @override
-  String get loginChangeUrl => 'Change URL';
+  String get loginChangeUrl => 'Change server';
 
   @override
   String loginError(String message) {

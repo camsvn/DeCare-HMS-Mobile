@@ -64,7 +64,7 @@ void main() {
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
-    expect(find.text('Installation URL'), findsOneWidget);
+    expect(find.text('Connect to your server'), findsOneWidget);
   });
 
   testWidgets('starts on login when url but no session', (tester) async {
