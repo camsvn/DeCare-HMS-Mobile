@@ -70,6 +70,13 @@
   "tomogramDiscardBody": "The photos you added will be removed.",
   "tomogramCounter": "{index} of {total}",
   "@tomogramCounter": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
+  "tomogramHistoryTitle": "Already uploaded",
+  "tomogramHistoryCount": "{count, plural, =1{1 set} other{{count} sets}}",
+  "@tomogramHistoryCount": {"placeholders": {"count": {"type": "int"}}},
+  "tomogramHistoryLast": "Last {date}",
+  "@tomogramHistoryLast": {"placeholders": {"date": {"type": "String"}}},
+  "tomogramHistoryError": "Could not load history",
+  "tomogramHistoryNoNarration": "No description",
 
   "permissionTitleBar": "Permission",
   "permissionTitle": "Grant Permission to access {name}",

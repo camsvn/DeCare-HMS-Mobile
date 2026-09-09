@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/utils/temp_files.dart';
+import 'package:hms_uploader/features/tomogram/application/tomogram_history_controller.dart';
 import 'package:hms_uploader/features/tomogram/data/tomogram_api.dart';
 import 'package:hms_uploader/features/tomogram/data/tomogram_draft.dart';
 import 'package:uuid/uuid.dart';
@@ -68,6 +69,9 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
       throw ApiFailure.from(e);
     }
     state = const TomogramState();
+    // The patient now has one more uploaded set; drop the cached history so the
+    // screen's history card reflects the upload.
+    ref.invalidate(tomogramHistoryProvider(arg));
     await deleteFiles(drafts.map((d) => d.filePath));
   }
 }

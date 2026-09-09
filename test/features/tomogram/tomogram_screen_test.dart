@@ -16,12 +16,15 @@ class MockTomogramApi extends Mock implements TomogramApi {}
 
 class MockMediaPickerService extends Mock implements MediaPickerService {}
 
+class MockTomogramHistoryApi extends Mock implements TomogramHistoryApi {}
+
 const jane = Patient(id: 1, opid: 42, name: 'Jane Doe');
 
 void main() {
   late Directory dir;
   late MockTomogramApi api;
   late MockMediaPickerService picker;
+  late MockTomogramHistoryApi history;
 
   setUpAll(() => registerFallbackValue(MediaSource.gallery));
 
@@ -29,7 +32,9 @@ void main() {
     dir = await Directory.systemTemp.createTemp('tomo_screen');
     api = MockTomogramApi();
     picker = MockMediaPickerService();
+    history = MockTomogramHistoryApi();
     when(() => picker.deniedPermissions(any())).thenAnswer((_) async => []);
+    when(() => history.list(any())).thenAnswer((_) async => const []);
   });
   tearDown(() => dir.delete(recursive: true));
 
@@ -43,6 +48,7 @@ void main() {
         overrides: [
           tomogramApiProvider.overrideWithValue(api),
           mediaPickerServiceProvider.overrideWithValue(picker),
+          tomogramHistoryApiProvider.overrideWithValue(history),
           uuidProvider.overrideWithValue(() => 'id'),
         ],
       );
@@ -191,5 +197,42 @@ void main() {
     await tester.tap(find.text('Take Photo'));
     await tester.pumpAndSettle();
     verifyNever(() => picker.pick(any()));
+  });
+
+  testWidgets('history sits above the empty state and reloads after an upload', (tester) async {
+    final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
+    when(() => history.list(42)).thenAnswer((_) async => [
+          TomogramSet(
+            id: 9,
+            dateTime: DateTime(2026, 9, 8, 14, 32),
+            doctorId: 1,
+            tomogramTypeId: 1,
+            details: const [TomogramSetDetail(id: 1, tomogramPartId: 1, narration: 'scalp')],
+          ),
+        ]);
+    when(() => picker.pick(MediaSource.camera))
+        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
+    when(() => api.upload(42, any())).thenAnswer((_) async => const []);
+
+    await pump(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Already uploaded'), findsOneWidget);
+    expect(find.text('1 set'), findsOneWidget);
+    expect(
+      tester.getCenter(find.text('Already uploaded')).dy,
+      lessThan(tester.getCenter(find.text('There is no tomogram added.')).dy),
+    );
+
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take Photo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upload'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Tomogram: Uploaded'), findsOneWidget);
+    verify(() => history.list(42)).called(2);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
   });
 }

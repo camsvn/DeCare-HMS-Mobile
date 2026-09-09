@@ -11,11 +11,15 @@ import 'package:permission_handler/permission_handler.dart';
 export 'application/media_picker_service.dart';
 export 'application/permission_gateway.dart';
 export 'application/tomogram_controller.dart';
+export 'application/tomogram_history_controller.dart';
 export 'data/tomogram_api.dart';
 export 'data/tomogram_draft.dart';
+export 'data/tomogram_history_api.dart';
+export 'data/tomogram_set.dart';
 export 'data/upload_result.dart';
 export 'presentation/permission_screen.dart';
 export 'presentation/tomogram_screen.dart';
+export 'presentation/widgets/tomogram_history_card.dart';
 
 /// `/app/tomogram/:opid`, nested under the module entry route.
 final GoRoute tomogramDetailRoute = GoRoute(

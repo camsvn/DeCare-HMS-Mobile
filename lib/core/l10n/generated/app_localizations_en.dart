@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 /// The translations for English (`en`).
@@ -186,6 +188,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String tomogramCounter(int index, int total) {
     return '$index of $total';
   }
+
+  @override
+  String get tomogramHistoryTitle => 'Already uploaded';
+
+  @override
+  String tomogramHistoryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sets',
+      one: '1 set',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String tomogramHistoryLast(String date) {
+    return 'Last $date';
+  }
+
+  @override
+  String get tomogramHistoryError => 'Could not load history';
+
+  @override
+  String get tomogramHistoryNoNarration => 'No description';
 
   @override
   String get permissionTitleBar => 'Permission';

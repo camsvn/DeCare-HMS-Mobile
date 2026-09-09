@@ -433,6 +433,36 @@ abstract class AppLocalizations {
   /// **'{index} of {total}'**
   String tomogramCounter(int index, int total);
 
+  /// No description provided for @tomogramHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Already uploaded'**
+  String get tomogramHistoryTitle;
+
+  /// No description provided for @tomogramHistoryCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 set} other{{count} sets}}'**
+  String tomogramHistoryCount(int count);
+
+  /// No description provided for @tomogramHistoryLast.
+  ///
+  /// In en, this message translates to:
+  /// **'Last {date}'**
+  String tomogramHistoryLast(String date);
+
+  /// No description provided for @tomogramHistoryError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load history'**
+  String get tomogramHistoryError;
+
+  /// No description provided for @tomogramHistoryNoNarration.
+  ///
+  /// In en, this message translates to:
+  /// **'No description'**
+  String get tomogramHistoryNoNarration;
+
   /// No description provided for @permissionTitleBar.
   ///
   /// In en, this message translates to:

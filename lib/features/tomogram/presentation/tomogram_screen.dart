@@ -11,6 +11,7 @@ import 'package:hms_uploader/features/tomogram/application/media_picker_service.
 import 'package:hms_uploader/features/tomogram/application/tomogram_controller.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/add_source_sheet.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_card.dart';
+import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_history_card.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class TomogramScreen extends ConsumerStatefulWidget {
@@ -130,6 +131,8 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
         body: Column(
           children: [
             if (state.uploading) const DsProgressBar(),
+            // Collapses to nothing when the patient has no uploads yet.
+            if (_opid > 0) TomogramHistoryCard(opid: _opid),
             Expanded(
               child: drafts.isEmpty
                   ? DsEmptyState(
