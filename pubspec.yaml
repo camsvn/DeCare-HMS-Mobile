@@ -24,7 +24,9 @@ dependencies:
   flutter_svg: ^2.0.10
   flutter_native_splash: ^2.4.0
   package_info_plus: ^8.0.2
-  connectivity_plus: ^7.3.1
+  # 7.x reads `flutter.compileSdkVersion` from the Flutter Gradle plugin,
+  # which Flutter 3.19 does not provide; 6.x exposes the same Dart API.
+  connectivity_plus: ^6.1.5
   path_provider: ^2.1.0
 
 dev_dependencies:
