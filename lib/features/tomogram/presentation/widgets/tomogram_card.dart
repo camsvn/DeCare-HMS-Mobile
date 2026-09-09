@@ -6,7 +6,8 @@ import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/tomogram/data/tomogram_draft.dart';
 
 /// One draft photo: 16:10 preview with a mono "n of total" chip and a
-/// destructive delete, plus the description field.
+/// destructive delete, plus the description field and — when there is more
+/// than one photo — an "Apply to all" shortcut under it.
 class TomogramCard extends StatefulWidget {
   const TomogramCard({
     super.key,
@@ -15,6 +16,7 @@ class TomogramCard extends StatefulWidget {
     required this.total,
     required this.onDelete,
     required this.onDescriptionChanged,
+    this.onApplyToAll,
   });
 
   final TomogramDraft draft;
@@ -23,12 +25,28 @@ class TomogramCard extends StatefulWidget {
   final VoidCallback onDelete;
   final ValueChanged<String> onDescriptionChanged;
 
+  /// Copies this photo's description onto the others. Null hides the button,
+  /// which is what a single-photo list wants.
+  final VoidCallback? onApplyToAll;
+
   @override
   State<TomogramCard> createState() => _TomogramCardState();
 }
 
 class _TomogramCardState extends State<TomogramCard> {
   late final TextEditingController _controller = TextEditingController(text: widget.draft.description);
+
+  /// "Apply to all" rewrites the draft from outside this card, so the field has
+  /// to follow. Only a change in the draft moves the controller: while the user
+  /// is typing the two already agree, so their cursor is left alone.
+  @override
+  void didUpdateWidget(TomogramCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final description = widget.draft.description;
+    if (description != oldWidget.draft.description && description != _controller.text) {
+      _controller.text = description;
+    }
+  }
 
   @override
   void dispose() {
@@ -100,6 +118,11 @@ class _TomogramCardState extends State<TomogramCard> {
             keyboardType: TextInputType.multiline,
             onChanged: widget.onDescriptionChanged,
           ),
+          if (widget.onApplyToAll != null)
+            Align(
+              alignment: Alignment.centerRight,
+              child: DsButton.ghost(label: l10n.tomogramApplyToAll, onPressed: widget.onApplyToAll),
+            ),
         ],
       ),
     );

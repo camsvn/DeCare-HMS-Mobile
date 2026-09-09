@@ -8,6 +8,7 @@ import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
+import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_card.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:mocktail/mocktail.dart';
@@ -57,10 +58,12 @@ void main() {
   Future<void> pump(
     WidgetTester tester, {
     void Function(List<Permission> denied)? onPermissionsDenied,
+    Future<List<String>?> Function(BuildContext context)? onCapture,
+    String Function()? uuid,
   }) =>
       pumpApp(
         tester,
-        TomogramScreen(patient: jane, onPermissionsDenied: onPermissionsDenied),
+        TomogramScreen(patient: jane, onPermissionsDenied: onPermissionsDenied, onCapture: onCapture),
         overrides: [
           tomogramApiProvider.overrideWithValue(api),
           mediaPickerServiceProvider.overrideWithValue(picker),
@@ -68,7 +71,7 @@ void main() {
           sharedPreferencesProvider.overrideWithValue(prefs),
           appDocumentsDirProvider.overrideWithValue(docs),
           connectivityServiceProvider.overrideWithValue(connectivity),
-          uuidProvider.overrideWithValue(() => 'id'),
+          uuidProvider.overrideWithValue(uuid ?? () => 'id'),
           // The queue only runs for a signed-in user.
           accessTokenProvider.overrideWithValue('test-token'),
         ],
@@ -79,6 +82,42 @@ void main() {
 
   List<PendingUpload> queueOf(WidgetTester tester) =>
       containerOf(tester).read(uploadQueueProvider).valueOrNull ?? const [];
+
+  /// Distinct draft ids, so two photos are two cards rather than one key clash.
+  String Function() ids() {
+    var n = 0;
+    return () => 'id${++n}';
+  }
+
+  /// Two cards do not fit the default 800x600 surface, which would leave the
+  /// second card unbuilt and the first card's "Apply to all" off-screen. Only
+  /// the height changes: a narrower surface would overflow the dialog's buttons
+  /// under the test font, whose glyphs are all em squares.
+  void tallSurface(WidgetTester tester) {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  String descriptionAt(WidgetTester tester, int i) =>
+      tester.widget<TextField>(find.byType(TextField).at(i)).controller!.text;
+
+  Finder applyToAllOn(int card) =>
+      find.descendant(of: find.byType(TomogramCard).at(card), matching: find.text('Apply to all'));
+
+  File jpeg(String name) => File('${dir.path}/$name')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
+
+  /// Captures two photos through the injected capture route.
+  Future<void> pumpTwoDrafts(WidgetTester tester) async {
+    tallSurface(tester);
+    final paths = [jpeg('a.jpg').path, jpeg('b.jpg').path];
+    await pump(tester, uuid: ids(), onCapture: (_) async => paths);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take Photo'));
+    await tester.pumpAndSettle();
+  }
 
   testWidgets('shows patient name, OP chip and empty state', (tester) async {
     await pump(tester);
@@ -91,7 +130,7 @@ void main() {
 
   testWidgets('plus opens the sheet; gallery pick adds a card and enables upload', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
-    when(() => picker.pick(MediaSource.gallery))
+    when(() => picker.pickFromGallery())
         .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 1));
     await pump(tester);
     await tester.tap(find.byIcon(Icons.add));
@@ -111,7 +150,7 @@ void main() {
 
   testWidgets('over-limit gallery picks are reported instead of dropped silently', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
-    when(() => picker.pick(MediaSource.gallery))
+    when(() => picker.pickFromGallery())
         .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0, overLimit: 1));
     await pump(tester);
     await tester.tap(find.byIcon(Icons.add));
@@ -126,10 +165,8 @@ void main() {
 
   testWidgets('upload success flashes and clears drafts', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
-    when(() => picker.pick(MediaSource.camera))
-        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
     when(() => api.upload(42, any())).thenAnswer((_) async => const []);
-    await pump(tester);
+    await pump(tester, onCapture: (_) async => [f.path]);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -147,11 +184,9 @@ void main() {
 
   testWidgets('an upload in flight shows the progress bar and disables Upload', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
-    when(() => picker.pick(MediaSource.camera))
-        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
     final gate = Completer<List<UploadResult>>();
     when(() => api.upload(42, any())).thenAnswer((_) => gate.future);
-    await pump(tester);
+    await pump(tester, onCapture: (_) async => [f.path]);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -173,10 +208,8 @@ void main() {
 
   testWidgets('a rejected upload flashes the error, keeps the card and does not queue', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
-    when(() => picker.pick(MediaSource.camera))
-        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
     when(() => api.upload(any(), any())).thenThrow(const RejectedFailure('Image too large'));
-    await pump(tester);
+    await pump(tester, onCapture: (_) async => [f.path]);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -193,9 +226,7 @@ void main() {
 
   testWidgets('back with drafts asks to discard and clears them on confirm', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
-    when(() => picker.pick(MediaSource.camera))
-        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
-    await pump(tester);
+    await pump(tester, onCapture: (_) async => [f.path]);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -217,14 +248,25 @@ void main() {
     expect(find.text('There is no tomogram added.'), findsOneWidget);
   });
 
-  testWidgets('denied permission navigates away instead of picking', (tester) async {
+  testWidgets('denied camera permission navigates away instead of capturing', (tester) async {
     when(() => picker.deniedPermissions(MediaSource.camera)).thenAnswer((_) async => [Permission.camera]);
-    await pump(tester, onPermissionsDenied: (_) {});
+    var denied = <Permission>[];
+    var captures = 0;
+    await pump(
+      tester,
+      onPermissionsDenied: (d) => denied = d,
+      onCapture: (_) async {
+        captures++;
+        return null;
+      },
+    );
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
     await tester.pumpAndSettle();
-    verifyNever(() => picker.pick(any()));
+    expect(denied, [Permission.camera]);
+    expect(captures, 0);
+    verifyNever(() => picker.pickFromGallery());
   });
 
   testWidgets('history sits above the empty state and reloads after an upload', (tester) async {
@@ -238,11 +280,9 @@ void main() {
             details: const [TomogramSetDetail(id: 1, tomogramPartId: 1, narration: 'scalp')],
           ),
         ]);
-    when(() => picker.pick(MediaSource.camera))
-        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
     when(() => api.upload(42, any())).thenAnswer((_) async => const []);
 
-    await pump(tester);
+    await pump(tester, onCapture: (_) async => [f.path]);
     await tester.pumpAndSettle();
     expect(find.text('Already uploaded'), findsOneWidget);
     expect(find.text('1 set'), findsOneWidget);
@@ -266,10 +306,8 @@ void main() {
 
   testWidgets('a connection failure queues the photos, clears the drafts and says so', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
-    when(() => picker.pick(MediaSource.camera))
-        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
     when(() => api.upload(any(), any())).thenThrow(const CannotConnectFailure());
-    await pump(tester);
+    await pump(tester, onCapture: (_) async => [f.path]);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -297,10 +335,8 @@ void main() {
 
   testWidgets('a timeout queues the photos too', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
-    when(() => picker.pick(MediaSource.camera))
-        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
     when(() => api.upload(any(), any())).thenThrow(const TimeoutFailure());
-    await pump(tester);
+    await pump(tester, onCapture: (_) async => [f.path]);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -396,10 +432,8 @@ void main() {
 
   testWidgets('a staging failure reports the upload error and keeps the drafts', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
-    when(() => picker.pick(MediaSource.camera))
-        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
     when(() => api.upload(any(), any())).thenThrow(const CannotConnectFailure());
-    await pump(tester);
+    await pump(tester, onCapture: (_) async => [f.path]);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -418,5 +452,89 @@ void main() {
     expect(Directory('${docs.path}/pending/id').existsSync(), isFalse);
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('Take Photo hands off to the capture route and adds what it returns', (tester) async {
+    tallSurface(tester);
+    final paths = [jpeg('a.jpg').path, jpeg('b.jpg').path];
+    var captures = 0;
+    await pump(
+      tester,
+      uuid: ids(),
+      onCapture: (_) async {
+        captures++;
+        return paths;
+      },
+    );
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take Photo'));
+    await tester.pumpAndSettle();
+
+    expect(captures, 1);
+    expect(find.byType(TomogramCard), findsNWidgets(2));
+    expect(find.text('2 of 2'), findsOneWidget);
+    expect(find.text('Upload'), findsOneWidget);
+    // Capturing no longer goes anywhere near the system picker.
+    verifyNever(() => picker.pickFromGallery());
+  });
+
+  testWidgets('a discarded capture leaves the empty state in place', (tester) async {
+    await pump(tester, onCapture: (_) async => null);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take Photo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TomogramCard), findsNothing);
+    expect(find.text('There is no tomogram added.'), findsOneWidget);
+    expect(find.text('Upload'), findsNothing);
+  });
+
+  testWidgets('a single photo has nothing to apply its description to', (tester) async {
+    await pump(tester, onCapture: (_) async => [jpeg('a.jpg').path]);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take Photo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TomogramCard), findsOneWidget);
+    expect(find.text('Apply to all'), findsNothing);
+  });
+
+  testWidgets('Apply to all copies one description onto the other photo', (tester) async {
+    await pumpTwoDrafts(tester);
+    expect(find.text('Apply to all'), findsNWidgets(2));
+
+    await tester.enterText(find.byType(TextField).at(0), 'left arm');
+    await tester.pump();
+    await tester.tap(applyToAllOn(0));
+    await tester.pumpAndSettle();
+
+    // Nothing would be overwritten, so it applies without asking.
+    expect(find.text('Apply to all photos?'), findsNothing);
+    expect(descriptionAt(tester, 0), 'left arm');
+    expect(descriptionAt(tester, 1), 'left arm');
+  });
+
+  testWidgets('replacing another description asks first', (tester) async {
+    await pumpTwoDrafts(tester);
+    await tester.enterText(find.byType(TextField).at(0), 'left arm');
+    await tester.enterText(find.byType(TextField).at(1), 'other');
+    await tester.pump();
+
+    await tester.tap(applyToAllOn(0));
+    await tester.pumpAndSettle();
+    expect(find.text('Apply to all photos?'), findsOneWidget);
+    expect(find.text('This replaces the descriptions of the other photos.'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(descriptionAt(tester, 1), 'other');
+
+    await tester.tap(applyToAllOn(0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: find.byType(Dialog), matching: find.text('Apply to all')));
+    await tester.pumpAndSettle();
+    expect(descriptionAt(tester, 1), 'left arm');
   });
 }

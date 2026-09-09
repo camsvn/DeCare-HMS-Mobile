@@ -168,6 +168,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramDescription => 'Description';
 
   @override
+  String get tomogramApplyToAll => 'Apply to all';
+
+  @override
+  String get tomogramApplyAllTitle => 'Apply to all photos?';
+
+  @override
+  String get tomogramApplyAllBody => 'This replaces the descriptions of the other photos.';
+
+  @override
   String get tomogramEmptyTitle => 'There is no tomogram added.';
 
   @override

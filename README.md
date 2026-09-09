@@ -1,8 +1,12 @@
 # DeCare HMS (Flutter)
 
 Companion uploader for a self-hosted DeCare HMS installation. Staff configure the
-server URL, log in, look up a patient by OP number, attach JPEG tomograms with
-narrations and upload them. Flutter port of the React Native `HMSUploader` app.
+server URL, log in and look up a patient by OP number, then attach tomograms: a
+burst of photos taken in the in-app capture screen, or up to two JPEGs picked
+from the gallery. Each photo carries its own description, with "Apply to all" to
+copy one description across the set, and the whole set uploads together (or is
+queued when the server is unreachable). Flutter port of the React Native
+`HMSUploader` app.
 
 ## Requirements
 

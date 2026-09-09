@@ -50,6 +50,18 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
     );
   }
 
+  /// Copies draft [id]'s description onto every draft. Photos of the same area
+  /// usually share one narration, so the screen offers this instead of asking
+  /// the user to retype it per photo. Unknown ids leave the drafts untouched.
+  void applyDescriptionToAll(String id) {
+    final source = state.drafts.where((d) => d.id == id).toList();
+    if (source.isEmpty) return;
+    final description = source.first.description;
+    state = state.copyWith(
+      drafts: [for (final d in state.drafts) d.copyWith(description: description)],
+    );
+  }
+
   Future<void> clearAll() async {
     final paths = state.drafts.map((d) => d.filePath).toList();
     state = state.copyWith(drafts: const []);

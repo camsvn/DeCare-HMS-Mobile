@@ -4,14 +4,18 @@ import 'package:hms_uploader/features/tomogram/application/permission_gateway.da
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+/// What the add sheet offers. `camera` goes to the in-app capture screen, so
+/// this service only ever reaches the gallery — it still gates the camera
+/// permission, which the capture screen needs before it can open.
 enum MediaSource { camera, gallery }
 
 /// The React Native app allowed two gallery images per pick.
 const int galleryPickLimit = 2;
 
-/// Captures and gallery picks are downscaled to fit this box and re-encoded as
-/// JPEG at [pickerQuality]: a 12 MP phone photo is several megabytes, which is
-/// a slow upload on clinic wifi and larger than the record needs.
+/// Gallery picks are downscaled to fit this box and re-encoded as JPEG at
+/// [pickerQuality]: a 12 MP phone photo is several megabytes, which is a slow
+/// upload on clinic wifi and larger than the record needs. In-app captures are
+/// sized by the camera's resolution preset instead.
 const double pickerMaxDimension = 2000;
 const int pickerQuality = 85;
 
@@ -33,7 +37,7 @@ class MediaPickResult {
 abstract class MediaPickerService {
   List<Permission> permissionsFor(MediaSource source);
   Future<List<Permission>> deniedPermissions(MediaSource source);
-  Future<MediaPickResult> pick(MediaSource source);
+  Future<MediaPickResult> pickFromGallery();
 }
 
 class DefaultMediaPickerService implements MediaPickerService {
@@ -66,27 +70,16 @@ class DefaultMediaPickerService implements MediaPickerService {
   }
 
   @override
-  Future<MediaPickResult> pick(MediaSource source) async {
-    final files = switch (source) {
-      MediaSource.camera => [
-          await _picker.pickImage(
-            source: ImageSource.camera,
-            maxWidth: pickerMaxDimension,
-            maxHeight: pickerMaxDimension,
-            imageQuality: pickerQuality,
-          ),
-        ],
-      MediaSource.gallery => await _picker.pickMultiImage(
-          maxWidth: pickerMaxDimension,
-          maxHeight: pickerMaxDimension,
-          imageQuality: pickerQuality,
-        ),
-    };
+  Future<MediaPickResult> pickFromGallery() async {
+    final files = await _picker.pickMultiImage(
+      maxWidth: pickerMaxDimension,
+      maxHeight: pickerMaxDimension,
+      imageQuality: pickerQuality,
+    );
     final accepted = <String>[];
     var rejected = 0;
     var overLimit = 0;
     for (final f in files) {
-      if (f == null) continue;
       if (!await isJpegFile(f.path)) {
         rejected++;
         continue;

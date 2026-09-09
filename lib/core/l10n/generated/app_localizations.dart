@@ -385,6 +385,24 @@ abstract class AppLocalizations {
   /// **'Description'**
   String get tomogramDescription;
 
+  /// No description provided for @tomogramApplyToAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to all'**
+  String get tomogramApplyToAll;
+
+  /// No description provided for @tomogramApplyAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply to all photos?'**
+  String get tomogramApplyAllTitle;
+
+  /// No description provided for @tomogramApplyAllBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces the descriptions of the other photos.'**
+  String get tomogramApplyAllBody;
+
   /// No description provided for @tomogramEmptyTitle.
   ///
   /// In en, this message translates to:

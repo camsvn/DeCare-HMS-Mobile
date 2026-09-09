@@ -10,6 +10,7 @@ import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/tomogram/application/media_picker_service.dart';
 import 'package:hms_uploader/features/tomogram/application/tomogram_controller.dart';
 import 'package:hms_uploader/features/tomogram/application/upload_queue_controller.dart';
+import 'package:hms_uploader/features/tomogram/data/tomogram_draft.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/add_source_sheet.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/pending_line.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_card.dart';
@@ -17,12 +18,16 @@ import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_his
 import 'package:permission_handler/permission_handler.dart';
 
 class TomogramScreen extends ConsumerStatefulWidget {
-  const TomogramScreen({super.key, required this.patient, this.onPermissionsDenied});
+  const TomogramScreen({super.key, required this.patient, this.onPermissionsDenied, this.onCapture});
 
   final Patient patient;
 
   /// Defaults to pushing the permission screen. Injectable for tests.
   final void Function(List<Permission> denied)? onPermissionsDenied;
+
+  /// Defaults to pushing the in-app capture screen, which pops the JPEG paths
+  /// it took (or null when the user discarded them). Injectable for tests.
+  final Future<List<String>?> Function(BuildContext context)? onCapture;
 
   @override
   ConsumerState<TomogramScreen> createState() => _TomogramScreenState();
@@ -45,7 +50,11 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
       (widget.onPermissionsDenied ?? _pushPermission)(denied);
       return;
     }
-    final result = await picker.pick(source);
+    if (source == MediaSource.camera) {
+      await _capture();
+      return;
+    }
+    final result = await picker.pickFromGallery();
     if (!mounted) return;
     ref.read(tomogramControllerProvider(_opid).notifier).addFiles(result.accepted);
     final l10n = context.l10n;
@@ -55,6 +64,36 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
     if (result.rejected > 0) {
       showDsBanner(context, l10n.tomogramOnlyJpeg, kind: DsBannerKind.warning);
     }
+  }
+
+  /// Hands off to the capture screen, which takes a burst of photos and pops
+  /// their paths. A null result means the user discarded the lot.
+  Future<void> _capture() async {
+    final paths = await (widget.onCapture ?? _pushCapture)(context);
+    if (paths == null || !mounted) return;
+    ref.read(tomogramControllerProvider(_opid).notifier).addFiles(paths);
+  }
+
+  Future<List<String>?> _pushCapture(BuildContext context) =>
+      context.push<List<String>>(RoutePaths.capture(_opid));
+
+  /// Copies [source]'s description onto every draft. Only asks first when that
+  /// would replace something the user typed on another photo.
+  Future<void> _applyToAll(TomogramDraft source) async {
+    final notifier = ref.read(tomogramControllerProvider(_opid).notifier);
+    final others = ref.read(tomogramControllerProvider(_opid)).drafts.where(
+        (d) => d.id != source.id && d.description.trim().isNotEmpty && d.description != source.description);
+    if (others.isNotEmpty) {
+      final l10n = context.l10n;
+      final confirmed = await showDsDialog(
+        context,
+        title: l10n.tomogramApplyAllTitle,
+        body: l10n.tomogramApplyAllBody,
+        confirmLabel: l10n.tomogramApplyToAll,
+      );
+      if (!confirmed || !mounted) return;
+    }
+    notifier.applyDescriptionToAll(source.id);
   }
 
   void _pushPermission(List<Permission> denied) => context.push(RoutePaths.permission, extra: denied);
@@ -186,6 +225,8 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
                         total: drafts.length,
                         onDelete: () => notifier.remove(drafts[i].id),
                         onDescriptionChanged: (text) => notifier.updateDescription(drafts[i].id, text),
+                        // Nothing to copy onto with a single photo.
+                        onApplyToAll: drafts.length > 1 ? () => _applyToAll(drafts[i]) : null,
                       ),
                     ),
             ),
