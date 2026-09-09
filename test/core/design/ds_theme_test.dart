@@ -42,6 +42,8 @@ void main() {
     expect(ds.card, const Color(0xFF171E29));
     expect(ds.shell, const Color(0xFF0B1017));
     expect(ds.shellRaised, const Color(0xFF1E2938));
+    // The scrim behind sheets and dialogs is dark in both palettes.
+    expect(ds.scrim, const Color(0xFF0B1017));
     expect(ds.textPrimary, const Color(0xFFE8ECF2));
     expect(ds.textSecondary, const Color(0xFF9AA4B2));
     expect(ds.textOnShell, const Color(0xFFFFFFFF));
@@ -68,6 +70,9 @@ void main() {
     expect(buildDsTheme().brightness, Brightness.light);
     expect(buildDsTheme(Brightness.light).extension<DsColors>()?.canvas, DsColors.light.canvas);
     expect(DsColors.light.accentText, const Color(0xFF1F6FBF));
+    expect(DsColors.light.scrim, const Color(0xFF151D28));
+    expect(DsColors.light.scrim.computeLuminance(), lessThan(0.2));
+    expect(DsColors.dark.scrim.computeLuminance(), lessThan(0.2));
   });
 
   test('DsMotion.of collapses to fast when animations are disabled', () {

@@ -25,16 +25,14 @@ Future<void> showAppearanceSheet(BuildContext context, WidgetRef ref) {
         child: Text(l10n.settingsGroupAppearance, style: context.dsType.heading),
       ),
       for (final mode in ThemeMode.values)
-        Semantics(
+        DsListRow(
+          title: appearanceLabel(l10n, mode),
           selected: mode == current,
-          child: DsListRow(
-            title: appearanceLabel(l10n, mode),
-            // The tick marks the active option; it is not a second action, so
-            // it carries a label but no tap handler.
-            trailingIcon: mode == current ? Icons.check : null,
-            trailingTooltip: mode == current ? l10n.appearanceSelected : null,
-            onTap: () => _select(sheet, ref, mode),
-          ),
+          // The tick marks the active option; it is not a second action, so
+          // it carries a label but no tap handler.
+          trailingIcon: mode == current ? Icons.check : null,
+          trailingTooltip: mode == current ? l10n.appearanceSelected : null,
+          onTap: () => _select(sheet, ref, mode),
         ),
     ],
   );

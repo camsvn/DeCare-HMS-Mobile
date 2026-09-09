@@ -8,6 +8,7 @@ class DsColors extends ThemeExtension<DsColors> {
     required this.card,
     required this.shell,
     required this.shellRaised,
+    required this.scrim,
     required this.textPrimary,
     required this.textSecondary,
     required this.textOnShell,
@@ -25,6 +26,11 @@ class DsColors extends ThemeExtension<DsColors> {
   final Color card;
   final Color shell;
   final Color shellRaised;
+
+  /// Behind a sheet or a dialog. Dark in both palettes, so a modal dims the
+  /// screen instead of hazing it — which is what a text colour would do on
+  /// dark, where the text is near-white.
+  final Color scrim;
   final Color textPrimary;
   final Color textSecondary;
   final Color textOnShell;
@@ -46,6 +52,7 @@ class DsColors extends ThemeExtension<DsColors> {
     card: Color(0xFFFFFFFF),
     shell: Color(0xFF151D28),
     shellRaised: Color(0xFF1E2938),
+    scrim: Color(0xFF151D28),
     textPrimary: Color(0xFF121826),
     textSecondary: Color(0xFF5B6472),
     textOnShell: Color(0xFFFFFFFF),
@@ -64,6 +71,7 @@ class DsColors extends ThemeExtension<DsColors> {
     card: Color(0xFF171E29),
     shell: Color(0xFF0B1017),
     shellRaised: Color(0xFF1E2938),
+    scrim: Color(0xFF0B1017),
     textPrimary: Color(0xFFE8ECF2),
     textSecondary: Color(0xFF9AA4B2),
     textOnShell: Color(0xFFFFFFFF),
@@ -93,6 +101,7 @@ class DsColors extends ThemeExtension<DsColors> {
     Color? card,
     Color? shell,
     Color? shellRaised,
+    Color? scrim,
     Color? textPrimary,
     Color? textSecondary,
     Color? textOnShell,
@@ -110,6 +119,7 @@ class DsColors extends ThemeExtension<DsColors> {
       card: card ?? this.card,
       shell: shell ?? this.shell,
       shellRaised: shellRaised ?? this.shellRaised,
+      scrim: scrim ?? this.scrim,
       textPrimary: textPrimary ?? this.textPrimary,
       textSecondary: textSecondary ?? this.textSecondary,
       textOnShell: textOnShell ?? this.textOnShell,
@@ -133,6 +143,7 @@ class DsColors extends ThemeExtension<DsColors> {
       card: c(card, other.card),
       shell: c(shell, other.shell),
       shellRaised: c(shellRaised, other.shellRaised),
+      scrim: c(scrim, other.scrim),
       textPrimary: c(textPrimary, other.textPrimary),
       textSecondary: c(textSecondary, other.textSecondary),
       textOnShell: c(textOnShell, other.textOnShell),

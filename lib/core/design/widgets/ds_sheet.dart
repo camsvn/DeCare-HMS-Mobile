@@ -13,7 +13,7 @@ Future<T?> showDsSheet<T>(
   return showModalBottomSheet<T>(
     context: context,
     useRootNavigator: true,
-    barrierColor: ds.textPrimary.withOpacity(0.45),
+    barrierColor: ds.scrim.withOpacity(0.45),
     backgroundColor: ds.card,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(DsRadius.large))),
     builder: (sheetContext) => SafeArea(

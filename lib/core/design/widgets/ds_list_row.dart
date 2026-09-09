@@ -21,6 +21,7 @@ class DsListRow extends StatelessWidget {
     this.onTrailingTap,
     this.onTap,
     this.destructive = false,
+    this.selected = false,
   });
 
   static const double height = 56;
@@ -37,58 +38,70 @@ class DsListRow extends StatelessWidget {
   final VoidCallback? onTap;
   final bool destructive;
 
+  /// Announces the row as the chosen one of a set (an option in a picker).
+  final bool selected;
+
   @override
   Widget build(BuildContext context) {
     final ds = context.ds;
     final type = context.dsType;
     final titleColor = destructive ? ds.danger : ds.textPrimary;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: height),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: DsSpace.x3, vertical: DsSpace.x2),
-        child: Row(
-          children: [
-            // The merge puts the row's label and its button flag on one
-            // semantics node. The trailing action stays outside it so that it
-            // keeps a node — and a label — of its own.
-            Expanded(
-              child: MergeSemantics(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: DsSpace.x3),
+      child: Row(
+        children: [
+          // The merge puts the row's label, its selected state and its button
+          // flag on one semantics node. The trailing action stays outside it so
+          // that it keeps a node — and a label — of its own.
+          Expanded(
+            child: MergeSemantics(
+              child: Semantics(
+                selected: selected,
+                // The minimum height and the vertical padding sit inside the
+                // ink so that the whole 56 dp of the row is tappable, not just
+                // the line of text at its centre.
                 child: InkWell(
                   onTap: onTap,
-                  child: Row(
-                    children: [
-                      if (leadingIcon != null) ...[
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(color: ds.canvas, borderRadius: BorderRadius.circular(DsRadius.small)),
-                          alignment: Alignment.center,
-                          child: Icon(leadingIcon, size: 20, color: destructive ? ds.danger : ds.textSecondary),
-                        ),
-                        const SizedBox(width: DsSpace.x3),
-                      ],
-                      Expanded(
-                        child: Text(title, style: type.body.withColor(titleColor), overflow: TextOverflow.ellipsis),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: height),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: DsSpace.x2),
+                      child: Row(
+                        children: [
+                          if (leadingIcon != null) ...[
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(color: ds.canvas, borderRadius: BorderRadius.circular(DsRadius.small)),
+                              alignment: Alignment.center,
+                              child: Icon(leadingIcon, size: 20, color: destructive ? ds.danger : ds.textSecondary),
+                            ),
+                            const SizedBox(width: DsSpace.x3),
+                          ],
+                          Expanded(
+                            child: Text(title, style: type.body.withColor(titleColor), overflow: TextOverflow.ellipsis),
+                          ),
+                          if (trailingValue != null) ...[
+                            const SizedBox(width: DsSpace.x2),
+                            Text(trailingValue!, style: type.mono.withColor(ds.textSecondary)),
+                          ],
+                          if (chevron) Icon(Icons.chevron_right, size: 20, color: ds.textSecondary),
+                        ],
                       ),
-                      if (trailingValue != null) ...[
-                        const SizedBox(width: DsSpace.x2),
-                        Text(trailingValue!, style: type.mono.withColor(ds.textSecondary)),
-                      ],
-                      if (chevron) Icon(Icons.chevron_right, size: 20, color: ds.textSecondary),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-            if (trailingIcon != null)
-              IconButton(
-                icon: Icon(trailingIcon, size: 20, color: destructive ? ds.danger : ds.textSecondary),
-                tooltip: trailingTooltip,
-                onPressed: onTrailingTap,
-                visualDensity: VisualDensity.compact,
-              ),
-          ],
-        ),
+          ),
+          if (trailingIcon != null)
+            IconButton(
+              icon: Icon(trailingIcon, size: 20, color: destructive ? ds.danger : ds.textSecondary),
+              tooltip: trailingTooltip,
+              onPressed: onTrailingTap,
+              visualDensity: VisualDensity.compact,
+            ),
+        ],
       ),
     );
   }

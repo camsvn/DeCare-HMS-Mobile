@@ -71,4 +71,35 @@ void main() {
     // Rows carry the content, so they follow the reader's text size all the way.
     expect(await pumpAt(2), greaterThan(base));
   });
+
+  testWidgets('taps near the top and bottom edges of a title-only row fire onTap', (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: Scaffold(body: DsListRow(title: 'System', onTap: () => taps++)),
+    ));
+    final row = find.byType(DsListRow);
+    // A title-only row is ~20 dp of content in a 56 dp box; the ink has to
+    // cover the box, or the top and bottom thirds of the row swallow taps.
+    await tester.tapAt(tester.getTopLeft(row) + const Offset(40, 4));
+    await tester.tapAt(tester.getBottomLeft(row) + const Offset(40, -4));
+    expect(taps, 2);
+    expect(tester.getSize(find.byType(InkWell)).height, tester.getSize(row).height);
+  });
+
+  testWidgets('announces the selected row as selected', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: Scaffold(
+        body: Column(children: [
+          DsListRow(title: 'Dark', selected: true, onTap: () {}),
+          DsListRow(title: 'Light', onTap: () {}),
+        ]),
+      ),
+    ));
+    expect(tester.getSemantics(find.text('Dark')).hasFlag(SemanticsFlag.isSelected), isTrue);
+    expect(tester.getSemantics(find.text('Light')).hasFlag(SemanticsFlag.isSelected), isFalse);
+    handle.dispose();
+  });
 }
