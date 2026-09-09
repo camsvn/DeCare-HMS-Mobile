@@ -70,7 +70,9 @@ class _ShotStripState extends State<ShotStrip> {
           child: Semantics(
             button: true,
             image: true,
-            label: l10n.tomogramCounter(i + 1, paths.length),
+            // The action first: a screen reader should say what a tap does
+            // before which of the shots this is.
+            label: '${l10n.captureRemove}, ${l10n.tomogramCounter(i + 1, paths.length)}',
             child: GestureDetector(
               onTap: () => widget.onTap(paths[i]),
               child: ClipRRect(

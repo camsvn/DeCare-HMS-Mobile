@@ -296,6 +296,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get captureRetry => 'Try again';
 
   @override
+  String get captureFailed => 'Could not take the photo. Try again.';
+
+  @override
   String captureLimit(int limit) {
     return 'Up to $limit photos per session';
   }

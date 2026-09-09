@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,6 +24,38 @@ const double _flashPeak = 0.8;
 /// height of the box the ratio is applied to.
 const double _previewBox = 1000;
 
+/// One focus tap: where it landed and which tap it was, so that two taps on
+/// the same pixel are still two taps.
+typedef _FocusTap = ({Offset at, int seq});
+
+/// The tappable preview area. Keyed so a test can measure the box a focus tap
+/// is mapped against.
+@visibleForTesting
+const Key capturePreviewAreaKey = Key('capture-preview-area');
+
+/// Where a tap in the preview area lands in the camera frame's own
+/// coordinates, 0..1, which is what [CameraService.focusAt] wants.
+///
+/// The preview is scaled to *cover* the area, so the frame is cropped on one
+/// axis: the area's left edge is not the frame's left edge. This inverts that
+/// scale, so the camera is pointed at what the finger pointed at rather than
+/// at the same fraction of a box the user cannot see. Clamped, because
+/// rounding at the edge of a heavily cropped frame can land a hair outside it.
+@visibleForTesting
+Offset coverTapToFrame(Offset local, Size area, double aspectRatio) {
+  if (area.isEmpty || aspectRatio <= 0) return const Offset(0.5, 0.5);
+  final box = Size(aspectRatio * _previewBox, _previewBox);
+  final scale = math.max(area.width / box.width, area.height / box.height);
+  final frame = Offset(
+    (local.dx - area.width / 2) / scale + box.width / 2,
+    (local.dy - area.height / 2) / scale + box.height / 2,
+  );
+  return Offset(
+    (frame.dx / box.width).clamp(0.0, 1.0),
+    (frame.dy / box.height).clamp(0.0, 1.0),
+  );
+}
+
 /// Full-screen burst capture: one tap per photo, a strip of what has been
 /// taken, and the whole set handed back on Done.
 ///
@@ -35,12 +69,13 @@ class CaptureScreen extends ConsumerStatefulWidget {
 }
 
 class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindingObserver {
-  /// Where the last tap-to-focus landed, in preview coordinates, and the
-  /// opacity its ring is heading for.
-  Offset? _focusPoint;
-  double _focusOpacity = 0;
-
-  bool _flash = false;
+  /// The flash and the focus ring are the only things a shot or a focus tap
+  /// moves, and they are notifiers rather than `setState` so that neither
+  /// rebuilds the screen — and so neither takes the camera preview down and
+  /// up with it.
+  final _flash = ValueNotifier<bool>(false);
+  final _focusTap = ValueNotifier<_FocusTap?>(null);
+  int _focusSeq = 0;
 
   /// Whether the camera was handed back because the app left the foreground.
   /// One real pause arrives as three states (inactive, hidden, paused), and
@@ -63,6 +98,8 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _flash.dispose();
+    _focusTap.dispose();
     super.dispose();
   }
 
@@ -91,15 +128,22 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   }
 
   Future<void> _shoot() async {
+    // The shutter is disabled when the session cannot shoot, but a tap can
+    // still arrive before that rebuild; refused there, it is not a failure.
+    if (!ref.read(captureControllerProvider).canShoot) return;
     final took = await _capture.shoot();
-    if (!took || !mounted) return;
+    if (!mounted) return;
+    if (!took) {
+      showDsBanner(context, context.l10n.captureFailed, kind: DsBannerKind.danger);
+      return;
+    }
     // Reduced motion takes both signals: the flash and the tick say the same
     // "that worked", and the thumbnail says it too, without moving anything.
     if (MediaQuery.disableAnimationsOf(context)) return;
     // A device with no vibrator (and a widget test with no plugin at all)
     // must not take the shot down with it.
     unawaited(HapticFeedback.mediumImpact().catchError((Object _) {}));
-    setState(() => _flash = true);
+    _flash.value = true;
   }
 
   void _done() => _pop(_capture.takeAll());
@@ -138,16 +182,9 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
 
   void _focusAt(Offset local, Size area) {
     if (area.isEmpty) return;
-    unawaited(_capture.focusAt(Offset(local.dx / area.width, local.dy / area.height)));
-    setState(() {
-      _focusPoint = local;
-      _focusOpacity = 1;
-    });
-    // The fade is asked for on the next frame, so the ring lands at full
-    // strength and then goes out over `DsMotion.base`.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() => _focusOpacity = 0);
-    });
+    final aspectRatio = ref.read(cameraServiceProvider).previewAspectRatio;
+    unawaited(_capture.focusAt(coverTapToFrame(local, area, aspectRatio)));
+    _focusTap.value = (at: local, seq: _focusSeq++);
   }
 
   @override
@@ -155,7 +192,6 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     final ds = context.ds;
     final l10n = context.l10n;
     final state = ref.watch(captureControllerProvider);
-    final camera = ref.watch(cameraServiceProvider);
 
     // Once, on the way into the cap: the shutter's disabled look says the rest.
     ref.listen(captureControllerProvider, (previous, next) {
@@ -178,7 +214,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (state.status == CaptureStatus.failed) _failure() else _preview(camera),
+                    if (state.status == CaptureStatus.failed) _failure() else _previewArea(),
                     _topOverlay(state),
                   ],
                 ),
@@ -191,67 +227,24 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     );
   }
 
-  Widget _preview(CameraService camera) => LayoutBuilder(
+  Widget _previewArea() => LayoutBuilder(
         builder: (context, constraints) => GestureDetector(
+          key: capturePreviewAreaKey,
           behavior: HitTestBehavior.opaque,
           onTapUp: (details) => _focusAt(details.localPosition, constraints.biggest),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              ClipRect(
-                child: FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: camera.previewAspectRatio * _previewBox,
-                    height: _previewBox,
-                    child: camera.preview(),
-                  ),
-                ),
-              ),
-              _flashOverlay(),
-              _focusRing(),
+              // Const, so a rebuild of this screen leaves it alone: it holds
+              // the live camera texture, which must not go down and up again
+              // every time a shot lands in the strip.
+              const _CameraLayer(),
+              _FlashOverlay(flash: _flash),
+              _FocusRing(tap: _focusTap),
             ],
           ),
         ),
       );
-
-  Widget _flashOverlay() => IgnorePointer(
-        child: AnimatedOpacity(
-          opacity: _flash ? _flashPeak : 0,
-          duration: DsMotion.of(context, DsMotion.fast),
-          curve: DsMotion.curve,
-          // The way back down. The flash is one there-and-gone gesture, not
-          // two states worth tracking, so the rise hands over to the fall.
-          onEnd: () {
-            if (_flash && mounted) setState(() => _flash = false);
-          },
-          child: ColoredBox(color: context.ds.textOnShell),
-        ),
-      );
-
-  Widget _focusRing() {
-    final point = _focusPoint;
-    if (point == null) return const SizedBox.shrink();
-    return Positioned(
-      left: point.dx - _focusRingSize / 2,
-      top: point.dy - _focusRingSize / 2,
-      child: IgnorePointer(
-        child: AnimatedOpacity(
-          opacity: _focusOpacity,
-          duration: DsMotion.of(context, DsMotion.base),
-          curve: DsMotion.curve,
-          child: Container(
-            width: _focusRingSize,
-            height: _focusRingSize,
-            decoration: BoxDecoration(
-              border: Border.all(color: context.ds.textOnShell),
-              borderRadius: BorderRadius.circular(DsRadius.full),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   /// The camera would not open. On [DsColors.canvas] rather than the shell:
   /// the empty-state pattern is page text, and page text needs a page under it.
@@ -338,6 +331,131 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The live preview, scaled to cover its area.
+///
+/// Watches whether the camera is ready and nothing else: a shot changes
+/// `shots` and `busy`, and neither is a reason to rebuild a camera texture.
+class _CameraLayer extends ConsumerWidget {
+  const _CameraLayer();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ready = ref.watch(captureControllerProvider.select((s) => s.status == CaptureStatus.ready));
+    final camera = ref.watch(cameraServiceProvider);
+    return ClipRect(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: camera.previewAspectRatio * _previewBox,
+          height: _previewBox,
+          child: ready ? camera.preview() : const SizedBox.shrink(),
+        ),
+      ),
+    );
+  }
+}
+
+/// The shutter's white blink: up to [_flashPeak] and back, the whole gesture
+/// inside `DsMotion.fast`.
+class _FlashOverlay extends StatelessWidget {
+  const _FlashOverlay({required this.flash});
+
+  final ValueNotifier<bool> flash;
+
+  @override
+  Widget build(BuildContext context) {
+    final half = DsMotion.of(context, DsMotion.fast) * 0.5;
+    return IgnorePointer(
+      child: ValueListenableBuilder<bool>(
+        valueListenable: flash,
+        builder: (context, on, _) => AnimatedOpacity(
+          opacity: on ? _flashPeak : 0,
+          duration: half,
+          curve: DsMotion.curve,
+          // The way back down: the rise hands over to the fall, so the flash
+          // is one there-and-gone gesture rather than two states to track.
+          onEnd: () {
+            if (flash.value) flash.value = false;
+          },
+          child: ColoredBox(color: context.ds.textOnShell),
+        ),
+      ),
+    );
+  }
+}
+
+/// The ring that lands where the user tapped to focus, and fades out.
+class _FocusRing extends StatefulWidget {
+  const _FocusRing({required this.tap});
+
+  final ValueListenable<_FocusTap?> tap;
+
+  @override
+  State<_FocusRing> createState() => _FocusRingState();
+}
+
+class _FocusRingState extends State<_FocusRing> {
+  Offset? _point;
+  double _opacity = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.tap.addListener(_onTap);
+  }
+
+  @override
+  void didUpdateWidget(_FocusRing oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tap == widget.tap) return;
+    oldWidget.tap.removeListener(_onTap);
+    widget.tap.addListener(_onTap);
+  }
+
+  @override
+  void dispose() {
+    widget.tap.removeListener(_onTap);
+    super.dispose();
+  }
+
+  void _onTap() {
+    setState(() {
+      _point = widget.tap.value?.at;
+      _opacity = 1;
+    });
+    // The fade is asked for on the next frame, so the ring lands at full
+    // strength and then goes out over `DsMotion.base`.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _opacity = 0);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final point = _point;
+    if (point == null) return const SizedBox.shrink();
+    return Positioned(
+      left: point.dx - _focusRingSize / 2,
+      top: point.dy - _focusRingSize / 2,
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          opacity: _opacity,
+          duration: DsMotion.of(context, DsMotion.base),
+          curve: DsMotion.curve,
+          child: Container(
+            width: _focusRingSize,
+            height: _focusRingSize,
+            decoration: BoxDecoration(
+              border: Border.all(color: context.ds.textOnShell),
+              borderRadius: BorderRadius.circular(DsRadius.full),
+            ),
+          ),
+        ),
       ),
     );
   }

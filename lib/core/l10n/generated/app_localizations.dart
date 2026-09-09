@@ -559,6 +559,12 @@ abstract class AppLocalizations {
   /// **'Try again'**
   String get captureRetry;
 
+  /// No description provided for @captureFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not take the photo. Try again.'**
+  String get captureFailed;
+
   /// No description provided for @captureLimit.
   ///
   /// In en, this message translates to:

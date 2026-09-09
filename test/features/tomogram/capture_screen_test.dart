@@ -223,4 +223,118 @@ void main() {
     expect(find.text('1 photo'), findsOneWidget);
     expect(find.byKey(const Key('fake-preview')), findsOneWidget);
   });
+
+  testWidgets('a failed capture is reported and leaves the count alone', (tester) async {
+    await open(tester);
+    fake.failCapture = true;
+
+    await tester.tap(find.byType(ShutterButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not take the photo. Try again.'), findsOneWidget);
+    expect(shotsOf(tester), isEmpty);
+    expect(thumbnails(), findsNothing);
+    expect(find.text('No photos yet'), findsOneWidget);
+
+    // Let the banner finish, so it is not still queued at the end of the test.
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('a focus tap is mapped into the camera frame, not the cropped view', (tester) async {
+    fake.aspectRatio = 16 / 9;
+    await open(tester);
+    final area = tester.getRect(find.byKey(capturePreviewAreaKey));
+
+    await tester.tapAt(area.center);
+    await tester.pumpAndSettle();
+
+    expect(fake.focusCalls, hasLength(1));
+    expect(fake.focusCalls.single.dx, closeTo(0.5, 0.01));
+    expect(fake.focusCalls.single.dy, closeTo(0.5, 0.01));
+
+    await tester.tapAt(Offset(area.left + 1, area.center.dy));
+    await tester.pumpAndSettle();
+
+    // A 16:9 frame covering a portrait area is cropped left and right, so the
+    // screen's left edge is well inside the frame rather than at its edge.
+    expect(fake.focusCalls, hasLength(2));
+    expect(fake.focusCalls.last.dx, inExclusiveRange(0.2, 0.45));
+    expect(fake.focusCalls.last.dy, closeTo(0.5, 0.01));
+  });
+
+  testWidgets('a shot and a focus tap leave the camera preview alone', (tester) async {
+    await open(tester);
+    final builds = fake.previewBuilds;
+    expect(builds, greaterThan(0));
+
+    await shoot(tester);
+
+    expect(thumbnails(), findsOneWidget);
+    expect(fake.previewBuilds, builds);
+
+    await tester.tapAt(tester.getRect(find.byKey(capturePreviewAreaKey)).center);
+    await tester.pumpAndSettle();
+
+    expect(fake.focusCalls, hasLength(1));
+    expect(fake.previewBuilds, builds);
+  });
+
+  testWidgets('system back with shots asks to discard, then pops with null', (tester) async {
+    await open(tester);
+    await shoot(tester);
+    final path = shotsOf(tester).single;
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Discard photos?'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(DsButton, 'Discard'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CaptureScreen), findsNothing);
+    expect(results, [null]);
+    expect(File(path).existsSync(), isFalse);
+  });
+
+  group('coverTapToFrame', () {
+    void expectOffset(Offset actual, Offset expected) {
+      expect(actual.dx, closeTo(expected.dx, 0.001));
+      expect(actual.dy, closeTo(expected.dy, 0.001));
+    }
+
+    test('an area shaped like the frame maps straight through', () {
+      const area = Size(400, 400);
+      expectOffset(coverTapToFrame(const Offset(200, 200), area, 1), const Offset(0.5, 0.5));
+      expectOffset(coverTapToFrame(const Offset(100, 300), area, 1), const Offset(0.25, 0.75));
+      expectOffset(coverTapToFrame(Offset.zero, area, 1), Offset.zero);
+      expectOffset(coverTapToFrame(const Offset(400, 400), area, 1), const Offset(1, 1));
+    });
+
+    test('a wide frame in a portrait area is read across its crop', () {
+      const area = Size(400, 600);
+      const wide = 1.78;
+      expectOffset(coverTapToFrame(const Offset(200, 300), area, wide), const Offset(0.5, 0.5));
+      // The area's left edge is a third of the way into a frame whose sides
+      // are cropped away, not the frame's own left edge.
+      final left = coverTapToFrame(const Offset(0, 300), area, wide);
+      expect(left.dx, closeTo(0.313, 0.005));
+      expect(left.dy, closeTo(0.5, 0.001));
+    });
+
+    test('the corners stay inside the frame', () {
+      const area = Size(400, 600);
+      final topLeft = coverTapToFrame(Offset.zero, area, 1.78);
+      expect(topLeft.dx, greaterThanOrEqualTo(0));
+      expect(topLeft.dy, greaterThanOrEqualTo(0));
+      final bottomRight = coverTapToFrame(const Offset(400, 600), area, 1.78);
+      expect(bottomRight.dx, lessThanOrEqualTo(1));
+      expect(bottomRight.dy, lessThanOrEqualTo(1));
+    });
+
+    test('a degenerate area or ratio aims at the middle', () {
+      expectOffset(coverTapToFrame(Offset.zero, Size.zero, 1), const Offset(0.5, 0.5));
+      expectOffset(coverTapToFrame(Offset.zero, const Size(400, 600), 0), const Offset(0.5, 0.5));
+    });
+  });
 }

@@ -98,6 +98,7 @@
   "captureErrorTitle": "Camera unavailable",
   "captureErrorBody": "Could not start the camera. Check that no other app is using it and try again.",
   "captureRetry": "Try again",
+  "captureFailed": "Could not take the photo. Try again.",
   "captureLimit": "Up to {limit} photos per session",
   "@captureLimit": {"placeholders": {"limit": {"type": "int"}}},
 

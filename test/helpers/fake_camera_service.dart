@@ -24,8 +24,16 @@ class FakeCameraService implements CameraService {
   /// capture in flight and shoot again while the controller is busy.
   Completer<void>? gate;
 
+  /// The preview's width / height once started. Settable, so a test can put
+  /// the screen's cover-crop arithmetic under a known frame shape.
+  double aspectRatio = 3 / 4;
+
   int startCount = 0;
   int stopCount = 0;
+
+  /// How many times [preview] has been asked for a widget, so a test can show
+  /// that a shot does not rebuild the camera texture.
+  int previewBuilds = 0;
   final List<bool> torchCalls = [];
   final List<Offset> focusCalls = [];
 
@@ -36,7 +44,7 @@ class FakeCameraService implements CameraService {
   bool get isReady => _ready;
 
   @override
-  double get previewAspectRatio => _ready ? 3 / 4 : 1;
+  double get previewAspectRatio => _ready ? aspectRatio : 1;
 
   @override
   Future<void> start() async {
@@ -52,7 +60,10 @@ class FakeCameraService implements CameraService {
   }
 
   @override
-  Widget preview() => const ColoredBox(key: Key('fake-preview'), color: Colors.black);
+  Widget preview() {
+    previewBuilds++;
+    return const ColoredBox(key: Key('fake-preview'), color: Colors.black);
+  }
 
   @override
   Future<String> takePicture() async {
