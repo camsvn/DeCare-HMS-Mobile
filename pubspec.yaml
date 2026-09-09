@@ -28,6 +28,9 @@ dependencies:
   # which Flutter 3.19 does not provide; 6.x exposes the same Dart API.
   connectivity_plus: ^6.1.5
   path_provider: ^2.1.0
+  # 0.12+ needs a newer Flutter than 3.19; 0.11.0+2 pulls
+  # camera_android_camerax 0.6.5+2, which builds on this SDK.
+  camera: ^0.11.0+2
 
 dev_dependencies:
   flutter_test:

@@ -11,6 +11,8 @@ import 'package:permission_handler/permission_handler.dart';
 
 // Connectivity lives in core (the dashboard uses it too); re-exported for callers of this barrel.
 export 'package:hms_uploader/core/network/connectivity_service.dart';
+export 'application/camera_service.dart';
+export 'application/capture_controller.dart';
 export 'application/media_picker_service.dart';
 export 'application/permission_gateway.dart';
 export 'application/tomogram_controller.dart';
