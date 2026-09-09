@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/navigation/route_paths.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
+import 'package:hms_uploader/core/utils/temp_files.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/tomogram/application/media_picker_service.dart';
@@ -70,7 +71,14 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
   /// their paths. A null result means the user discarded the lot.
   Future<void> _capture() async {
     final paths = await (widget.onCapture ?? _pushCapture)(context);
-    if (paths == null || !mounted) return;
+    if (paths == null) return;
+    if (!mounted) {
+      // This screen left while the capture screen was up (a route change, a
+      // deep link): nothing is left to own these files, so they would sit in
+      // the cache until the OS reclaimed it.
+      await deleteFiles(paths);
+      return;
+    }
     ref.read(tomogramControllerProvider(_opid).notifier).addFiles(paths);
   }
 

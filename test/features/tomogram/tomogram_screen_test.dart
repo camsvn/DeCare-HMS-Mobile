@@ -119,6 +119,26 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('photos that arrive after the screen is gone are deleted', (tester) async {
+    // The capture screen can pop its paths into a screen that is no longer
+    // there (a route change or a deep link while it was open). Nothing owns
+    // those files then, so they must not be left behind in the cache.
+    final paths = [jpeg('a.jpg').path, jpeg('b.jpg').path];
+    final popped = Completer<List<String>?>();
+    await pump(tester, onCapture: (_) => popped.future);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take Photo'));
+    await tester.pumpAndSettle();
+    expect(paths.every((p) => File(p).existsSync()), isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+    popped.complete(paths);
+    await tester.pump();
+
+    expect(paths.any((p) => File(p).existsSync()), isFalse);
+  });
+
   testWidgets('shows patient name, OP chip and empty state', (tester) async {
     await pump(tester);
     expect(find.text('Jane Doe'), findsOneWidget);
