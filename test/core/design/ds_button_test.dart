@@ -40,6 +40,22 @@ void main() {
     expect(find.text('Four'), findsOneWidget);
   });
 
+  testWidgets('ghost labels are painted in the accent text colour', (tester) async {
+    late DsColors ds;
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: Scaffold(
+        body: Builder(builder: (context) {
+          ds = context.ds;
+          return DsButton.ghost(label: 'Link', onPressed: () {});
+        }),
+      ),
+    ));
+    expect(tester.widget<Text>(find.text('Link')).style?.color, ds.accentText);
+    // Not the solid accent: ghost text sits on a page surface, not on a fill.
+    expect(ds.accentText, isNot(ds.accentSolid));
+  });
+
   testWidgets('a null onPressed is non-interactive, dimmed and reads disabled', (tester) async {
     final handle = tester.ensureSemantics();
     var presses = 0;

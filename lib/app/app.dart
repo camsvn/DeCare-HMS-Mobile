@@ -13,7 +13,7 @@ import 'package:hms_uploader/features/settings/settings.dart';
 /// The shell is dark in both palettes, so only its colour changes with
 /// [brightness] — the icons stay light either way.
 SystemUiOverlayStyle appOverlayStyle(Brightness brightness) => SystemUiOverlayStyle(
-      statusBarColor: (brightness == Brightness.dark ? DsColors.dark : DsColors.light).shell,
+      statusBarColor: DsColors.of(brightness).shell,
       statusBarIconBrightness: Brightness.light,
       statusBarBrightness: Brightness.dark,
     );

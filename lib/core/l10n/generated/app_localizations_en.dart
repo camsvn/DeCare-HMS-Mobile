@@ -342,6 +342,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appearanceDark => 'Dark';
 
   @override
+  String get appearanceSelected => 'Selected';
+
+  @override
   String get aboutHeader => 'About';
 
   @override

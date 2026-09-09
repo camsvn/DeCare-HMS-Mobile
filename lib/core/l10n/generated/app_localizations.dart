@@ -661,6 +661,12 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get appearanceDark;
 
+  /// No description provided for @appearanceSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected'**
+  String get appearanceSelected;
+
   /// No description provided for @aboutHeader.
   ///
   /// In en, this message translates to:

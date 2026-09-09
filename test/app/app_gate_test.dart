@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,48 +6,11 @@ import 'package:hms_uploader/app/app.dart';
 import 'package:hms_uploader/app/router.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/navigation/route_paths.dart';
-import 'package:hms_uploader/core/network/dio_client.dart';
-import 'package:hms_uploader/core/storage/prefs_store.dart';
-import 'package:hms_uploader/core/storage/secure_store.dart';
-import 'package:hms_uploader/features/auth/auth.dart';
 import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
-import 'package:hms_uploader/features/server_config/server_config.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class MockHealthCheckApi extends Mock implements HealthCheckApi {}
-
-String liveToken() {
-  String b64(Object o) => base64Url.encode(utf8.encode(jsonEncode(o))).replaceAll('=', '');
-  final exp = DateTime.now().add(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000;
-  return '${b64({'alg': 'HS256'})}.${b64({'exp': exp})}.s';
-}
-
-Future<ProviderContainer> containerWith({required Directory docs, String? url, bool session = false}) async {
-  SharedPreferences.setMockInitialValues(url == null ? {} : {'server_url': url});
-  final prefs = await SharedPreferences.getInstance();
-  final store = InMemorySecureStore();
-  if (session) {
-    await store.write('access_token', 'a');
-    await store.write('refresh_token', liveToken());
-  }
-  // The dashboard's context strip runs one health check on first build.
-  final health = MockHealthCheckApi();
-  when(() => health.check(any())).thenAnswer((_) async {});
-  final container = ProviderContainer(overrides: [
-    sharedPreferencesProvider.overrideWithValue(prefs),
-    secureStoreProvider.overrideWithValue(store),
-    healthCheckApiProvider.overrideWithValue(health),
-    appDocumentsDirProvider.overrideWithValue(docs),
-    serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).valueOrNull),
-    accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).valueOrNull?.accessToken),
-  ]);
-  await container.read(serverConfigControllerProvider.future);
-  await container.read(sessionControllerProvider.future);
-  return container;
-}
+import '../helpers/signed_in_container.dart';
 
 void main() {
   late Directory docs;
@@ -56,7 +18,7 @@ void main() {
   setUp(() async => docs = await Directory.systemTemp.createTemp('gate_docs'));
   tearDown(() => docs.delete(recursive: true));
   testWidgets('starts on configure when no url', (tester) async {
-    final c = await containerWith(docs: docs);
+    final c = (await signedInContainer(docs: docs, url: null, session: false)).container;
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -64,7 +26,7 @@ void main() {
   });
 
   testWidgets('starts on login when url but no session', (tester) async {
-    final c = await containerWith(docs: docs, url: 'http://x');
+    final c = (await signedInContainer(docs: docs, session: false)).container;
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -72,7 +34,7 @@ void main() {
   });
 
   testWidgets('starts on the dashboard when session is valid, and logout returns to login', (tester) async {
-    final c = await containerWith(docs: docs, url: 'http://x', session: true);
+    final c = (await signedInContainer(docs: docs)).container;
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -90,7 +52,7 @@ void main() {
   });
 
   testWidgets('tapping the Tomogram module opens the patient lookup', (tester) async {
-    final c = await containerWith(docs: docs, url: 'http://x', session: true);
+    final c = (await signedInContainer(docs: docs)).container;
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -103,7 +65,7 @@ void main() {
   });
 
   testWidgets('/app/tomogram/permission opens the permission screen, not the detail screen', (tester) async {
-    final c = await containerWith(docs: docs, url: 'http://x', session: true);
+    final c = (await signedInContainer(docs: docs)).container;
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -115,7 +77,7 @@ void main() {
   });
 
   testWidgets('/app/tomogram/:opid opens the tomogram detail screen', (tester) async {
-    final c = await containerWith(docs: docs, url: 'http://x', session: true);
+    final c = (await signedInContainer(docs: docs)).container;
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -127,7 +89,7 @@ void main() {
   });
 
   testWidgets('system back on the Home tab arms double-press-to-exit', (tester) async {
-    final c = await containerWith(docs: docs, url: 'http://x', session: true);
+    final c = (await signedInContainer(docs: docs)).container;
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -145,7 +107,7 @@ void main() {
   });
 
   testWidgets('system back on the Settings tab returns to the Home tab', (tester) async {
-    final c = await containerWith(docs: docs, url: 'http://x', session: true);
+    final c = (await signedInContainer(docs: docs)).container;
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();

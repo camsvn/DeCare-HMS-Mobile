@@ -5,7 +5,7 @@ import 'package:hms_uploader/core/design/tokens/ds_type.dart';
 /// The app theme for [brightness]; light unless asked otherwise.
 ThemeData buildDsTheme([Brightness brightness = Brightness.light]) {
   final dark = brightness == Brightness.dark;
-  final colors = dark ? DsColors.dark : DsColors.light;
+  final colors = DsColors.of(brightness);
   final type = DsType.inter(colors);
   final base = dark ? ThemeData.dark(useMaterial3: true) : ThemeData.light(useMaterial3: true);
   return base.copyWith(

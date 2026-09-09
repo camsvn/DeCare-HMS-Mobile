@@ -1,0 +1,61 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/network/dio_client.dart';
+import 'package:hms_uploader/core/storage/prefs_store.dart';
+import 'package:hms_uploader/core/storage/secure_store.dart';
+import 'package:hms_uploader/features/auth/auth.dart';
+import 'package:hms_uploader/features/server_config/server_config.dart';
+import 'package:hms_uploader/features/tomogram/tomogram.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class MockHealthCheckApi extends Mock implements HealthCheckApi {}
+
+/// A JWT-shaped token (unsigned, unverified) that is still well inside its
+/// expiry, so the session gate treats it as valid.
+String liveToken() {
+  String b64(Object o) => base64Url.encode(utf8.encode(jsonEncode(o))).replaceAll('=', '');
+  final exp = DateTime.now().add(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000;
+  return '${b64({'alg': 'HS256'})}.${b64({'exp': exp})}.s';
+}
+
+/// A container wired like `main`, so widget tests drive the real providers.
+///
+/// [url] is the stored server URL; pass null for an unconfigured install.
+/// [session] seeds a live token pair, [extraPrefs] any other stored keys. The
+/// dashboard's context strip runs one health check on first build, so the
+/// health API is always mocked to succeed.
+Future<({ProviderContainer container, InMemorySecureStore store})> signedInContainer({
+  required Directory docs,
+  String? url = 'http://x',
+  bool session = true,
+  Map<String, Object> extraPrefs = const {},
+}) async {
+  SharedPreferences.setMockInitialValues({
+    if (url != null) 'server_url': url,
+    ...extraPrefs,
+  });
+  final prefs = await SharedPreferences.getInstance();
+  final store = InMemorySecureStore();
+  if (session) {
+    await store.write('access_token', 'a');
+    await store.write('refresh_token', liveToken());
+  }
+  final health = MockHealthCheckApi();
+  when(() => health.check(any())).thenAnswer((_) async {});
+  final container = ProviderContainer(overrides: [
+    sharedPreferencesProvider.overrideWithValue(prefs),
+    secureStoreProvider.overrideWithValue(store),
+    healthCheckApiProvider.overrideWithValue(health),
+    appDocumentsDirProvider.overrideWithValue(docs),
+    serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).valueOrNull),
+    accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).valueOrNull?.accessToken),
+    refreshAccessTokenProvider
+        .overrideWith((ref) => () => ref.read(sessionControllerProvider.notifier).refreshAccessToken()),
+  ]);
+  await container.read(serverConfigControllerProvider.future);
+  await container.read(sessionControllerProvider.future);
+  return (container: container, store: store);
+}

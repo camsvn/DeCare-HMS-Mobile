@@ -119,6 +119,7 @@
   "appearanceSystem": "System",
   "appearanceLight": "Light",
   "appearanceDark": "Dark",
+  "appearanceSelected": "Selected",
 
   "aboutHeader": "About",
   "aboutTerms": "Terms of Service",

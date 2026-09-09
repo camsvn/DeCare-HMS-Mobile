@@ -95,13 +95,27 @@ void main() {
 
     await tester.tap(find.text('Theme'));
     await tester.pumpAndSettle();
+    // The sheet is headed "Appearance", so the word is now on screen twice.
+    expect(find.text('Appearance'), findsNWidgets(2));
     expect(find.text('Light'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
-    // Only the active option is ticked, and the tick is not a second action.
+    // Only the active option is ticked; the tick is labelled but is not a
+    // second action.
     expect(find.byIcon(Icons.check), findsOneWidget);
     final tick = tester.widget<IconButton>(
         find.ancestor(of: find.byIcon(Icons.check), matching: find.byType(IconButton)));
     expect(tick.onPressed, isNull);
+    expect(tick.tooltip, 'Selected');
+
+    // The active option is announced as selected; the others are not.
+    Iterable<bool?> selectedFlags(String label) => tester
+        .widgetList<Semantics>(find.ancestor(
+          of: find.descendant(of: find.byType(BottomSheet), matching: find.text(label)),
+          matching: find.byType(Semantics),
+        ))
+        .map((widget) => widget.properties.selected);
+    expect(selectedFlags('System'), contains(true));
+    expect(selectedFlags('Dark'), isNot(contains(true)));
 
     await tester.tap(find.text('Dark'));
     await tester.pumpAndSettle();

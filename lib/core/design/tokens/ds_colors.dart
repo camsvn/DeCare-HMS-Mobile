@@ -77,6 +77,9 @@ class DsColors extends ThemeExtension<DsColors> {
     danger: Color(0xFFF26B70),
   );
 
+  /// The palette for [brightness]; the one place the two are chosen between.
+  static DsColors of(Brightness brightness) => brightness == Brightness.dark ? dark : light;
+
   /// The brand mark; the same in both palettes.
   static const _gradient = LinearGradient(
     colors: [Color(0xFF6D5BD0), Color(0xFF2F8FE5), Color(0xFF10B394)],

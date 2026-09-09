@@ -22,14 +22,19 @@ Future<void> showAppearanceSheet(BuildContext context, WidgetRef ref) {
     builder: (sheet) => [
       Padding(
         padding: const EdgeInsets.fromLTRB(DsSpace.gutter, DsSpace.x3, DsSpace.gutter, DsSpace.x2),
-        child: Text(l10n.settingsTheme, style: context.dsType.heading),
+        child: Text(l10n.settingsGroupAppearance, style: context.dsType.heading),
       ),
       for (final mode in ThemeMode.values)
-        DsListRow(
-          title: appearanceLabel(l10n, mode),
-          // The tick marks the active option; it is not a second action.
-          trailingIcon: mode == current ? Icons.check : null,
-          onTap: () => _select(sheet, ref, mode),
+        Semantics(
+          selected: mode == current,
+          child: DsListRow(
+            title: appearanceLabel(l10n, mode),
+            // The tick marks the active option; it is not a second action, so
+            // it carries a label but no tap handler.
+            trailingIcon: mode == current ? Icons.check : null,
+            trailingTooltip: mode == current ? l10n.appearanceSelected : null,
+            onTap: () => _select(sheet, ref, mode),
+          ),
         ),
     ],
   );
