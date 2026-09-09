@@ -51,6 +51,14 @@ Restore it afterwards, or the app will rotate out of portrait.
    lost upload key means the app can no longer be updated under its existing Play Store
    listing — a new listing would be required.
 
+### CI
+
+<!-- ![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg) -->
+
+`.github/workflows/ci.yml` runs `flutter analyze`, `flutter test`, and `flutter build apk
+--debug` on every push and pull request. It never has access to signing secrets, so it
+always builds the debug-signed APK described above — CI does not sign releases.
+
 ## Structure
 
 ```
