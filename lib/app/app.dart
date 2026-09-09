@@ -31,12 +31,11 @@ class HmsApp extends ConsumerWidget {
       themeMode: themeMode,
       routerConfig: ref.watch(routerProvider),
       builder: (context, child) => SessionExpiryListener(
+        // `builder` runs under the theme MaterialApp resolved from
+        // [themeMode], so read the brightness off that rather than resolving
+        // the mode a second time here.
         child: AnnotatedRegion<SystemUiOverlayStyle>(
-          value: appOverlayStyle(switch (themeMode) {
-            ThemeMode.light => Brightness.light,
-            ThemeMode.dark => Brightness.dark,
-            ThemeMode.system => MediaQuery.platformBrightnessOf(context),
-          }),
+          value: appOverlayStyle(Theme.of(context).brightness),
           child: child ?? const SizedBox.shrink(),
         ),
       ),
