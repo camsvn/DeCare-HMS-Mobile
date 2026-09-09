@@ -37,6 +37,7 @@ class SettingsScreen extends ConsumerWidget {
 
   Future<void> _logout(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
+    final session = ref.read(sessionControllerProvider.notifier);
     final confirmed = await showDsDialog(
       context,
       title: l10n.settingsSignOutTitle,
@@ -45,7 +46,7 @@ class SettingsScreen extends ConsumerWidget {
       destructive: true,
     );
     if (!confirmed) return;
-    await ref.read(sessionControllerProvider.notifier).logout();
+    await session.logout();
   }
 
   @override
@@ -89,7 +90,8 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 DsListRow(
                   leadingIcon: Icons.person_outline,
-                  title: username ?? '—',
+                  title: l10n.settingsSignedInAs,
+                  trailingValue: username ?? '—',
                 ),
                 DsListRow(
                   leadingIcon: Icons.logout,

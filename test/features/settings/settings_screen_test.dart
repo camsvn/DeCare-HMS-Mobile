@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/core/storage/secure_store.dart';
@@ -5,6 +7,13 @@ import 'package:hms_uploader/features/settings/settings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/pump_app.dart';
+
+/// A JWT-shaped token (unsigned, unverified) carrying a `username` claim.
+String tokenFor(String username) {
+  String b64(Object o) =>
+      base64Url.encode(utf8.encode(jsonEncode(o))).replaceAll('=', '');
+  return '${b64({'alg': 'HS256'})}.${b64({'username': username})}.s';
+}
 
 void main() {
   late SharedPreferences prefs;
@@ -14,7 +23,7 @@ void main() {
     SharedPreferences.setMockInitialValues({'server_url': 'http://x'});
     prefs = await SharedPreferences.getInstance();
     store = InMemorySecureStore();
-    await store.write('access_token', 'a');
+    await store.write('access_token', tokenFor('alice'));
     await store.write('refresh_token', 'r');
   });
 
@@ -35,6 +44,8 @@ void main() {
     expect(find.text('Change Installation URL'), findsOneWidget);
     expect(find.text('About'), findsOneWidget);
     expect(find.text('Sign out'), findsOneWidget);
+    expect(find.text('Signed in as'), findsOneWidget);
+    expect(find.text('alice'), findsOneWidget);
     expect(find.text('v1.0.0 (1)'), findsOneWidget);
     await tester.tap(find.text('About'));
     expect(about, 1);

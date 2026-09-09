@@ -96,6 +96,7 @@
   "settingsChangeUrl": "Change Installation URL",
   "settingsChangeUrlBody": "Re-configure the connection URL of your self-hosted DeCare HMS. This process will log you out of the app.",
   "settingsAbout": "About",
+  "settingsSignedInAs": "Signed in as",
   "settingsSignOut": "Sign out",
   "settingsSignOutTitle": "Sign out?",
   "settingsSignOutBody": "You will need to sign in again.",

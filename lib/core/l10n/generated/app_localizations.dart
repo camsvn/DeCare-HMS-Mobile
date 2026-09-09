@@ -559,6 +559,12 @@ abstract class AppLocalizations {
   /// **'About'**
   String get settingsAbout;
 
+  /// No description provided for @settingsSignedInAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in as'**
+  String get settingsSignedInAs;
+
   /// No description provided for @settingsSignOut.
   ///
   /// In en, this message translates to:
