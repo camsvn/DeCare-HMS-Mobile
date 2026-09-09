@@ -25,6 +25,8 @@ class AppHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     return Container(
+      // Span the full width even inside a Column that centres its children.
+      width: double.infinity,
       padding: EdgeInsets.only(top: top),
       decoration: const BoxDecoration(
         color: AppColors.primary,

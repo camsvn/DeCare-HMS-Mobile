@@ -5,6 +5,8 @@ import 'package:hms_uploader/core/theme/app_spacing.dart';
 Future<T?> showAppBottomSheet<T>(BuildContext context, {required List<Widget> children}) {
   return showModalBottomSheet<T>(
     context: context,
+    // Present above the tab shell, not inside the current tab branch.
+    useRootNavigator: true,
     barrierColor: AppColors.scrim,
     backgroundColor: Colors.white,
     shape: const RoundedRectangleBorder(
