@@ -343,6 +343,12 @@ abstract class AppLocalizations {
   /// **'Clear'**
   String get homeClear;
 
+  /// No description provided for @homeRemoveRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from recent'**
+  String get homeRemoveRecent;
+
   /// No description provided for @homeFetchingPatient.
   ///
   /// In en, this message translates to:
@@ -354,6 +360,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Patient: {message}'**
   String homePatientError(String message);
+
+  /// No description provided for @tomogramAddPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photo'**
+  String get tomogramAddPhoto;
 
   /// No description provided for @tomogramChooseGallery.
   ///

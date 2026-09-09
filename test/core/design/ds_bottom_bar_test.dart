@@ -23,5 +23,7 @@ void main() {
     expect(tapped, 1);
     final home = tester.getSemantics(find.text('Home'));
     expect(home.hasFlag(SemanticsFlag.isSelected), isTrue);
+    final settings = tester.getSemantics(find.text('Settings'));
+    expect(settings.hasFlag(SemanticsFlag.isSelected), isFalse);
   });
 }

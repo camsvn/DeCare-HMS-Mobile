@@ -28,33 +28,35 @@ class _ModuleCardState extends State<ModuleCard> {
   Widget build(BuildContext context) {
     final ds = context.ds;
     final type = context.dsType;
-    return Listener(
-      onPointerDown: (_) => setState(() => _pressed = true),
-      onPointerUp: (_) => setState(() => _pressed = false),
-      onPointerCancel: (_) => setState(() => _pressed = false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.98 : 1,
-        duration: DsMotion.of(context, DsMotion.fast),
-        curve: DsMotion.curve,
-        child: DsCard(
-          onTap: widget.onTap,
-          padding: const EdgeInsets.all(DsSpace.x3),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  DsIconTile(icon: widget.icon),
-                  const Spacer(),
-                  if (widget.badge != null) widget.badge!,
-                ],
-              ),
-              const SizedBox(height: DsSpace.x3),
-              Text(widget.title, style: type.heading, maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 2),
-              Text(widget.subtitle, style: type.label.withColor(ds.textSecondary), maxLines: 2, overflow: TextOverflow.ellipsis),
-            ],
+    return MergeSemantics(
+      child: Listener(
+        onPointerDown: (_) => setState(() => _pressed = true),
+        onPointerUp: (_) => setState(() => _pressed = false),
+        onPointerCancel: (_) => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.98 : 1,
+          duration: DsMotion.of(context, DsMotion.fast),
+          curve: DsMotion.curve,
+          child: DsCard(
+            onTap: widget.onTap,
+            padding: const EdgeInsets.all(DsSpace.x3),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    DsIconTile(icon: widget.icon),
+                    const Spacer(),
+                    if (widget.badge != null) widget.badge!,
+                  ],
+                ),
+                const SizedBox(height: DsSpace.x3),
+                Text(widget.title, style: type.heading, maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text(widget.subtitle, style: type.label.withColor(ds.textSecondary), maxLines: 2, overflow: TextOverflow.ellipsis),
+              ],
+            ),
           ),
         ),
       ),

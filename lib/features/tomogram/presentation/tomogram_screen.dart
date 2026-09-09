@@ -122,7 +122,11 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
               DsButton.ghost(label: l10n.tomogramUpload, onPressed: state.uploading ? null : _upload),
           ],
         ),
-        floatingActionButton: DsFab(icon: Icons.add, onPressed: state.uploading ? null : _add),
+        floatingActionButton: DsFab(
+          icon: Icons.add,
+          tooltip: l10n.tomogramAddPhoto,
+          onPressed: state.uploading ? null : _add,
+        ),
         body: Column(
           children: [
             if (state.uploading) const DsProgressBar(),

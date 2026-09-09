@@ -137,12 +137,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeClear => 'Clear';
 
   @override
+  String get homeRemoveRecent => 'Remove from recent';
+
+  @override
   String get homeFetchingPatient => 'Fetching Patient';
 
   @override
   String homePatientError(String message) {
     return 'Patient: $message';
   }
+
+  @override
+  String get tomogramAddPhoto => 'Add photo';
 
   @override
   String get tomogramChooseGallery => 'Choose from Gallery';

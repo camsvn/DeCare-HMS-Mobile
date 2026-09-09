@@ -87,32 +87,34 @@ class _DsButtonState extends State<DsButton> {
             ],
           );
 
-    return Semantics(
-      button: true,
-      enabled: _enabled,
-      child: GestureDetector(
-        onTapDown: _enabled ? (_) => setState(() => _pressed = true) : null,
-        onTapUp: _enabled ? (_) => setState(() => _pressed = false) : null,
-        onTapCancel: () => setState(() => _pressed = false),
-        onTap: _enabled ? widget.onPressed : null,
-        child: AnimatedScale(
-          scale: _pressed ? 0.98 : 1,
-          duration: DsMotion.of(context, DsMotion.fast),
-          curve: DsMotion.curve,
-          child: Opacity(
-            opacity: _enabled || widget.loading ? 1 : 0.5,
-            child: Container(
-              height: widget.height,
-              width: widget.expand ? double.infinity : null,
-              padding: const EdgeInsets.symmetric(horizontal: DsSpace.x4),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: bg,
-                gradient: gradient,
-                border: border,
-                borderRadius: DsRadius.smallAll,
+    return MergeSemantics(
+      child: Semantics(
+        button: true,
+        enabled: _enabled,
+        child: GestureDetector(
+          onTapDown: _enabled ? (_) => setState(() => _pressed = true) : null,
+          onTapUp: _enabled ? (_) => setState(() => _pressed = false) : null,
+          onTapCancel: () => setState(() => _pressed = false),
+          onTap: _enabled ? widget.onPressed : null,
+          child: AnimatedScale(
+            scale: _pressed ? 0.98 : 1,
+            duration: DsMotion.of(context, DsMotion.fast),
+            curve: DsMotion.curve,
+            child: Opacity(
+              opacity: _enabled || widget.loading ? 1 : 0.5,
+              child: Container(
+                height: widget.height,
+                width: widget.expand ? double.infinity : null,
+                padding: const EdgeInsets.symmetric(horizontal: DsSpace.x4),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: bg,
+                  gradient: gradient,
+                  border: border,
+                  borderRadius: DsRadius.smallAll,
+                ),
+                child: child,
               ),
-              child: child,
             ),
           ),
         ),

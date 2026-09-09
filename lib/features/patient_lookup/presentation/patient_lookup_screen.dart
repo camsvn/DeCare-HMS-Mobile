@@ -99,6 +99,7 @@ class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
                                       title: p.name,
                                       trailingValue: '${p.opid}',
                                       trailingIcon: Icons.delete_outline,
+                                      trailingTooltip: l10n.homeRemoveRecent,
                                       onTrailingTap: () => _remove(p.id),
                                       onTap: () => _lookup(p.opid),
                                     ),

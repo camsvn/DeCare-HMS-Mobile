@@ -51,10 +51,12 @@
   "homeGo": "Go",
   "homeRecent": "Recent",
   "homeClear": "Clear",
+  "homeRemoveRecent": "Remove from recent",
   "homeFetchingPatient": "Fetching Patient",
   "homePatientError": "Patient: {message}",
   "@homePatientError": {"placeholders": {"message": {"type": "String"}}},
 
+  "tomogramAddPhoto": "Add photo",
   "tomogramChooseGallery": "Choose from Gallery",
   "tomogramTakePhoto": "Take Photo",
   "tomogramDescription": "Description",
