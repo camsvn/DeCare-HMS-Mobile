@@ -20,9 +20,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonDiscard => 'Discard';
 
   @override
-  String get commonPleaseWait => 'Please wait';
-
-  @override
   String get commonPressBackAgain => 'App: Press back again to exit';
 
   @override
@@ -114,11 +111,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramModuleSubtitle => 'Upload skin photos to a patient record';
 
   @override
-  String homeRecentRow(String name, int opid) {
-    return '$name, $opid';
-  }
-
-  @override
   String get homeEmptyTitle => 'There is no patient selected.';
 
   @override
@@ -138,9 +130,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeRemoveRecent => 'Remove from recent';
-
-  @override
-  String get homeFetchingPatient => 'Fetching Patient';
 
   @override
   String homePatientError(String message) {
@@ -169,9 +158,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramUpload => 'Upload';
 
   @override
-  String get tomogramUploading => 'Uploading';
-
-  @override
   String get tomogramUploaded => 'Tomogram: Uploaded';
 
   @override
@@ -197,6 +183,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String tomogramCounter(int index, int total) {
     return '$index of $total';
   }
+
+  @override
+  String get permissionTitleBar => 'Permission';
 
   @override
   String permissionTitle(String name) {

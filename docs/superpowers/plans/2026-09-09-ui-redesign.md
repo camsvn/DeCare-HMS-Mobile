@@ -16,7 +16,7 @@
 - `core` never imports `features`. Features import other features only via barrels. The `app/` layer may import anything.
 - Screens never use raw colours, sizes or font names: everything comes from `context.ds` (colours), `context.dsType` (text styles), `DsSpace`, `DsRadius`, `DsMotion`.
 - All user-visible strings via `context.l10n` from `lib/core/l10n/app_en.arb`; run `flutter gen-l10n` after editing it.
-- The gradient (`ds.accentGradient`) appears on at most one element per screen plus the active tab underline.
+- The gradient (`ds.accentGradient`) is reserved for the primary action, module icon tiles, the FAB, progress and the active tab underline; decorative use elsewhere is not allowed.
 - Behaviour and copy of existing flows stay as tested today unless the spec changes them (listed per task). Controller, repository and API tests must not change.
 - Every task ends with `flutter analyze` clean, `flutter test` green, then a commit. Run all commands from `E:\Projects\personal\deCare\hms\HMSFlutter` (Git Bash: `cd "E:/Projects/personal/deCare/hms/HMSFlutter"`).
 - Font files are already downloaded at `C:\Users\amals\AppData\Local\Temp\claude\E--Projects-personal-deCare-hms-HMSUploader\ea7319d7-0f7a-40c8-b324-d6f735e540f1\scratchpad\inter\extras\ttf\Inter-{Regular,Medium,SemiBold,Bold}.ttf` with `LICENSE.txt` one folder up.

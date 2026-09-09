@@ -13,7 +13,7 @@ export 'presentation/patient_lookup_screen.dart';
 /// Entry route of the tomogram module. [children] are nested routes
 /// (tomogram detail, permission) supplied by the module so this feature does
 /// not depend on them.
-GoRoute patientLookupRoute({required List<RouteBase> children}) => GoRoute(
+GoRoute patientLookupRoute({List<RouteBase> children = const []}) => GoRoute(
       path: RoutePaths.tomogramEntry,
       pageBuilder: (context, state) => FadeThroughPage(
         key: state.pageKey,

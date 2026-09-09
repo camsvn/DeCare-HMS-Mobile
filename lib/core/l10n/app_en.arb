@@ -5,7 +5,6 @@
   "commonCancel": "Cancel",
   "commonConfirm": "Confirm",
   "commonDiscard": "Discard",
-  "commonPleaseWait": "Please wait",
   "commonPressBackAgain": "App: Press back again to exit",
 
   "errorCannotConnect": "Could not reach the server",
@@ -43,8 +42,6 @@
   "tomogramModuleTitle": "Tomogram",
   "tomogramModuleSubtitle": "Upload skin photos to a patient record",
 
-  "homeRecentRow": "{name}, {opid}",
-  "@homeRecentRow": {"placeholders": {"name": {"type": "String"}, "opid": {"type": "int"}}},
   "homeEmptyTitle": "There is no patient selected.",
   "homeEmptyBody": "Once you choose a patient, they'll appear here.",
   "homeSearchPlaceholder": "Enter OP Number",
@@ -52,7 +49,6 @@
   "homeRecent": "Recent",
   "homeClear": "Clear",
   "homeRemoveRecent": "Remove from recent",
-  "homeFetchingPatient": "Fetching Patient",
   "homePatientError": "Patient: {message}",
   "@homePatientError": {"placeholders": {"message": {"type": "String"}}},
 
@@ -63,7 +59,6 @@
   "tomogramEmptyTitle": "There is no tomogram added.",
   "tomogramEmptyBody": "You can add tomogram photos with the '+' button. They will appear here as you add them.",
   "tomogramUpload": "Upload",
-  "tomogramUploading": "Uploading",
   "tomogramUploaded": "Tomogram: Uploaded",
   "tomogramUploadError": "Tomogram Upload: {message}",
   "@tomogramUploadError": {"placeholders": {"message": {"type": "String"}}},
@@ -75,6 +70,7 @@
   "tomogramCounter": "{index} of {total}",
   "@tomogramCounter": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}}},
 
+  "permissionTitleBar": "Permission",
   "permissionTitle": "Grant Permission to access {name}",
   "@permissionTitle": {"placeholders": {"name": {"type": "String"}}},
   "permissionBody": "It looks like you have turned off permissions required for this feature. It can be enabled under Phone Settings > Apps > HMS > Permissions",

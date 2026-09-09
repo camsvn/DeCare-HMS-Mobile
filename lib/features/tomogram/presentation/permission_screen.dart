@@ -52,7 +52,7 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen> with Widget
     final l10n = context.l10n;
     final first = widget.permissions.isEmpty ? Permission.camera : widget.permissions.first;
     return Scaffold(
-      appBar: DsAppBar(title: l10n.commonHeader),
+      appBar: DsAppBar(title: l10n.permissionTitleBar),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(DsSpace.x6),

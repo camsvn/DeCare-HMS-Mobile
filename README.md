@@ -68,8 +68,19 @@ Screens are built entirely from `lib/core/design/`:
   tiles, the FAB, progress indicators and the active tab underline; it is not used
   decoratively elsewhere.
 
-To register a new dashboard module: define an `AppModule` (`lib/core/modules/app_module.dart`)
-in the feature's barrel file, then add it to the `appModules` list in `lib/app/modules.dart`.
+### Adding a module
+
+To register a new dashboard module:
+
+1. Define an `AppModule` (`lib/core/modules/app_module.dart`) in the feature's barrel file and
+   add it to the `appModules` list in `lib/app/modules.dart`.
+2. Add ARB keys for the module's dashboard title and subtitle to `lib/core/l10n/app_en.arb`
+   and run `flutter gen-l10n`; `AppModule.title`/`subtitle` read them off `AppLocalizations`.
+3. Add the module's paths to `RoutePaths` (`lib/core/navigation/route_paths.dart`).
+4. Give every route in `AppModule.routes` a `pageBuilder` returning
+   `FadeThroughPage(key: state.pageKey, child: ...)` so it matches the rest of the app.
+5. The module's routes are nested under the Home branch of the shell, so the bottom bar and
+   the shell's back handling stay in place; do not add them to the root router.
 
 ## Adding a workflow
 

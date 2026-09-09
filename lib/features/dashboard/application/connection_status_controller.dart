@@ -14,8 +14,6 @@ class ConnectionStatusController extends AsyncNotifier<bool> {
       return false;
     }
   }
-
-  Future<void> refresh() async => ref.invalidateSelf();
 }
 
 final connectionStatusProvider =

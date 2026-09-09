@@ -121,12 +121,6 @@ abstract class AppLocalizations {
   /// **'Discard'**
   String get commonDiscard;
 
-  /// No description provided for @commonPleaseWait.
-  ///
-  /// In en, this message translates to:
-  /// **'Please wait'**
-  String get commonPleaseWait;
-
   /// No description provided for @commonPressBackAgain.
   ///
   /// In en, this message translates to:
@@ -301,12 +295,6 @@ abstract class AppLocalizations {
   /// **'Upload skin photos to a patient record'**
   String get tomogramModuleSubtitle;
 
-  /// No description provided for @homeRecentRow.
-  ///
-  /// In en, this message translates to:
-  /// **'{name}, {opid}'**
-  String homeRecentRow(String name, int opid);
-
   /// No description provided for @homeEmptyTitle.
   ///
   /// In en, this message translates to:
@@ -348,12 +336,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove from recent'**
   String get homeRemoveRecent;
-
-  /// No description provided for @homeFetchingPatient.
-  ///
-  /// In en, this message translates to:
-  /// **'Fetching Patient'**
-  String get homeFetchingPatient;
 
   /// No description provided for @homePatientError.
   ///
@@ -403,12 +385,6 @@ abstract class AppLocalizations {
   /// **'Upload'**
   String get tomogramUpload;
 
-  /// No description provided for @tomogramUploading.
-  ///
-  /// In en, this message translates to:
-  /// **'Uploading'**
-  String get tomogramUploading;
-
   /// No description provided for @tomogramUploaded.
   ///
   /// In en, this message translates to:
@@ -450,6 +426,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{index} of {total}'**
   String tomogramCounter(int index, int total);
+
+  /// No description provided for @permissionTitleBar.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission'**
+  String get permissionTitleBar;
 
   /// No description provided for @permissionTitle.
   ///

@@ -20,7 +20,7 @@ void main() {
       const PermissionScreen(permissions: [Permission.camera, Permission.photos]),
       overrides: [permissionGatewayProvider.overrideWithValue(gateway)],
     );
-    expect(find.text('DeCare HMS'), findsOneWidget);
+    expect(find.text('Permission'), findsOneWidget);
     expect(find.byIcon(Icons.lock_outline), findsOneWidget);
     expect(find.text('Grant Permission to access Camera'), findsOneWidget);
     await tester.tap(find.text('Grant Permission'));
