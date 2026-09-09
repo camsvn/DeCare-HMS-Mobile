@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -11,7 +13,7 @@ class DashboardScreen extends ConsumerWidget {
 
   final List<AppModule> modules;
 
-  /// Defaults to `context.go(entryRoute)`. Injectable for tests.
+  /// Defaults to `context.push(entryRoute)`. Injectable for tests.
   final void Function(BuildContext context, AppModule module)? onOpenModule;
 
   @override
@@ -38,15 +40,15 @@ class DashboardScreen extends ConsumerWidget {
                   crossAxisSpacing: DsSpace.x3,
                   childAspectRatio: 1.15,
                   children: [
-                    for (final m in modules)
+                    for (var i = 0; i < modules.length; i++)
                       _Staggered(
-                        index: modules.indexOf(m),
+                        index: i,
                         child: ModuleCard(
-                          icon: m.icon,
-                          title: m.title(l10n),
-                          subtitle: m.subtitle(l10n),
-                          badge: m.badge?.call(ref),
-                          onTap: () => open(context, m),
+                          icon: modules[i].icon,
+                          title: modules[i].title(l10n),
+                          subtitle: modules[i].subtitle(l10n),
+                          badge: modules[i].badge?.call(ref),
+                          onTap: () => open(context, modules[i]),
                         ),
                       ),
                     if (modules.length == 1) ModulePlaceholderCard(label: l10n.dashboardMorePlaceholder),
@@ -72,18 +74,24 @@ class _Staggered extends StatefulWidget {
 }
 
 class _StaggeredState extends State<_Staggered> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: DsMotion.base);
+  late final AnimationController _c = AnimationController(vsync: this);
+  Timer? _start;
 
   @override
-  void initState() {
-    super.initState();
-    Future<void>.delayed(DsMotion.stagger * widget.index, () {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // MediaQuery is only readable from here on, so the reduced-motion-aware
+    // duration and the staggered start are both set up once dependencies land.
+    _c.duration = DsMotion.of(context, DsMotion.base);
+    if (_start != null) return;
+    _start = Timer(DsMotion.stagger * widget.index, () {
       if (mounted) _c.forward();
     });
   }
 
   @override
   void dispose() {
+    _start?.cancel();
     _c.dispose();
     super.dispose();
   }

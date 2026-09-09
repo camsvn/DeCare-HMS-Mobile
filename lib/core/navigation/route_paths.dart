@@ -9,7 +9,8 @@ abstract final class RoutePaths {
 
   /// Tomogram module.
   static const tomogramEntry = '/app/tomogram';
-  static const tomogramPattern = ':opid';
+  /// Digit-constrained so it cannot swallow the literal `permission` segment.
+  static const tomogramPattern = r':opid(\d+)';
   static String tomogram(int opid) => '$tomogramEntry/$opid';
   static const permissionPattern = 'permission';
   static const permission = '$tomogramEntry/permission';

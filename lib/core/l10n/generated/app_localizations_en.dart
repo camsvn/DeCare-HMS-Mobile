@@ -105,6 +105,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardMorePlaceholder => 'More modules coming';
 
   @override
+  String get dashboardChecking => 'Checking…';
+
+  @override
   String get dashboardConnected => 'Connected';
 
   @override

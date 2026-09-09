@@ -21,7 +21,13 @@ class ContextStrip extends ConsumerWidget {
     final token = ref.watch(sessionControllerProvider).valueOrNull?.accessToken;
     final user = token == null ? null : jwtClaim(token, 'username');
     final status = ref.watch(connectionStatusProvider);
-    final ok = status.valueOrNull ?? true;
+    final checking = status.isLoading;
+    final ok = status.valueOrNull ?? false;
+    final statusLabel = checking
+        ? l10n.dashboardChecking
+        : ok
+            ? l10n.dashboardConnected
+            : l10n.dashboardUnreachable;
 
     return Container(
       width: double.infinity,
@@ -38,10 +44,9 @@ class ContextStrip extends ConsumerWidget {
               ],
             ),
           ),
-          DsStatusDot(ok: ok),
+          DsStatusDot(ok: ok, color: checking ? ds.textOnShellMuted : null),
           const SizedBox(width: DsSpace.x2),
-          Text(ok ? l10n.dashboardConnected : l10n.dashboardUnreachable,
-              style: type.label.withColor(ds.textOnShellMuted)),
+          Text(statusLabel, style: type.label.withColor(ds.textOnShellMuted)),
         ],
       ),
     );

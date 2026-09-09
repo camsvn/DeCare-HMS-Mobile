@@ -38,6 +38,7 @@
 
   "dashboardModules": "Modules",
   "dashboardMorePlaceholder": "More modules coming",
+  "dashboardChecking": "Checking…",
   "dashboardConnected": "Connected",
   "dashboardUnreachable": "Server unreachable",
 

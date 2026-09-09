@@ -1,15 +1,21 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/app/app.dart';
+import 'package:hms_uploader/app/router.dart';
 import 'package:hms_uploader/core/design/design.dart';
+import 'package:hms_uploader/core/navigation/route_paths.dart';
 import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/core/storage/secure_store.dart';
 import 'package:hms_uploader/features/auth/auth.dart';
+import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
+import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MockHealthCheckApi extends Mock implements HealthCheckApi {}
@@ -41,6 +47,15 @@ Future<ProviderContainer> containerWith({String? url, bool session = false}) asy
   await container.read(serverConfigControllerProvider.future);
   await container.read(sessionControllerProvider.future);
   return container;
+}
+
+/// The 800x600 default leaves the not-yet-restyled tomogram screen 22 px short
+/// once the shell's bottom bar is subtracted; give these router tests a phone
+/// -shaped surface instead. (Task 7 restyles that screen.)
+void tallSurface(WidgetTester tester) {
+  tester.view.physicalSize = const Size(400, 800);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
 }
 
 void main() {
@@ -89,6 +104,32 @@ void main() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.text('Modules'), findsOneWidget);
+  });
+
+  testWidgets('/app/tomogram/permission opens the permission screen, not the detail screen', (tester) async {
+    tallSurface(tester);
+    final c = await containerWith(url: 'http://x', session: true);
+    addTearDown(c.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
+    await tester.pumpAndSettle();
+
+    c.read(routerProvider).push(RoutePaths.permission, extra: <Permission>[Permission.camera]);
+    await tester.pumpAndSettle();
+    expect(find.byType(PermissionScreen), findsOneWidget);
+    expect(find.byType(TomogramScreen), findsNothing);
+  });
+
+  testWidgets('/app/tomogram/:opid opens the tomogram detail screen', (tester) async {
+    tallSurface(tester);
+    final c = await containerWith(url: 'http://x', session: true);
+    addTearDown(c.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
+    await tester.pumpAndSettle();
+
+    c.read(routerProvider).push(RoutePaths.tomogram(5), extra: const Patient(id: 1, opid: 5, name: 'Jane'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TomogramScreen), findsOneWidget);
+    expect(find.byType(PermissionScreen), findsNothing);
   });
 
   testWidgets('system back on the Home tab arms double-press-to-exit', (tester) async {

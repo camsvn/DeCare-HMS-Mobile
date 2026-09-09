@@ -283,6 +283,12 @@ abstract class AppLocalizations {
   /// **'More modules coming'**
   String get dashboardMorePlaceholder;
 
+  /// No description provided for @dashboardChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get dashboardChecking;
+
   /// No description provided for @dashboardConnected.
   ///
   /// In en, this message translates to:

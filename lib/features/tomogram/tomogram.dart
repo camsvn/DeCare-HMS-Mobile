@@ -44,7 +44,8 @@ final AppModule tomogramModule = AppModule(
   subtitle: (l10n) => l10n.tomogramModuleSubtitle,
   icon: Icons.photo_camera_back_outlined,
   entryRoute: RoutePaths.tomogramEntry,
-  routes: [patientLookupRoute(children: [tomogramDetailRoute, permissionRoute])],
+  // `permissionRoute` first: go_router matches sub-routes in order.
+  routes: [patientLookupRoute(children: [permissionRoute, tomogramDetailRoute])],
   badge: (ref) {
     final count = ref.watch(recentSearchesControllerProvider).length;
     return count == 0 ? const SizedBox.shrink() : DsChip(text: '$count', mono: true);
