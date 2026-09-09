@@ -120,6 +120,37 @@ void main() {
     expect(find.byType(DsSkeleton), findsNothing);
   });
 
+  testWidgets('taps while a lookup is in flight do not start a second one', (tester) async {
+    final prefs = await prefsWith({
+      'recent_searches': '[{"id":1,"opid":42,"name":"Jane"}]',
+    });
+    final gate = Completer<Patient>();
+    when(() => api.getByOpId(42)).thenAnswer((_) => gate.future);
+    var selected = 0;
+    await pumpApp(tester, PatientLookupScreen(onPatientSelected: (_) => selected++), overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      opRegisterApiProvider.overrideWithValue(api),
+    ]);
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), '42');
+    await tester.pump();
+    await tester.tap(find.text('Go'));
+    await tester.pump();
+    await tester.tap(find.text('Go'));
+    await tester.pump();
+    // The recents list is replaced by skeletons while a lookup runs, but tap
+    // the row too whenever it is still reachable.
+    final row = find.widgetWithText(DsListRow, 'Jane');
+    if (row.evaluate().isNotEmpty) {
+      await tester.tap(row);
+      await tester.pump();
+    }
+    gate.complete(const Patient(id: 1, opid: 42, name: 'Jane'));
+    await tester.pumpAndSettle();
+    verify(() => api.getByOpId(42)).called(1);
+    expect(selected, 1);
+  });
+
   testWidgets('lookup failure flashes Patient error', (tester) async {
     final prefs = await prefsWith({});
     when(() => api.getByOpId(any())).thenThrow(const NotFoundFailure('Invalid OP Number'));

@@ -70,12 +70,22 @@ class _TomogramCardState extends State<TomogramCard> {
                 child: DsChip(text: l10n.tomogramCounter(widget.index + 1, widget.total), mono: true),
               ),
               Positioned(
-                right: 0,
-                top: 0,
-                child: IconButton(
-                  icon: Icon(Icons.delete_outline, color: ds.danger, size: 20),
-                  onPressed: widget.onDelete,
-                  tooltip: MaterialLocalizations.of(context).deleteButtonTooltip,
+                right: DsSpace.x2,
+                top: DsSpace.x2,
+                // Translucent disc so the icon stays legible over a light photo.
+                child: DecoratedBox(
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: ds.card.withOpacity(0.85)),
+                  child: SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: IconButton(
+                      icon: Icon(Icons.delete_outline, color: ds.danger, size: 20),
+                      onPressed: widget.onDelete,
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      tooltip: MaterialLocalizations.of(context).deleteButtonTooltip,
+                    ),
+                  ),
                 ),
               ),
             ],

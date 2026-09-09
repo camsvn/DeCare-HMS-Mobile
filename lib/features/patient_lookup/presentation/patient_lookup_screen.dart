@@ -22,6 +22,9 @@ class PatientLookupScreen extends ConsumerStatefulWidget {
 
 class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
   Future<void> _lookup(int opid) async {
+    // One lookup at a time: a second tap on Go or on a recent row would
+    // otherwise fire a second request and push the tomogram route twice.
+    if (ref.read(patientLookupControllerProvider).isLoading) return;
     final patient = await ref.read(patientLookupControllerProvider.notifier).search(opid);
     if (patient != null && mounted) widget.onPatientSelected(patient);
   }
@@ -49,7 +52,7 @@ class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
       appBar: DsAppBar(title: l10n.tomogramModuleTitle),
       body: Column(
         children: [
-          OpSearchBar(onSubmit: _lookup),
+          OpSearchBar(onSubmit: _lookup, busy: loading),
           Expanded(
             child: loading
                 ? ListView(

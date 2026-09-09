@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
@@ -105,6 +107,32 @@ void main() {
     expect(find.text('Tomogram: Uploaded'), findsOneWidget);
     final captured = verify(() => api.upload(42, captureAny())).captured.single as List<TomogramDraft>;
     expect(captured.single.description, 'left forearm');
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('an upload in flight shows the progress bar and disables Upload', (tester) async {
+    final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
+    when(() => picker.pick(MediaSource.camera))
+        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
+    final gate = Completer<List<UploadResult>>();
+    when(() => api.upload(42, any())).thenAnswer((_) => gate.future);
+    await pump(tester);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take Photo'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(find.text('Upload'));
+    await tester.pump();
+    expect(find.byType(DsProgressBar), findsOneWidget);
+    expect(tester.widget<DsButton>(find.widgetWithText(DsButton, 'Upload')).onPressed, isNull);
+
+    gate.complete(const []);
+    await tester.pumpAndSettle();
+    expect(find.byType(DsProgressBar), findsNothing);
+    expect(find.text('Tomogram: Uploaded'), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
   });

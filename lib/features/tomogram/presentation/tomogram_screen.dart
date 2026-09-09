@@ -25,6 +25,10 @@ class TomogramScreen extends ConsumerStatefulWidget {
   ConsumerState<TomogramScreen> createState() => _TomogramScreenState();
 }
 
+/// Bottom padding under the draft list: `DsSpace.x8` plus the 52 dp FAB and its
+/// 4 dp of breathing room.
+const double _fabClearance = DsSpace.x8 + 56;
+
 class _TomogramScreenState extends ConsumerState<TomogramScreen> {
   int get _opid => widget.patient.opid;
 
@@ -130,7 +134,10 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
                       body: l10n.tomogramEmptyBody,
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(DsSpace.gutter, DsSpace.x3, DsSpace.gutter, DsSpace.x8),
+                      // Bottom gap clears the 52 dp FAB plus its 16 dp margin,
+                      // so the last card's description field stays reachable.
+                      padding: const EdgeInsets.fromLTRB(
+                          DsSpace.gutter, DsSpace.x3, DsSpace.gutter, _fabClearance),
                       itemCount: drafts.length,
                       separatorBuilder: (_, __) => const SizedBox(height: DsSpace.x3),
                       itemBuilder: (_, i) => TomogramCard(

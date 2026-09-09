@@ -4,11 +4,15 @@ import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 
 /// Numeric OP-number field on a white strip under the app bar. The gradient
-/// "Go" button appears only once the field has text.
+/// "Go" button appears only once the field has text, and is disabled while
+/// [busy] so a second tap cannot start a second lookup.
 class OpSearchBar extends StatefulWidget {
-  const OpSearchBar({super.key, required this.onSubmit});
+  const OpSearchBar({super.key, required this.onSubmit, required this.busy});
 
   final ValueChanged<int> onSubmit;
+
+  /// True while a lookup is in flight.
+  final bool busy;
 
   @override
   State<OpSearchBar> createState() => _OpSearchBarState();
@@ -30,6 +34,7 @@ class _OpSearchBarState extends State<OpSearchBar> {
   }
 
   void _submit() {
+    if (widget.busy) return;
     final opid = int.tryParse(_controller.text.trim());
     if (opid == null) return;
     FocusScope.of(context).unfocus();
@@ -71,7 +76,12 @@ class _OpSearchBarState extends State<OpSearchBar> {
           ),
           if (hasText) ...[
             const SizedBox(width: DsSpace.x2),
-            DsButton.primary(label: l10n.homeGo, expand: false, height: 40, onPressed: _submit),
+            DsButton.primary(
+              label: l10n.homeGo,
+              expand: false,
+              height: 40,
+              onPressed: widget.busy ? null : _submit,
+            ),
           ],
         ],
       ),
