@@ -28,4 +28,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(result, isFalse);
   });
+
+  testWidgets('paints an untinted card surface', (tester) async {
+    await pumpApp(
+      tester,
+      Builder(
+        builder: (context) => TextButton(
+          onPressed: () => showDsDialog(context, title: 'Sign out?'),
+          child: const Text('open'),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    final material = tester.widget<Material>(
+      find.descendant(of: find.byType(Dialog), matching: find.byType(Material)).first,
+    );
+    expect(material.surfaceTintColor, Colors.transparent);
+    expect(material.color, DsColors.light.card);
+  });
 }

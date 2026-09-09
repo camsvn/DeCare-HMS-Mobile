@@ -15,8 +15,20 @@ ThemeData buildDsTheme() {
       onSurface: colors.textPrimary,
       error: colors.danger,
       outline: colors.borderSubtle,
+      // The M3 baseline tint is purple; elevated surfaces must stay neutral.
+      surfaceTint: Colors.transparent,
     ),
     textTheme: base.textTheme.apply(fontFamily: DsType.family, bodyColor: colors.textPrimary, displayColor: colors.textPrimary),
+    // Belt and braces: `showModalBottomSheet` takes no surface tint argument on
+    // this SDK, so the sheet and dialog surfaces pin it here as well.
+    bottomSheetTheme: base.bottomSheetTheme.copyWith(
+      backgroundColor: colors.card,
+      surfaceTintColor: Colors.transparent,
+    ),
+    dialogTheme: base.dialogTheme.copyWith(
+      backgroundColor: colors.card,
+      surfaceTintColor: Colors.transparent,
+    ),
     dividerColor: colors.borderSubtle,
     splashFactory: InkSparkle.splashFactory,
     extensions: [colors, type],

@@ -24,6 +24,7 @@ Future<bool> showDsDialog(
       final confirm = confirmLabel ?? l10n.commonConfirm;
       return Dialog(
         backgroundColor: ds.card,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: DsRadius.largeAll),
         child: Padding(
           padding: const EdgeInsets.all(DsSpace.x5),
