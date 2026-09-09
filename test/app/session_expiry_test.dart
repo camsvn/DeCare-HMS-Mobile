@@ -67,6 +67,31 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('a burst of auth failures signs out once and shows one banner', (tester) async {
+    resetDsBannersForTest();
+    final (c, store) = await containerWith(url: 'http://x', session: true);
+    addTearDown(c.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
+    await tester.pumpAndSettle();
+    expect(find.text('Modules'), findsOneWidget);
+
+    // Three parallel requests all coming back 401.
+    c.read(authFailureProvider.notifier).state++;
+    c.read(authFailureProvider.notifier).state++;
+    c.read(authFailureProvider.notifier).state++;
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign In'), findsOneWidget);
+    expect(await store.read('refresh_token'), isNull);
+    expect(find.text('Session expired, please sign in again'), findsOneWidget);
+
+    // Banners are queued one at a time, so a second enqueued banner would only
+    // show up once the first has been dismissed.
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+    expect(find.text('Session expired, please sign in again'), findsNothing);
+  });
+
   testWidgets('an auth failure with no session does nothing', (tester) async {
     resetDsBannersForTest();
     final (c, _) = await containerWith(url: 'http://x');

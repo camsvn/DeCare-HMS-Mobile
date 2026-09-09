@@ -8,6 +8,9 @@ typedef TokenRefresher = Future<String?> Function();
 /// on a 401 from a protected route, refreshes the access token once and retries.
 /// Auth routes are never retried: a 401 there is the answer, not a stale token.
 ///
+/// [onAuthFailure] fires at most once per request: the retry re-enters this
+/// interceptor, so the already-retried branch is the only place that reports it.
+///
 /// Deliberately a plain [Interceptor], not a [QueuedInterceptor]: the refresher
 /// posts `/auth/refresh` through this same client, so with a queued interceptor
 /// a 401 on the refresh itself (a dead refresh token — the common case) would
@@ -49,7 +52,13 @@ class AuthInterceptor extends Interceptor {
   Future<String?> _callRefresher() async {
     try {
       return await refresher!();
-    } catch (_) {
+    } catch (e) {
+      // A missing provider override looks exactly like a rejected refresh;
+      // say so in debug builds instead of silently signing the user out.
+      assert(() {
+        debugPrint('refresh failed: $e');
+        return true;
+      }());
       return null;
     }
   }
@@ -98,7 +107,8 @@ class AuthInterceptor extends Interceptor {
       final response = await dio.fetch<dynamic>(opts);
       return handler.resolve(response);
     } on DioException catch (e) {
-      if (e.response?.statusCode == 401) onAuthFailure?.call();
+      // No signal here: the retry re-entered this interceptor, and the
+      // already-retried branch above is the single place that reports a 401.
       return handler.next(e);
     }
   }

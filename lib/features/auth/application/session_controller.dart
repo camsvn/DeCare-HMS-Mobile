@@ -39,8 +39,12 @@ class SessionController extends AsyncNotifier<Session?> {
   }
 
   Future<void> logout() async {
-    // Drop the in-memory session even if the secure store throws: leaving the
-    // state behind would keep the user inside the app with dead tokens.
+    // Drop the in-memory session *before* awaiting the store, so a burst of
+    // 401s sees the session already gone and only signs out once.
+    state = const AsyncData(null);
+    // Clear again afterwards, even if the secure store throws: leaving the
+    // state behind would keep the user inside the app with dead tokens, and a
+    // rebuild while the clear was in flight could have re-read the old session.
     try {
       await ref.read(sessionRepositoryProvider).clear();
     } finally {

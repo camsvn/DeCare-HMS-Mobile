@@ -79,6 +79,34 @@ void main() {
       expect(adapter.authHeaders, ['Bearer old']);
     });
 
+    test('a 401 on the retry propagates and signals auth failure once', () async {
+      var refreshCalls = 0;
+      var failures = 0;
+      final dio = buildDio(
+        baseUrl: 'http://x/api',
+        tokenReader: () => 'old',
+        refresher: () async {
+          refreshCalls++;
+          return 'new';
+        },
+        onAuthFailure: () => failures++,
+      );
+      final adapter = _ScriptedAdapter([
+        (401, '{"status":"fail","data":"Invalid token"}'),
+        (401, '{"status":"fail","data":"Invalid token"}'),
+      ]);
+      dio.httpClientAdapter = adapter;
+
+      await expectLater(
+        dio.get<dynamic>('/a'),
+        throwsA(isA<DioException>().having((e) => e.response?.statusCode, 'statusCode', 401)),
+      );
+      expect(refreshCalls, 1);
+      expect(adapter.authHeaders, ['Bearer old', 'Bearer new']);
+      // The retry re-enters onError, so the signal must not be sent twice.
+      expect(failures, 1);
+    });
+
     test('auth routes are not retried', () async {
       var refreshCalls = 0;
       var failures = 0;

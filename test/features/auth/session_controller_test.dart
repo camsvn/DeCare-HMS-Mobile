@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +11,20 @@ import 'package:mocktail/mocktail.dart';
 class MockAuthApi extends Mock implements AuthApi {}
 
 class MockDio extends Mock implements Dio {}
+
+/// Holds `delete` until [gate] completes, to observe what the session state is
+/// while the secure store is still clearing.
+class GatedSecureStore extends InMemorySecureStore {
+  GatedSecureStore(this.gate);
+
+  final Future<void> gate;
+
+  @override
+  Future<void> delete(String key) async {
+    await gate;
+    return super.delete(key);
+  }
+}
 
 void main() {
   late MockAuthApi api;
@@ -90,6 +106,28 @@ void main() {
     await container.read(sessionControllerProvider.future);
     expect(await container.read(sessionControllerProvider.notifier).refreshAccessToken(), isNull);
     verifyNever(() => api.refresh(any()));
+  });
+
+  test('logout drops the session before the store clear completes', () async {
+    final gate = Completer<void>();
+    final slow = GatedSecureStore(gate.future);
+    await slow.write('access_token', 'a');
+    await slow.write('refresh_token', 'r');
+    final c = ProviderContainer(overrides: [
+      secureStoreProvider.overrideWithValue(slow),
+      authApiProvider.overrideWithValue(api),
+    ]);
+    addTearDown(c.dispose);
+    await c.read(sessionControllerProvider.future);
+
+    final pending = c.read(sessionControllerProvider.notifier).logout();
+    // A second 401 in the same burst reads the state here: it must already be
+    // gone, so it does not start another sign-out.
+    expect(c.read(sessionControllerProvider).value, isNull);
+    gate.complete();
+    await pending;
+    expect(await slow.read('access_token'), isNull);
+    expect(await slow.read('refresh_token'), isNull);
   });
 
   group('DioAuthApi', () {
