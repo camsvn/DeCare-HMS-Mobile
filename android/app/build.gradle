@@ -26,6 +26,16 @@ def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
 if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.withReader('UTF-8') { keystoreProperties.load(it) }
+    // Fail loudly on a half-filled file rather than producing an unsigned or
+    // wrongly signed release artifact.
+    def missingKey = ['keyAlias', 'keyPassword', 'storeFile', 'storePassword'].find {
+        keystoreProperties[it] == null
+    }
+    if (missingKey != null) {
+        throw new GradleException("android/key.properties is missing ${missingKey}")
+    }
+} else {
+    logger.warn("android/key.properties not found: release build will be debug-signed")
 }
 
 android {

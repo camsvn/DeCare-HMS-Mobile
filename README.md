@@ -77,7 +77,7 @@ lib/
     presentation/      screens and feature-local widgets
 ```
 
-Features: `server_config`, `auth`, `patient_lookup`, `tomogram`, `settings`.
+Features: `server_config`, `auth`, `dashboard`, `patient_lookup`, `tomogram`, `settings`.
 
 ## Design system
 
@@ -124,9 +124,14 @@ To register a new dashboard module:
 
 1. Create `lib/features/<name>/` with `data/`, `application/`, `presentation/` as needed.
 2. Export its public providers and a `GoRoute` (or `List<RouteBase>`) from `lib/features/<name>/<name>.dart`.
-3. Register the route in `lib/app/router.dart` and add the path to `lib/core/navigation/route_paths.dart`.
-4. Add strings to `lib/core/l10n/app_en.arb` and run `flutter gen-l10n`.
-5. Add tests under `test/features/<name>/`.
+3. Add its paths to `RoutePaths` (`lib/core/navigation/route_paths.dart`).
+4. Register the routes. A workflow reached from the dashboard is an `AppModule` added to
+   `appModules` in `lib/app/modules.dart` (see *Adding a module* above) — `lib/app/router.dart`
+   nests every module's routes under the Home branch of the shell on its own, so it needs no
+   edit. Only a route that lives outside the tab shell is listed in `lib/app/router.dart`
+   itself, the way `configureRoute` and `loginRoute` are.
+5. Add strings to `lib/core/l10n/app_en.arb` and run `flutter gen-l10n`.
+6. Add tests under `test/features/<name>/`.
 
 ## Server contract
 
