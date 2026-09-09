@@ -77,9 +77,13 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   final _focusTap = ValueNotifier<_FocusTap?>(null);
   int _focusSeq = 0;
 
-  /// Whether Done is waiting for the camera to finish rewriting the shots. The
-  /// button shows it and the shutter is shut for the duration: the pop is
-  /// coming, and a shot taken now would land after the flush meant to cover it.
+  /// Whether Done is waiting for the camera to finish rewriting the shots.
+  ///
+  /// The whole screen is frozen while it is true: the pop is coming with the
+  /// paths, and anything that opens a dialog in the meantime would be sitting
+  /// on the navigator when it lands — a `List<String>` popped into a
+  /// `Route<bool>`. A shot taken now would also arrive after the flush that
+  /// was meant to cover it.
   bool _finishing = false;
 
   /// Whether the camera was handed back because the app left the foreground.
@@ -154,14 +158,18 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   Future<void> _done() async {
     if (_finishing) return;
     setState(() => _finishing = true);
+    // Taken before the await: the result belongs to *this* route, and reading
+    // the navigator afterwards would hand it to whatever is on top by then.
+    final navigator = Navigator.of(context);
     final paths = await _capture.takeAll();
     if (!mounted) return;
     setState(() => _finishing = false);
-    _pop(paths);
+    if (navigator.canPop()) navigator.pop(paths);
   }
 
   /// Close and system back. Shots are unsaved work, so confirm first.
   Future<void> _close() async {
+    if (_finishing) return;
     if (ref.read(captureControllerProvider).shots.isEmpty) {
       _pop(null);
       return;
@@ -180,6 +188,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   }
 
   Future<void> _confirmRemove(String path) async {
+    if (_finishing) return;
     final l10n = context.l10n;
     final remove = await showDsDialog(
       context,
@@ -190,6 +199,11 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     );
     if (!remove || !mounted) return;
     await _capture.remove(path);
+  }
+
+  Future<void> _toggleTorch() async {
+    if (_finishing) return;
+    await _capture.toggleTorch();
   }
 
   void _focusAt(Offset local, Size area) {
@@ -292,7 +306,8 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
               icon: const Icon(Icons.close),
               color: ds.textOnShell,
               tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-              onPressed: () => unawaited(_close()),
+              // Nothing to leave to: the pop is already on its way.
+              onPressed: _finishing ? null : () => unawaited(_close()),
             ),
             IconButton(
               icon: const Icon(Icons.flashlight_off_outlined),
@@ -301,7 +316,9 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
               color: ds.textOnShell,
               tooltip: state.torch ? l10n.captureTorchOff : l10n.captureTorchOn,
               // Nothing to light up until the device is open.
-              onPressed: state.status == CaptureStatus.ready ? () => unawaited(_capture.toggleTorch()) : null,
+              onPressed: state.status == CaptureStatus.ready && !_finishing
+                  ? () => unawaited(_toggleTorch())
+                  : null,
             ),
           ],
         ),

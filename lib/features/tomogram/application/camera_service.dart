@@ -77,9 +77,11 @@ class PluginCameraService implements CameraService {
   /// `_controller` before `start` ever assigns it.
   int _generation = 0;
 
-  /// The orientation bakes still running, one per shot taken. Tracked so
-  /// [flush] can wait for them; each removes itself when it is done.
-  final Set<Future<void>> _baking = {};
+  /// The orientation bakes, chained one behind another rather than run at
+  /// once: a burst would otherwise put several 1080p decode-and-encodes on the
+  /// CPU together, next to a live preview. Each link swallows its own failure,
+  /// so the chain never breaks and [flush] never throws.
+  Future<void> _baking = Future<void>.value();
 
   @override
   bool get isReady => _controller?.value.isInitialized ?? false;
@@ -154,25 +156,23 @@ class PluginCameraService implements CameraService {
   @override
   Future<String> takePicture() async {
     final path = (await _controller!.takePicture()).path;
-    late final Future<void> baking;
-    baking = bakeJpegOrientation(path).catchError((Object error) {
-      // Swallowed on purpose: the plugin's own file is still on disk, and
-      // uploading a sideways photo beats losing the photo. Reported in debug
-      // only — there is nothing the user could do about it.
-      assert(() {
-        debugPrint('bakeJpegOrientation failed for $path: $error');
-        return true;
-      }());
-    }).whenComplete(() => _baking.remove(baking));
-    _baking.add(baking);
+    _baking = _baking.then((_) => _bake(path));
     return path;
   }
 
-  /// Every tracked bake has already swallowed its own failure, so this waits
-  /// without ever throwing. The copy matters: they remove themselves as they
-  /// complete.
+  /// One link of the bake chain. The failure is swallowed on purpose: the
+  /// plugin's own file is still on disk, and uploading a sideways photo beats
+  /// losing the photo. Reported in debug only — there is nothing the user
+  /// could do about it, and a broken link would strand every shot behind it.
+  Future<void> _bake(String path) => bakeJpegOrientation(path).catchError((Object error) {
+        assert(() {
+          debugPrint('bakeJpegOrientation failed for $path: $error');
+          return true;
+        }());
+      });
+
   @override
-  Future<void> flush() => Future.wait(_baking.toList());
+  Future<void> flush() => _baking;
 
   // The controller is captured before the optional call in both of these: a
   // `stop` racing in nulls the field, and `_controller!` would then throw a

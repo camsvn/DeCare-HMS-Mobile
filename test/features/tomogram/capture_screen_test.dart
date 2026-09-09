@@ -142,6 +142,52 @@ void main() {
     expect(filesOnDisk(), hasLength(1));
   });
 
+  testWidgets('nothing else on the screen works while Done hands the shots over', (tester) async {
+    // Every one of these used to open a dialog on the root navigator, and the
+    // pop that ended the flush would then hand a `List<String>` to a
+    // `Route<bool>`: a TypeError, a screen still up with its shots already
+    // cleared, and the photos orphaned. The screen is frozen instead.
+    await open(tester);
+    await shoot(tester);
+    final shots = shotsOf(tester);
+    fake.flushGate = Completer<void>();
+
+    await tester.tap(find.widgetWithText(DsButton, 'Done'));
+    await tester.pump();
+
+    expect(tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.close)).onPressed, isNull);
+    expect(
+      tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.flashlight_off_outlined)).onPressed,
+      isNull,
+    );
+
+    // Done's spinner never stops, so `pumpAndSettle` cannot be used while it is
+    // up: each interaction is instead given long enough for a dialog route to
+    // have arrived if it were coming.
+    Future<void> pumpDialogIn() => tester.pump(const Duration(milliseconds: 500));
+
+    await tester.tap(find.byTooltip('Close'), warnIfMissed: false);
+    await pumpDialogIn();
+    expect(find.text('Discard photos?'), findsNothing);
+
+    await tester.binding.handlePopRoute();
+    await pumpDialogIn();
+    expect(find.text('Discard photos?'), findsNothing);
+
+    await tester.tap(thumbnails());
+    await pumpDialogIn();
+    expect(find.text('Remove this photo?'), findsNothing);
+
+    expect(find.byType(CaptureScreen), findsOneWidget);
+
+    fake.flushGate!.complete();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CaptureScreen), findsNothing);
+    expect(results, [shots]);
+    expect(shots.every((p) => File(p).existsSync()), isTrue);
+  });
+
   testWidgets('tapping a thumbnail asks, then removes it and deletes the file', (tester) async {
     await open(tester);
     await shoot(tester);
