@@ -6,7 +6,7 @@
 
 **Architecture:** Server tasks edit `E:\Projects\personal\deCare\hms\HMSServer` (branch `hardening`; Express + Sequelize 5 + TypeScript 4.3; `npm run dev` recompiles and restarts automatically, so edits are live on `http://localhost:4041`). App tasks edit `E:\Projects\personal\deCare\hms\HMSFlutter` (branch `flutter-port`; Flutter 3.19, Riverpod 2.6, Dio 5.11). The app keeps its layering: `core/network` gets a refresh hook via a provider overridden in `main.dart`; `features/tomogram` gains history and queue data/application/presentation; `features/dashboard` shows the pending chip.
 
-**Tech Stack:** jsonwebtoken 8, sequelize 5 (mssql/tedious), Dio `QueuedInterceptor`, `connectivity_plus ^7.3.1`, `path_provider`, `intl` (already present).
+**Tech Stack:** jsonwebtoken 8, sequelize 5 (mssql/tedious), Dio plain `Interceptor` with single-flight refresh, `connectivity_plus ^6.1.5` (7.x needs a newer Flutter Gradle plugin), `path_provider`, `intl` (already present).
 
 **Spec:** `E:\Projects\personal\deCare\hms\HMSFlutter\docs\superpowers\specs\2026-09-09-hardening-and-polish-design.md` (sections 2 to 5)
 
@@ -14,9 +14,9 @@
 
 - Server: TypeScript must compile (`npm run build` → `tsc` clean). No new npm dependencies. Do not touch `.env`. Passwords stay plain text (shared ERP table). The dev server on port 4041 is the user's; never kill it; it reloads on compile.
 - Server API contract after this plan: `POST /api/auth/login` (open), `POST /api/auth/refresh` (open), `GET /api/auth/healthcheck` (open), `GET /api/opregister?opid=` (Bearer), `POST /api/tomogram` (Bearer), `GET /api/tomogram?opid=` (Bearer). JSend envelopes unchanged. Auth failures are 401 with `failResponse(message)`.
-- App: Flutter 3.19 / Dart 3.3, no `flutter upgrade`; new dependencies only `connectivity_plus ^7.3.1` and `path_provider`; `core` never imports `features`; cross-feature imports via barrels; all UI strings via `context.l10n`; screens use only design tokens; `flutter analyze` clean and `flutter test` green before every commit.
+- App: Flutter 3.19 / Dart 3.3, no `flutter upgrade`; new dependencies only `connectivity_plus ^6.1.5` (7.x needs a newer Flutter Gradle plugin) and `path_provider`; `core` never imports `features`; cross-feature imports via barrels; all UI strings via `context.l10n`; screens use only design tokens; `flutter analyze` clean and `flutter test` green before every commit.
 - Run server commands from `E:\Projects\personal\deCare\hms\HMSServer`, app commands from `E:\Projects\personal\deCare\hms\HMSFlutter` (Git Bash paths with forward slashes).
-- Verification against the live local server uses `curl` to `http://localhost:4041`. Local credentials for manual checks: username `System`, password `lagoon` (local dev DB only; never write them into source or tests).
+- Verification against the live local server uses `curl` to `http://localhost:4041`. Local credentials for manual checks: username `<local-username>`, password `<local-password>` — ask the maintainer (local dev DB only; never write the real values into source, tests or docs).
 
 ---
 
@@ -163,7 +163,7 @@ Expected: no TypeScript errors. The dev server picks up `dist` automatically; wa
 ```bash
 curl -s -w '\nHTTP %{http_code}\n' "http://localhost:4041/api/opregister?opid=580"
 # expect HTTP 401 {"status":"fail","data":"Authentication required"}
-TOKENS=$(curl -s -H 'Content-Type: application/json' -d '{"username":"System","password":"lagoon"}' http://localhost:4041/api/auth/login)
+TOKENS=$(curl -s -H 'Content-Type: application/json' -d '{"username":"<local-username>","password":"<local-password>"}' http://localhost:4041/api/auth/login)
 ACCESS=$(echo "$TOKENS" | sed -E 's/.*"accessToken":"([^"]+)".*/\1/'); REFRESH=$(echo "$TOKENS" | sed -E 's/.*"refreshToken":"([^"]+)".*/\1/')
 curl -s -w '\nHTTP %{http_code}\n' -H "Authorization: Bearer $ACCESS" "http://localhost:4041/api/opregister?opid=580"
 # expect HTTP 200 with the patient
@@ -342,7 +342,7 @@ curl -s -w '\nHTTP %{http_code}\n' -H "Authorization: Bearer $ACCESS" "http://lo
   - `final refreshAccessTokenProvider = Provider<TokenRefresher>((ref) => throw UnimplementedError(...))` (overridden in `main.dart`).
   - `final authFailureProvider = StateProvider<int>((ref) => 0)`: incremented when a protected request ends in 401 after the refresh attempt.
   - `Dio buildDio({required String baseUrl, required String? Function() tokenReader, TokenRefresher? refresher, VoidCallback? onAuthFailure})`.
-- `AuthInterceptor extends QueuedInterceptorsWrapper`-style class (`QueuedInterceptor`) with constructor `AuthInterceptor({required Dio dio, required String? Function() tokenReader, TokenRefresher? refresher, VoidCallback? onAuthFailure})`.
+- `AuthInterceptor`: a plain `Interceptor` with single-flight refresh (a `QueuedInterceptor` deadlocks, since the refresher posts through the same client) with constructor `AuthInterceptor({required Dio dio, required String? Function() tokenReader, TokenRefresher? refresher, VoidCallback? onAuthFailure})`.
 - `AuthApi.refresh(String refreshToken) → Future<String>` (new access token; throws `ApiFailure`).
 - `SessionController.refreshAccessToken() → Future<String?>`: null when no session or refresh fails (failure also clears nothing; logout is decided by the listener).
 - `SessionExpiryListener({required Widget child})` in `lib/app/`: `ref.listen(authFailureProvider, ...)` → `logout()` and `showDsBanner(rootNavigatorKey.currentContext!, l10n.errorSessionExpired, kind: danger)` when a context is available.
@@ -369,7 +369,7 @@ typedef TokenRefresher = Future<String?> Function();
 
 /// Adds the Bearer header and, on a 401 from a protected route, refreshes the
 /// access token once and retries. Auth routes are never retried.
-class AuthInterceptor extends QueuedInterceptor {
+class AuthInterceptor extends Interceptor {
   AuthInterceptor({required this.dio, required this.tokenReader, this.refresher, this.onAuthFailure});
 
   final Dio dio;
@@ -506,7 +506,7 @@ Wrap it around the `AnnotatedRegion` child in `HmsApp`'s `builder`.
 
 **Files:**
 - Create: `lib/features/tomogram/data/pending_upload.dart`, `lib/features/tomogram/data/pending_uploads_repository.dart`, `lib/features/tomogram/application/connectivity_provider.dart`, `lib/features/tomogram/application/upload_queue_controller.dart`, `lib/features/tomogram/presentation/widgets/pending_uploads_sheet.dart`, `lib/features/tomogram/presentation/widgets/pending_line.dart`
-- Modify: `pubspec.yaml` (add `connectivity_plus ^7.3.1`, `path_provider`), `lib/features/tomogram/application/media_picker_service.dart`, `lib/features/tomogram/application/tomogram_controller.dart`, `lib/features/tomogram/presentation/tomogram_screen.dart`, `lib/features/tomogram/tomogram.dart`, `lib/features/dashboard/presentation/widgets/context_strip.dart`, `lib/main.dart` (start the queue), `lib/core/l10n/app_en.arb`
+- Modify: `pubspec.yaml` (add `connectivity_plus ^6.1.5` — 7.x needs a newer Flutter Gradle plugin — and `path_provider`), `lib/features/tomogram/application/media_picker_service.dart`, `lib/features/tomogram/application/tomogram_controller.dart`, `lib/features/tomogram/presentation/tomogram_screen.dart`, `lib/features/tomogram/tomogram.dart`, `lib/features/dashboard/presentation/widgets/context_strip.dart`, `lib/main.dart` (start the queue), `lib/core/l10n/app_en.arb`
 - Test: `test/features/tomogram/pending_uploads_repository_test.dart`, `test/features/tomogram/upload_queue_controller_test.dart`, extend `tomogram_screen_test.dart`, `media_picker_service_test.dart`, `test/features/dashboard/dashboard_screen_test.dart`
 
 **Interfaces:**

@@ -55,7 +55,7 @@ Explicit assumptions:
 
 - `AuthApi.refresh(String refreshToken) → Future<String accessToken>` calling `POST /auth/refresh`.
 - `SessionController.refreshAccessToken()` swaps the access token in state and secure storage.
-- `AuthInterceptor` becomes a `QueuedInterceptor` with `onError`: on 401 from any path except `/auth/*`, if a refresh token exists and this request has not been retried, call refresh, set the new Bearer header and retry the request once. If refresh fails or the retry 401s again, complete with the original error.
+- `AuthInterceptor` becomes a plain `Interceptor` with single-flight refresh (a `QueuedInterceptor` would deadlock: the refresher posts `/auth/refresh` through the same client) with `onError`: on 401 from any path except `/auth/*`, if a refresh token exists and this request has not been retried, call refresh, set the new Bearer header and retry the request once. If refresh fails or the retry 401s again, complete with the original error.
 - `core/network` cannot import `features/auth`, so the interceptor receives two callbacks from `main.dart` overrides: `accessTokenProvider` (exists) and a new `refreshAccessTokenProvider = Provider<Future<String?> Function()>` (returns the new token or null). `main.dart` overrides it with the session controller's method.
 - Session expiry UX: `Session.isValid` continues to use the refresh token's `exp`. When a protected call ends in `UnauthorizedFailure` after the refresh attempt, the feature controller surfaces it as today; additionally a `sessionExpiryListener` in `lib/app/` (a `ProviderObserver`-free approach: `ref.listen` on a new `authFailureProvider` StateProvider set by the interceptor callback) triggers `logout()` and shows `l10n.errorSessionExpired` "Session expired, please sign in again" as a danger banner. The redirect gate then lands on Login.
 
@@ -116,4 +116,4 @@ Crash reporting (deferred by the user), password hashing, body part and doctor s
 
 ## 10. Dependencies added
 
-App: `connectivity_plus ^7.3.1`, `path_provider` (re-added). Server: none (uses existing `jsonwebtoken`, `sequelize`).
+App: `connectivity_plus ^6.1.5` (7.x needs a newer Flutter Gradle plugin), `path_provider` (re-added). Server: none (uses existing `jsonwebtoken`, `sequelize`).
