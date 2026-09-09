@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/core/storage/secure_store.dart';
 import 'package:hms_uploader/features/settings/settings.dart';
@@ -27,9 +29,12 @@ void main() {
     await store.write('refresh_token', 'r');
   });
 
-  Future<void> pump(WidgetTester tester, {void Function()? onAbout}) => pumpApp(
+  Future<void> pump(WidgetTester tester,
+          {void Function()? onAbout, ThemeMode themeMode = ThemeMode.light}) =>
+      pumpApp(
         tester,
         SettingsScreen(onAbout: onAbout),
+        themeMode: themeMode,
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
           secureStoreProvider.overrideWithValue(store),
@@ -77,5 +82,40 @@ void main() {
     await tester.pumpAndSettle();
     expect(prefs.getString('server_url'), isNull);
     expect(await store.read('access_token'), isNull);
+  });
+
+  testWidgets('the appearance row shows the current theme and the sheet changes it',
+      (tester) async {
+    await pump(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Theme'), findsOneWidget);
+    // Nothing stored yet, so the row reads System.
+    expect(find.text('System'), findsOneWidget);
+
+    await tester.tap(find.text('Theme'));
+    await tester.pumpAndSettle();
+    expect(find.text('Light'), findsOneWidget);
+    expect(find.text('Dark'), findsOneWidget);
+    // Only the active option is ticked, and the tick is not a second action.
+    expect(find.byIcon(Icons.check), findsOneWidget);
+    final tick = tester.widget<IconButton>(
+        find.ancestor(of: find.byIcon(Icons.check), matching: find.byType(IconButton)));
+    expect(tick.onPressed, isNull);
+
+    await tester.tap(find.text('Dark'));
+    await tester.pumpAndSettle();
+    expect(prefs.getString('appearance'), 'dark');
+    // The sheet is gone and the row now reads Dark.
+    expect(find.text('Light'), findsNothing);
+    expect(find.text('Dark'), findsOneWidget);
+  });
+
+  testWidgets('renders on the dark palette when the dark theme is active', (tester) async {
+    await pump(tester, themeMode: ThemeMode.dark);
+    await tester.pumpAndSettle();
+    final context = tester.element(find.text('Theme'));
+    expect(Theme.of(context).brightness, Brightness.dark);
+    expect(tester.widget<Text>(find.text('Appearance')).style?.color, DsColors.dark.textSecondary);
   });
 }

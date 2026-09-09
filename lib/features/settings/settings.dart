@@ -5,8 +5,10 @@ import 'package:hms_uploader/features/settings/presentation/about_screen.dart';
 import 'package:hms_uploader/features/settings/presentation/settings_screen.dart';
 
 export 'application/app_version_provider.dart';
+export 'application/appearance_controller.dart';
 export 'presentation/about_screen.dart';
 export 'presentation/settings_screen.dart';
+export 'presentation/widgets/appearance_sheet.dart';
 
 final GoRoute aboutRoute = GoRoute(
   path: RoutePaths.aboutPattern,

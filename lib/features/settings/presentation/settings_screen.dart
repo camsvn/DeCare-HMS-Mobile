@@ -8,6 +8,8 @@ import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/auth/auth.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
 import 'package:hms_uploader/features/settings/application/app_version_provider.dart';
+import 'package:hms_uploader/features/settings/application/appearance_controller.dart';
+import 'package:hms_uploader/features/settings/presentation/widgets/appearance_sheet.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key, this.onAbout});
@@ -60,6 +62,7 @@ class SettingsScreen extends ConsumerWidget {
     final token = ref.watch(sessionControllerProvider).valueOrNull?.accessToken;
     final username = token == null ? null : jwtClaim(token, 'username');
     final version = ref.watch(appVersionProvider).valueOrNull ?? '';
+    final appearance = ref.watch(appearanceProvider);
 
     return Scaffold(
       appBar: DsAppBar(
@@ -100,6 +103,20 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () => _logout(context, ref),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: DsSpace.x5),
+          Text(l10n.settingsGroupAppearance,
+              style: type.label.withColor(ds.textSecondary)),
+          const SizedBox(height: DsSpace.x2),
+          DsCard(
+            padding: EdgeInsets.zero,
+            child: DsListRow(
+              leadingIcon: Icons.brightness_6_outlined,
+              title: l10n.settingsTheme,
+              trailingValue: appearanceLabel(l10n, appearance),
+              chevron: true,
+              onTap: () => showAppearanceSheet(context, ref),
             ),
           ),
           const SizedBox(height: DsSpace.x5),

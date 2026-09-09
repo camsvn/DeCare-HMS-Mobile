@@ -103,6 +103,7 @@
 
   "settingsGroupServer": "Server",
   "settingsGroupAccount": "Account",
+  "settingsGroupAppearance": "Appearance",
   "settingsGroupHelp": "Help",
   "settingsChangeUrl": "Change Installation URL",
   "settingsChangeUrlBody": "Re-configure the connection URL of your self-hosted DeCare HMS. This process will log you out of the app.",
@@ -111,8 +112,13 @@
   "settingsSignOut": "Sign out",
   "settingsSignOutTitle": "Sign out?",
   "settingsSignOutBody": "You will need to sign in again.",
+  "settingsTheme": "Theme",
   "settingsTabHome": "Home",
   "settingsTabSettings": "Settings",
+
+  "appearanceSystem": "System",
+  "appearanceLight": "Light",
+  "appearanceDark": "Dark",
 
   "aboutHeader": "About",
   "aboutTerms": "Terms of Service",

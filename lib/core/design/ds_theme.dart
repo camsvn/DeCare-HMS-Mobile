@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:hms_uploader/core/design/tokens/ds_colors.dart';
 import 'package:hms_uploader/core/design/tokens/ds_type.dart';
 
-ThemeData buildDsTheme() {
-  const colors = DsColors.light;
+/// The app theme for [brightness]; light unless asked otherwise.
+ThemeData buildDsTheme([Brightness brightness = Brightness.light]) {
+  final dark = brightness == Brightness.dark;
+  final colors = dark ? DsColors.dark : DsColors.light;
   final type = DsType.inter(colors);
-  final base = ThemeData.light(useMaterial3: true);
+  final base = dark ? ThemeData.dark(useMaterial3: true) : ThemeData.light(useMaterial3: true);
   return base.copyWith(
+    brightness: brightness,
     scaffoldBackgroundColor: colors.canvas,
-    colorScheme: base.colorScheme.copyWith(
+    colorScheme: (dark ? const ColorScheme.dark() : const ColorScheme.light()).copyWith(
       primary: colors.accentSolid,
       onPrimary: colors.textOnShell,
       surface: colors.card,

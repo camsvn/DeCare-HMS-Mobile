@@ -14,6 +14,7 @@ class DsColors extends ThemeExtension<DsColors> {
     required this.textOnShellMuted,
     required this.borderSubtle,
     required this.accentSolid,
+    required this.accentText,
     required this.accentGradient,
     required this.success,
     required this.warning,
@@ -30,6 +31,11 @@ class DsColors extends ThemeExtension<DsColors> {
   final Color textOnShellMuted;
   final Color borderSubtle;
   final Color accentSolid;
+
+  /// The accent on a page surface: ghost buttons, links and other accent text.
+  /// Darker than [accentSolid] on light, lighter on dark, so that text on
+  /// [canvas] or [card] keeps its contrast.
+  final Color accentText;
   final LinearGradient accentGradient;
   final Color success;
   final Color warning;
@@ -46,14 +52,36 @@ class DsColors extends ThemeExtension<DsColors> {
     textOnShellMuted: Color(0xB3FFFFFF),
     borderSubtle: Color(0xFFE3E7EE),
     accentSolid: Color(0xFF2F8FE5),
-    accentGradient: LinearGradient(
-      colors: [Color(0xFF6D5BD0), Color(0xFF2F8FE5), Color(0xFF10B394)],
-      begin: Alignment.centerLeft,
-      end: Alignment.centerRight,
-    ),
+    accentText: Color(0xFF1F6FBF),
+    accentGradient: _gradient,
     success: Color(0xFF1F9D6A),
     warning: Color(0xFFE0A100),
     danger: Color(0xFFE5484D),
+  );
+
+  static const dark = DsColors(
+    canvas: Color(0xFF0F141C),
+    card: Color(0xFF171E29),
+    shell: Color(0xFF0B1017),
+    shellRaised: Color(0xFF1E2938),
+    textPrimary: Color(0xFFE8ECF2),
+    textSecondary: Color(0xFF9AA4B2),
+    textOnShell: Color(0xFFFFFFFF),
+    textOnShellMuted: Color(0xB3FFFFFF),
+    borderSubtle: Color(0xFF273040),
+    accentSolid: Color(0xFF5AA8F0),
+    accentText: Color(0xFF7DBCF5),
+    accentGradient: _gradient,
+    success: Color(0xFF3DBA85),
+    warning: Color(0xFFF0B429),
+    danger: Color(0xFFF26B70),
+  );
+
+  /// The brand mark; the same in both palettes.
+  static const _gradient = LinearGradient(
+    colors: [Color(0xFF6D5BD0), Color(0xFF2F8FE5), Color(0xFF10B394)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
   );
 
   @override
@@ -68,6 +96,7 @@ class DsColors extends ThemeExtension<DsColors> {
     Color? textOnShellMuted,
     Color? borderSubtle,
     Color? accentSolid,
+    Color? accentText,
     LinearGradient? accentGradient,
     Color? success,
     Color? warning,
@@ -84,6 +113,7 @@ class DsColors extends ThemeExtension<DsColors> {
       textOnShellMuted: textOnShellMuted ?? this.textOnShellMuted,
       borderSubtle: borderSubtle ?? this.borderSubtle,
       accentSolid: accentSolid ?? this.accentSolid,
+      accentText: accentText ?? this.accentText,
       accentGradient: accentGradient ?? this.accentGradient,
       success: success ?? this.success,
       warning: warning ?? this.warning,
@@ -106,6 +136,7 @@ class DsColors extends ThemeExtension<DsColors> {
       textOnShellMuted: c(textOnShellMuted, other.textOnShellMuted),
       borderSubtle: c(borderSubtle, other.borderSubtle),
       accentSolid: c(accentSolid, other.accentSolid),
+      accentText: c(accentText, other.accentText),
       accentGradient: LinearGradient.lerp(accentGradient, other.accentGradient, t)!,
       success: c(success, other.success),
       warning: c(warning, other.warning),

@@ -571,6 +571,12 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get settingsGroupAccount;
 
+  /// No description provided for @settingsGroupAppearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsGroupAppearance;
+
   /// No description provided for @settingsGroupHelp.
   ///
   /// In en, this message translates to:
@@ -619,6 +625,12 @@ abstract class AppLocalizations {
   /// **'You will need to sign in again.'**
   String get settingsSignOutBody;
 
+  /// No description provided for @settingsTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsTheme;
+
   /// No description provided for @settingsTabHome.
   ///
   /// In en, this message translates to:
@@ -630,6 +642,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settingsTabSettings;
+
+  /// No description provided for @appearanceSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get appearanceSystem;
+
+  /// No description provided for @appearanceLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get appearanceLight;
+
+  /// No description provided for @appearanceDark.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get appearanceDark;
 
   /// No description provided for @aboutHeader.
   ///

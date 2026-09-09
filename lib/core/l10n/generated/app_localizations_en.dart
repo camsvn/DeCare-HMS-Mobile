@@ -297,6 +297,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsGroupAccount => 'Account';
 
   @override
+  String get settingsGroupAppearance => 'Appearance';
+
+  @override
   String get settingsGroupHelp => 'Help';
 
   @override
@@ -321,10 +324,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSignOutBody => 'You will need to sign in again.';
 
   @override
+  String get settingsTheme => 'Theme';
+
+  @override
   String get settingsTabHome => 'Home';
 
   @override
   String get settingsTabSettings => 'Settings';
+
+  @override
+  String get appearanceSystem => 'System';
+
+  @override
+  String get appearanceLight => 'Light';
+
+  @override
+  String get appearanceDark => 'Dark';
 
   @override
   String get aboutHeader => 'About';

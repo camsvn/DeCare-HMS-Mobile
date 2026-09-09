@@ -66,7 +66,7 @@ class _DsButtonState extends State<DsButton> {
         gradient = null;
         border = Border.all(color: ds.borderSubtle);
       case DsButtonVariant.ghost:
-        fg = ds.accentSolid;
+        fg = ds.accentText;
         bg = null;
         gradient = null;
         border = null;
