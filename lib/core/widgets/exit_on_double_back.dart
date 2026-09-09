@@ -58,8 +58,10 @@ class ExitOnDoubleBackState extends State<ExitOnDoubleBack> {
   @override
   Widget build(BuildContext context) {
     if (!widget.interceptPop) return widget.child;
+    // Only arm the double press where there is nothing to go back to. Configure
+    // pushed from Login has a route below it and should just pop.
     return PopScope(
-      canPop: false,
+      canPop: Navigator.of(context).canPop(),
       onPopInvoked: (didPop) {
         if (!didPop) handleBack();
       },

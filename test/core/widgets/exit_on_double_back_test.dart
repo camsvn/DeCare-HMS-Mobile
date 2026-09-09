@@ -52,4 +52,34 @@ void main() {
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
   });
+
+  testWidgets('a pushed route pops instead of arming the exit', (tester) async {
+    var exits = 0;
+    Widget guard(String label) => ExitOnDoubleBack(
+          exit: () => exits++,
+          child: Scaffold(body: Text(label)),
+        );
+    await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en')],
+      routes: {
+        '/': (_) => guard('first'),
+        '/second': (_) => guard('second'),
+      },
+    ));
+    tester.state<NavigatorState>(find.byType(Navigator)).pushNamed('/second');
+    await tester.pumpAndSettle();
+    expect(find.text('second'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('second'), findsNothing);
+    expect(find.text('first'), findsOneWidget);
+    expect(find.text('App: Press back again to exit'), findsNothing);
+    expect(exits, 0);
+  });
 }
