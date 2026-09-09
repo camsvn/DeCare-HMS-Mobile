@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hms_uploader/app/app_shell.dart';
 import 'package:hms_uploader/app/modules.dart';
+import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/navigation/route_paths.dart';
 import 'package:hms_uploader/features/auth/auth.dart';
 import 'package:hms_uploader/features/dashboard/dashboard.dart';
@@ -48,7 +49,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       configureRoute,
       loginRoute,
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
+        pageBuilder: (context, state, navigationShell) => FadeThroughPage(
+          key: state.pageKey,
+          child: AppShell(navigationShell: navigationShell),
+        ),
         branches: [
           StatefulShellBranch(routes: [
             dashboardRoute(modules: appModules),
