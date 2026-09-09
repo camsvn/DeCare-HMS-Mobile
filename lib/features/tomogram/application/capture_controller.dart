@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hms_uploader/core/utils/temp_files.dart';
 import 'package:hms_uploader/features/tomogram/application/camera_service.dart';
+import 'package:hms_uploader/features/tomogram/application/jpeg_orientation.dart';
 
 /// Photos one capture session may hold. A tomogram series is a handful of
 /// angles; the cap keeps a stuck shutter finger from filling the cache.
@@ -55,7 +56,11 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
     _camera = ref.watch(cameraServiceProvider);
     ref.onDispose(() {
       final paths = state.shots;
-      if (paths.isNotEmpty) deleteFiles(paths);
+      // Best effort and synchronous: a dispose callback cannot wait for the
+      // camera's background post-processing, so a bake still in flight may
+      // leave its `.tmp` sibling behind. Both names go, and `deleteFiles`
+      // shrugs at the ones that are not there.
+      if (paths.isNotEmpty) deleteFiles(_withTempSiblings(paths));
     });
     return const CaptureState();
   }
@@ -114,7 +119,10 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
     if (index < 0) return;
     shots.removeAt(index);
     state = state.copyWith(shots: shots);
-    await deleteFiles([path]);
+    // The camera may still be rewriting this file: deleting it out from under
+    // a rename would either bring it back or leave the `.tmp` sibling behind.
+    await _flush();
+    await deleteFiles(_withTempSiblings([path]));
   }
 
   /// Ignored until the camera is ready: there is no device to light up, and
@@ -136,16 +144,40 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   Future<void> discardAll() async {
     final paths = state.shots;
     state = state.copyWith(shots: const []);
-    await deleteFiles(paths);
+    await _flush();
+    await deleteFiles(_withTempSiblings(paths));
   }
 
   /// Hands the shots to the caller and forgets them. The files are kept: the
   /// draft list owns them from here on.
-  List<String> takeAll() {
+  ///
+  /// Waits for the camera's background post-processing first, so what is
+  /// handed over is the finished JPEG and not one mid-rewrite. The shots stay
+  /// in the state until then, so the screen can show that it is finishing.
+  Future<List<String>> takeAll() async {
     final paths = List<String>.of(state.shots);
+    await _flush();
     state = state.copyWith(shots: const []);
     return paths;
   }
+
+  /// Waits for the camera's background post-processing, ignoring a failure.
+  /// Every caller has something better to do with one than report it: hand the
+  /// shots over anyway (losing a photo is worse than uploading it unrotated)
+  /// or delete them anyway.
+  Future<void> _flush() async {
+    try {
+      await _camera.flush();
+    } catch (_) {
+      // ignore: whatever is on disk is either the rewritten JPEG or the
+      // original, and both are a photo the user took.
+    }
+  }
+
+  /// [paths] plus the sibling each one's rewrite would have been written to,
+  /// so a bake that died mid-write leaves nothing in the cache.
+  static List<String> _withTempSiblings(Iterable<String> paths) =>
+      [...paths, ...paths.map((p) => '$p$jpegBakeTmpSuffix')];
 }
 
 final captureControllerProvider =

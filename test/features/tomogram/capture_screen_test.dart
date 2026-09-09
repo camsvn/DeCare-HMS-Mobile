@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -111,6 +112,34 @@ void main() {
     expect(results.single!.last, endsWith('shot_1.jpg'));
     // Handed over, not discarded: the draft list owns the files now.
     expect(filesOnDisk(), hasLength(2));
+  });
+
+  testWidgets('Done waits for the shots to finish post-processing before popping', (tester) async {
+    // The camera rewrites each shot's orientation in the background. Handing
+    // the paths over mid-rewrite would upload a half-written JPEG, so Done
+    // waits — visibly, and with the shutter shut, because the pop is coming.
+    await open(tester);
+    await shoot(tester);
+    final shots = shotsOf(tester);
+    fake.flushGate = Completer<void>();
+
+    await tester.tap(find.widgetWithText(DsButton, 'Done'));
+    await tester.pump();
+
+    expect(fake.flushCount, 1);
+    expect(tester.widget<DsButton>(find.byType(DsButton)).loading, isTrue);
+    // The spinner takes the label's place, so there is nothing left to tap.
+    expect(find.widgetWithText(DsButton, 'Done'), findsNothing);
+    expect(tester.widget<ShutterButton>(find.byType(ShutterButton)).onPressed, isNull);
+    expect(find.byType(CaptureScreen), findsOneWidget);
+    expect(results, isEmpty);
+
+    fake.flushGate!.complete();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CaptureScreen), findsNothing);
+    expect(results, [shots]);
+    expect(filesOnDisk(), hasLength(1));
   });
 
   testWidgets('tapping a thumbnail asks, then removes it and deletes the file', (tester) async {

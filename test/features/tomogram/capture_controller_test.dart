@@ -144,11 +144,84 @@ void main() {
     await capture().shoot();
     await capture().shoot();
 
-    final taken = capture().takeAll();
+    final taken = await capture().takeAll();
 
     expect(taken, ['${dir.path}/shot_0.jpg', '${dir.path}/shot_1.jpg']);
     expect(state().shots, isEmpty);
     expect(taken.every((p) => File(p).existsSync()), isTrue);
+    expect(fake.flushCount, 1);
+  });
+
+  // The camera rewrites each shot's orientation in the background, so what is
+  // on disk when `takePicture` returns is not yet what should be uploaded.
+  test('takeAll waits for the shots to finish post-processing', () async {
+    await capture().start();
+    await capture().shoot();
+    fake.flushGate = Completer<void>();
+
+    var handed = false;
+    final taken = capture().takeAll().then((paths) {
+      handed = true;
+      return paths;
+    });
+    await pumpEventQueue();
+
+    expect(handed, isFalse);
+    expect(fake.flushCount, 1);
+    expect(state().shots, hasLength(1));
+
+    fake.flushGate!.complete();
+
+    expect(await taken, ['${dir.path}/shot_0.jpg']);
+    expect(state().shots, isEmpty);
+  });
+
+  test('a flush that fails still hands the shots over', () async {
+    await capture().start();
+    await capture().shoot();
+    fake.failFlush = true;
+
+    expect(await capture().takeAll(), ['${dir.path}/shot_0.jpg']);
+    expect(File('${dir.path}/shot_0.jpg').existsSync(), isTrue);
+  });
+
+  // Deleting under a rename would either resurrect the file or leave the
+  // bake's `.tmp` sibling behind.
+  test('remove waits for the post-processing before deleting', () async {
+    await capture().start();
+    await capture().shoot();
+    final path = state().shots.single;
+    fake.flushGate = Completer<void>();
+
+    final removing = capture().remove(path);
+    await pumpEventQueue();
+
+    expect(fake.flushCount, 1);
+    expect(File(path).existsSync(), isTrue);
+
+    fake.flushGate!.complete();
+    await removing;
+
+    expect(File(path).existsSync(), isFalse);
+    expect(state().shots, isEmpty);
+  });
+
+  test('discardAll waits for the post-processing before deleting', () async {
+    await capture().start();
+    await capture().shoot();
+    final path = state().shots.single;
+    fake.flushGate = Completer<void>();
+
+    final discarding = capture().discardAll();
+    await pumpEventQueue();
+
+    expect(fake.flushCount, 1);
+    expect(File(path).existsSync(), isTrue);
+
+    fake.flushGate!.complete();
+    await discarding;
+
+    expect(filesOnDisk(), isEmpty);
   });
 
   test('dispose deletes the shots the session still owns', () async {

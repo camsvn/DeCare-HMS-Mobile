@@ -20,6 +20,9 @@ class FakeCameraService implements CameraService {
   /// Makes [takePicture] throw, as a busy or crashed camera would.
   bool failCapture;
 
+  /// Makes [flush] throw, as a post-processing step that gave up would.
+  bool failFlush = false;
+
   /// When set, [takePicture] waits on it before writing, so a test can hold a
   /// capture in flight and shoot again while the controller is busy.
   Completer<void>? gate;
@@ -27,6 +30,10 @@ class FakeCameraService implements CameraService {
   /// When set, [start] waits on it before readying, so a test can hold a cold
   /// start in flight and stop (or dispose) the session underneath it.
   Completer<void>? startGate;
+
+  /// When set, [flush] waits on it, so a test can hold a session's background
+  /// post-processing open and watch what the screen does about it.
+  Completer<void>? flushGate;
 
   /// The preview's *displayed* width / height once started, as
   /// [CameraService.previewAspectRatio] reports it — so a portrait preview of
@@ -36,6 +43,7 @@ class FakeCameraService implements CameraService {
 
   int startCount = 0;
   int stopCount = 0;
+  int flushCount = 0;
 
   /// How many times [preview] has been asked for a widget, so a test can show
   /// that a shot does not rebuild the camera texture.
@@ -89,6 +97,14 @@ class FakeCameraService implements CameraService {
     if (failCapture) throw StateError('capture failed');
     final file = File('${dir.path}/shot_${_shots++}.jpg')..writeAsBytesSync(const [0xFF, 0xD8, 0xFF, 0xD9]);
     return file.path;
+  }
+
+  @override
+  Future<void> flush() async {
+    flushCount++;
+    final held = flushGate;
+    if (held != null) await held.future;
+    if (failFlush) throw StateError('flush failed');
   }
 
   @override

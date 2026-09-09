@@ -12,10 +12,10 @@
 
 ## Global Constraints
 
-- Flutter 3.19 / Dart 3.3; never `flutter upgrade`. The only new dependency is `camera: ^0.11.0+2` (resolves to `camera_android_camerax 0.6.5+2`).
+- Flutter 3.19 / Dart 3.3; never `flutter upgrade`. The new dependencies are `camera: ^0.11.0+2` (resolves to `camera_android_camerax 0.6.5+2`) and `image: ^4.1.7` (the orientation bake).
 - `core` never imports `features`; cross-feature imports via barrels; all UI strings via `context.l10n` (ARB `lib/core/l10n/app_en.arb`, then `flutter gen-l10n`); widgets use design tokens only (colours, spacing, radii, `DsMotion` durations).
 - Captured files are app-private (plugin cache directory); nothing is written to the device gallery.
-- Camera capture preset is `ResolutionPreset.veryHigh` (1080p) so the long edge stays ≤ 1920 px; no re-encoding.
+- Camera capture preset is `ResolutionPreset.veryHigh` (1080p) so the long edge stays ≤ 1920 px; no resize. A shot whose EXIF says it is sideways is re-encoded once (`bakeJpegOrientation`, quality 90) so the uploaded pixels are upright; an already-upright shot is left byte for byte alone.
 - `flutter analyze` clean and `flutter test` green before every commit. Work in `E:\Projects\personal\deCare\hms\HMSFlutter` on branch `flutter-port`. Commit with explicit paths.
 - Optional plugin calls (`lockCaptureOrientation`, `setFlashMode`, `setFocusPoint`, `setExposurePoint`) must be wrapped so an unsupported device or the emulator never breaks the screen.
 - Portrait only. Back camera only.

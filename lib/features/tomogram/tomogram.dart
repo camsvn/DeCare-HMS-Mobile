@@ -15,6 +15,7 @@ import 'package:permission_handler/permission_handler.dart';
 export 'package:hms_uploader/core/network/connectivity_service.dart';
 export 'application/camera_service.dart';
 export 'application/capture_controller.dart';
+export 'application/jpeg_orientation.dart';
 export 'application/media_picker_service.dart';
 export 'application/permission_gateway.dart';
 export 'application/tomogram_controller.dart';

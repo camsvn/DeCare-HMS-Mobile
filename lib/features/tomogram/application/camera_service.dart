@@ -4,6 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/features/tomogram/application/jpeg_orientation.dart';
 
 /// The slice of `package:camera` the capture screen needs, behind an interface
 /// so the session controller and the screen can be tested without a platform
@@ -28,7 +29,15 @@ abstract class CameraService {
   Widget preview();
 
   /// Captures one still and returns its JPEG path in app-private storage.
+  ///
+  /// The file may still be post-processed in the background when this returns,
+  /// so a burst is not held up by the shot before it. [flush] is how a caller
+  /// waits for that to be done.
   Future<String> takePicture();
+
+  /// Waits for the background post-processing of every shot taken so far.
+  /// Call it before handing the paths on — or before deleting them.
+  Future<void> flush();
 
   Future<void> setTorch(bool on);
 
@@ -67,6 +76,10 @@ class PluginCameraService implements CameraService {
   /// initialised camera nobody holds a reference to: [stop] clears
   /// `_controller` before `start` ever assigns it.
   int _generation = 0;
+
+  /// The orientation bakes still running, one per shot taken. Tracked so
+  /// [flush] can wait for them; each removes itself when it is done.
+  final Set<Future<void>> _baking = {};
 
   @override
   bool get isReady => _controller?.value.isInitialized ?? false;
@@ -135,8 +148,31 @@ class PluginCameraService implements CameraService {
   @override
   Widget preview() => isReady ? CameraPreview(_controller!) : const SizedBox.shrink();
 
+  /// Returns as soon as the plugin has written the file: the orientation bake
+  /// runs behind it, so a burst is one tap per photo rather than one tap per
+  /// re-encode. [flush] joins the two back up.
   @override
-  Future<String> takePicture() async => (await _controller!.takePicture()).path;
+  Future<String> takePicture() async {
+    final path = (await _controller!.takePicture()).path;
+    late final Future<void> baking;
+    baking = bakeJpegOrientation(path).catchError((Object error) {
+      // Swallowed on purpose: the plugin's own file is still on disk, and
+      // uploading a sideways photo beats losing the photo. Reported in debug
+      // only — there is nothing the user could do about it.
+      assert(() {
+        debugPrint('bakeJpegOrientation failed for $path: $error');
+        return true;
+      }());
+    }).whenComplete(() => _baking.remove(baking));
+    _baking.add(baking);
+    return path;
+  }
+
+  /// Every tracked bake has already swallowed its own failure, so this waits
+  /// without ever throwing. The copy matters: they remove themselves as they
+  /// complete.
+  @override
+  Future<void> flush() => Future.wait(_baking.toList());
 
   // The controller is captured before the optional call in both of these: a
   // `stop` racing in nulls the field, and `_controller!` would then throw a

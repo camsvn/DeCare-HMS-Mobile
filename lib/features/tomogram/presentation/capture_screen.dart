@@ -77,6 +77,11 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   final _focusTap = ValueNotifier<_FocusTap?>(null);
   int _focusSeq = 0;
 
+  /// Whether Done is waiting for the camera to finish rewriting the shots. The
+  /// button shows it and the shutter is shut for the duration: the pop is
+  /// coming, and a shot taken now would land after the flush meant to cover it.
+  bool _finishing = false;
+
   /// Whether the camera was handed back because the app left the foreground.
   /// One real pause arrives as three states (inactive, hidden, paused), and
   /// only the first of them should release the device.
@@ -146,7 +151,14 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     _flash.value = true;
   }
 
-  void _done() => _pop(_capture.takeAll());
+  Future<void> _done() async {
+    if (_finishing) return;
+    setState(() => _finishing = true);
+    final paths = await _capture.takeAll();
+    if (!mounted) return;
+    setState(() => _finishing = false);
+    _pop(paths);
+  }
 
   /// Close and system back. Shots are unsaved work, so confirm first.
   Future<void> _close() async {
@@ -315,7 +327,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
                 ),
               ),
               ShutterButton(
-                onPressed: state.canShoot ? () => unawaited(_shoot()) : null,
+                onPressed: state.canShoot && !_finishing ? () => unawaited(_shoot()) : null,
                 tooltip: l10n.captureShutter,
               ),
               Expanded(
@@ -324,7 +336,8 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
                   child: DsButton.primary(
                     label: l10n.captureDone,
                     expand: false,
-                    onPressed: shots.isEmpty ? null : _done,
+                    loading: _finishing,
+                    onPressed: shots.isEmpty ? null : () => unawaited(_done()),
                   ),
                 ),
               ),

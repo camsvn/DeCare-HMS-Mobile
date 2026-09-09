@@ -67,6 +67,7 @@ abstract class CameraService {
   Future<void> stop();                     // releases the device; start() may follow
   Widget preview();                        // CameraPreview once ready, else SizedBox.shrink()
   Future<String> takePicture();            // JPEG path in app-private storage
+  Future<void> flush();                    // waits for the shots' background post-processing
   Future<void> setTorch(bool on);
   Future<void> focusAt(Offset normalized); // 0..1 in preview coordinates
 }
@@ -75,7 +76,7 @@ abstract class CameraService {
 `PluginCameraService` wraps `package:camera` 0.11.0+2 (`camera_android_camerax` 0.6.5 on
 Android). `start()` calls `availableCameras()`, picks the first back camera, creates the
 controller with `ResolutionPreset.veryHigh` (1080p, so the long edge is at most 1920 px and the
-existing 2000 px rule holds without re-encoding), `enableAudio: false`, initialises it and tries
+existing 2000 px rule holds without a resize), `enableAudio: false`, initialises it and tries
 `lockCaptureOrientation(DeviceOrientation.portraitUp)`; unsupported optional calls
 (`lockCaptureOrientation`, `setFocusPoint`, `setExposurePoint`, `setFlashMode`) are caught and
 ignored so the screen never fails on an emulator or a low-end device. `takePicture()` returns the
@@ -83,9 +84,25 @@ plugin's `XFile.path`; the plugin writes into the app's cache directory, which i
 app and is where picker files already live. `cameraServiceProvider` is an `autoDispose`
 `Provider<CameraService>` that stops the service on dispose.
 
+**Orientation is baked in the background.** CameraX writes a *sensor-oriented* JPEG with an EXIF
+`Orientation` tag: a portrait shot from the back camera is 1280x720 tagged `Orientation = 6`
+(device-verified), where the picker path this screen replaces uploaded upright pixels (1440x1920,
+`Orientation = 1`). The clinic's viewers are unknown and may ignore EXIF, so
+`bakeJpegOrientation(path)` (`lib/features/tomogram/application/jpeg_orientation.dart`, on
+`image: ^4.1.7`) rewrites the file so its pixels are upright and the tag is gone: read the raw
+EXIF orientation (not the decoded image's — that decoder applies and clears the tag itself), and
+if it is absent or 1 leave the file byte for byte alone, otherwise `bakeOrientation` +
+`encodeJpg(quality: 90)` into `<path>.tmp` and rename over the original, so an interrupted write
+cannot truncate a photo. The work runs in an isolate via `compute`, and `takePicture()` returns
+the path without waiting for it, so a burst stays one tap per photo. `PluginCameraService` tracks
+the outstanding bakes and `flush()` waits for them; a bake that fails is logged in debug only and
+leaves the original file in place, because uploading a sideways photo beats losing it. Callers
+must `flush()` before handing a path on or deleting it — a `.tmp` sibling is otherwise orphaned.
+
 Tests use `FakeCameraService` (`test/helpers/fake_camera_service.dart`): records calls, can be
-told to fail `start()` or `takePicture()`, writes a tiny JPEG stub into a temp directory per shot,
-and renders a keyed `ColoredBox` as the preview.
+told to fail `start()`, `takePicture()` or `flush()`, can gate `start()`, `takePicture()` and
+`flush()` on a `Completer` so a test can hold one in flight, writes a tiny JPEG stub into a temp
+directory per shot, and renders a keyed `ColoredBox` as the preview.
 
 ### 5.2 Capture session (`lib/features/tomogram/application/capture_controller.dart`)
 
@@ -110,12 +127,16 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   Future<void> toggleTorch();
   Future<void> focusAt(Offset normalized);
   Future<void> discardAll();     // deletes every shot's file
-  List<String> takeAll();        // hands the paths over and forgets them (files are kept)
+  Future<List<String>> takeAll();// hands the paths over and forgets them (files are kept)
 }
 ```
 
-Files that the controller still owns when it is disposed (screen closed by any other path) are
-deleted, mirroring `TomogramController`.
+`takeAll`, `remove` and `discardAll` await `CameraService.flush()` first, so nothing is handed
+over or deleted while the camera is still rewriting it; a flush that fails is ignored rather than
+allowed to lose the shots. Files that the controller still owns when it is disposed (screen
+closed by any other path) are deleted, mirroring `TomogramController`, along with any `<path>.tmp`
+sibling a bake left behind — that cleanup is synchronous best effort, since a dispose callback
+cannot wait for a flush.
 
 ### 5.3 Capture screen (`lib/features/tomogram/presentation/capture_screen.dart` + widgets)
 
@@ -149,7 +170,9 @@ deleted, mirroring `TomogramController`.
 - `PopScope(canPop: shots.isEmpty)`: back with shots asks "Discard photos?" with the existing
   `tomogramDiscardTitle`/`tomogramDiscardBody`/`commonDiscard`; confirming calls `discardAll()`
   and pops with `null`.
-- Done: `context.pop(controller.takeAll())`.
+- Done: `await controller.takeAll()`, then pop with the paths (guarded by `mounted`). While that
+  is pending the button shows `DsButton.primary(loading: true)` and the shutter is disabled: the
+  pop is coming, and a shot taken now would land after the flush meant to cover it.
 - All strings via `context.l10n`; all colours, radii, spacing and durations via tokens. The
   screen paints the status bar like the shell (already the app-wide overlay style).
 
@@ -206,9 +229,10 @@ uploaded, and the user's next move is to press the shutter again.
 
 ## 7. Platform
 
-- Dependency: `camera: ^0.11.0+2` — the last release supporting Flutter 3.19 / Dart 3.3 (verified
-  with `flutter pub add --dry-run`: resolves to `camera_android_camerax 0.6.5+2`,
-  `camera_avfoundation 0.9.17+5`). No other new dependency.
+- Dependencies: `camera: ^0.11.0+2` — the last release supporting Flutter 3.19 / Dart 3.3
+  (verified with `flutter pub add --dry-run`: resolves to `camera_android_camerax 0.6.5+2`,
+  `camera_avfoundation 0.9.17+5`) — and `image: ^4.1.7` for the orientation bake (§5.1). No
+  others.
 - Android: `CAMERA` permission and `android.hardware.camera` feature are already declared;
   minSdk 21 and compileSdk 34 satisfy CameraX. The release (R8) build must be re-verified; add
   keep rules only if the build or the emulator run shows a missing class.
