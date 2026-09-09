@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hms_uploader/app/tab_bar.dart';
+import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/exit_on_double_back.dart';
 import 'package:hms_uploader/core/widgets/keyboard_visibility.dart';
+import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 
-/// Hosts the two tab branches under the custom tab bar.
+/// Hosts the two tab branches under the design-system bottom bar.
 ///
 /// The shell owns the back-press handling for both branches: go_router routes a
 /// system back press to the ROOT navigator whenever the active branch navigator
@@ -28,6 +29,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
@@ -44,7 +46,14 @@ class _AppShellState extends State<AppShell> {
         child: Scaffold(
           body: widget.navigationShell,
           bottomNavigationBar: HideWithKeyboard(
-            child: AppTabBar(currentIndex: widget.navigationShell.currentIndex, onTap: _goBranch),
+            child: DsBottomBar(
+              currentIndex: widget.navigationShell.currentIndex,
+              onTap: _goBranch,
+              destinations: [
+                DsDestination(icon: Icons.home_outlined, label: l10n.settingsTabHome),
+                DsDestination(icon: Icons.settings_outlined, label: l10n.settingsTabSettings),
+              ],
+            ),
           ),
         ),
       ),

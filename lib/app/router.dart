@@ -2,12 +2,12 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hms_uploader/app/app_shell.dart';
+import 'package:hms_uploader/app/modules.dart';
 import 'package:hms_uploader/core/navigation/route_paths.dart';
 import 'package:hms_uploader/features/auth/auth.dart';
-import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
+import 'package:hms_uploader/features/dashboard/dashboard.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
 import 'package:hms_uploader/features/settings/settings.dart';
-import 'package:hms_uploader/features/tomogram/tomogram.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -20,7 +20,7 @@ String? computeRedirect({required String location, required bool hasServerUrl, r
   if (!sessionValid) {
     return authScreens.contains(location) ? null : RoutePaths.login;
   }
-  return authScreens.contains(location) ? RoutePaths.home : null;
+  return authScreens.contains(location) ? RoutePaths.dashboard : null;
 }
 
 /// Notifies the router when the server URL or the session changes.
@@ -37,7 +37,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
-    initialLocation: RoutePaths.home,
+    initialLocation: RoutePaths.dashboard,
     refreshListenable: refresh,
     redirect: (context, state) => computeRedirect(
       location: state.matchedLocation,
@@ -50,7 +50,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [
-          StatefulShellBranch(routes: [homeRoute(children: tomogramRoutes)]),
+          StatefulShellBranch(routes: [
+            dashboardRoute(modules: appModules),
+            for (final m in appModules) ...m.routes,
+          ]),
           StatefulShellBranch(routes: [settingsRoute(children: [aboutRoute])]),
         ],
       ),

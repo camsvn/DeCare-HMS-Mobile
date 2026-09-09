@@ -16,18 +16,18 @@ import 'package:hms_uploader/features/patient_lookup/presentation/widgets/home_e
 import 'package:hms_uploader/features/patient_lookup/presentation/widgets/op_search_bar.dart';
 import 'package:hms_uploader/features/patient_lookup/presentation/widgets/recent_search_row.dart';
 
-/// Home: OP number search plus recent searches. [onPatientSelected] fires
-/// after a successful lookup (the route wires it to the tomogram screen).
-class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key, required this.onPatientSelected});
+/// Patient lookup: OP number search plus recent searches. [onPatientSelected]
+/// fires after a successful lookup (the route wires it to the tomogram screen).
+class PatientLookupScreen extends ConsumerStatefulWidget {
+  const PatientLookupScreen({super.key, required this.onPatientSelected});
 
   final ValueChanged<Patient> onPatientSelected;
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<PatientLookupScreen> createState() => _PatientLookupScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
   Future<void> _lookup(int opid) async {
     final patient = await ref.read(patientLookupControllerProvider.notifier).search(opid);
     if (patient != null && mounted) widget.onPatientSelected(patient);

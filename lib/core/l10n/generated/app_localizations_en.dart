@@ -99,6 +99,29 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get dashboardModules => 'Modules';
+
+  @override
+  String get dashboardMorePlaceholder => 'More modules coming';
+
+  @override
+  String get dashboardConnected => 'Connected';
+
+  @override
+  String get dashboardUnreachable => 'Server unreachable';
+
+  @override
+  String get tomogramModuleTitle => 'Tomogram';
+
+  @override
+  String get tomogramModuleSubtitle => 'Upload skin photos to a patient record';
+
+  @override
+  String tomogramRecentBadge(int count) {
+    return '$count recent';
+  }
+
+  @override
   String get homeRecentSearches => 'Recent Searches:';
 
   @override

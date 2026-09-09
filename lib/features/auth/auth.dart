@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/navigation/route_paths.dart';
 import 'package:hms_uploader/features/auth/presentation/login_screen.dart';
 
@@ -10,5 +11,5 @@ export 'presentation/login_screen.dart';
 
 final GoRoute loginRoute = GoRoute(
   path: RoutePaths.login,
-  builder: (context, state) => const LoginScreen(),
+  pageBuilder: (context, state) => FadeThroughPage(key: state.pageKey, child: const LoginScreen()),
 );

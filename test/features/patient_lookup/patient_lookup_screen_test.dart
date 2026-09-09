@@ -22,7 +22,7 @@ void main() {
 
   testWidgets('shows empty state when no recent searches', (tester) async {
     final prefs = await prefsWith({});
-    await pumpApp(tester, HomeScreen(onPatientSelected: (_) {}), overrides: [
+    await pumpApp(tester, PatientLookupScreen(onPatientSelected: (_) {}), overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       opRegisterApiProvider.overrideWithValue(api),
     ]);
@@ -35,7 +35,7 @@ void main() {
     final prefs = await prefsWith({
       'recent_searches': '[{"id":1,"opid":12,"name":"Jane"},{"id":2,"opid":34,"name":"Bob"}]',
     });
-    await pumpApp(tester, HomeScreen(onPatientSelected: (_) {}), overrides: [
+    await pumpApp(tester, PatientLookupScreen(onPatientSelected: (_) {}), overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       opRegisterApiProvider.overrideWithValue(api),
     ]);
@@ -53,7 +53,7 @@ void main() {
     const jane = Patient(id: 1, opid: 42, name: 'Jane');
     when(() => api.getByOpId(42)).thenAnswer((_) async => jane);
     Patient? selected;
-    await pumpApp(tester, HomeScreen(onPatientSelected: (p) => selected = p), overrides: [
+    await pumpApp(tester, PatientLookupScreen(onPatientSelected: (p) => selected = p), overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       opRegisterApiProvider.overrideWithValue(api),
     ]);
@@ -68,7 +68,7 @@ void main() {
   testWidgets('lookup failure flashes Patient error', (tester) async {
     final prefs = await prefsWith({});
     when(() => api.getByOpId(any())).thenThrow(const NotFoundFailure('Invalid OP Number'));
-    await pumpApp(tester, HomeScreen(onPatientSelected: (_) {}), overrides: [
+    await pumpApp(tester, PatientLookupScreen(onPatientSelected: (_) {}), overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       opRegisterApiProvider.overrideWithValue(api),
     ]);

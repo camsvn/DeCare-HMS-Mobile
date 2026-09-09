@@ -22,3 +22,17 @@ bool isJwtValid(String? token, {DateTime? now}) {
   if (exp == null) return false;
   return exp.isAfter(now ?? DateTime.now().toUtc());
 }
+
+/// Read a claim from the JWT payload as a string, or null.
+String? jwtClaim(String token, String claim) {
+  final parts = token.split('.');
+  if (parts.length != 3) return null;
+  try {
+    final map = jsonDecode(utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))));
+    if (map is! Map) return null;
+    final value = map[claim];
+    return value?.toString();
+  } on FormatException {
+    return null;
+  }
+}

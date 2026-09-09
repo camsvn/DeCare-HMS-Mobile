@@ -19,6 +19,13 @@ void main() {
     expect(jwtExpiry('a.b.c'), isNull);
     expect(jwtExpiry(_token({'foo': 1})), isNull);
   });
+  test('jwtClaim reads a string claim', () {
+    final t = _token({'exp': 1, 'username': 'System', 'user_id': 2});
+    expect(jwtClaim(t, 'username'), 'System');
+    expect(jwtClaim(t, 'user_id'), '2');
+    expect(jwtClaim(t, 'missing'), isNull);
+    expect(jwtClaim('garbage', 'username'), isNull);
+  });
   test('isJwtValid compares against now', () {
     final now = DateTime.utc(2026, 9, 8);
     final live = _token({'exp': now.add(const Duration(days: 1)).millisecondsSinceEpoch ~/ 1000});

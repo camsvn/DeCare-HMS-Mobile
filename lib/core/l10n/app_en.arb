@@ -36,6 +36,16 @@
   "loginError": "Login: {message}",
   "@loginError": {"placeholders": {"message": {"type": "String"}}},
 
+  "dashboardModules": "Modules",
+  "dashboardMorePlaceholder": "More modules coming",
+  "dashboardConnected": "Connected",
+  "dashboardUnreachable": "Server unreachable",
+
+  "tomogramModuleTitle": "Tomogram",
+  "tomogramModuleSubtitle": "Upload skin photos to a patient record",
+  "tomogramRecentBadge": "{count} recent",
+  "@tomogramRecentBadge": {"placeholders": {"count": {"type": "int"}}},
+
   "homeRecentSearches": "Recent Searches:",
   "homeClearAll": "clear all",
   "homeRecentRow": "{name}, {opid}",

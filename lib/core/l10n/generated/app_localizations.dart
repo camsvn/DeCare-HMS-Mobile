@@ -271,6 +271,48 @@ abstract class AppLocalizations {
   /// **'Login: {message}'**
   String loginError(String message);
 
+  /// No description provided for @dashboardModules.
+  ///
+  /// In en, this message translates to:
+  /// **'Modules'**
+  String get dashboardModules;
+
+  /// No description provided for @dashboardMorePlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'More modules coming'**
+  String get dashboardMorePlaceholder;
+
+  /// No description provided for @dashboardConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get dashboardConnected;
+
+  /// No description provided for @dashboardUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Server unreachable'**
+  String get dashboardUnreachable;
+
+  /// No description provided for @tomogramModuleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomogram'**
+  String get tomogramModuleTitle;
+
+  /// No description provided for @tomogramModuleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload skin photos to a patient record'**
+  String get tomogramModuleSubtitle;
+
+  /// No description provided for @tomogramRecentBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} recent'**
+  String tomogramRecentBadge(int count);
+
   /// No description provided for @homeRecentSearches.
   ///
   /// In en, this message translates to:

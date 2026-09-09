@@ -1,4 +1,7 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hms_uploader/core/design/design.dart';
+import 'package:hms_uploader/core/modules/app_module.dart';
 import 'package:hms_uploader/core/navigation/route_paths.dart';
 import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/tomogram/presentation/permission_screen.dart';
@@ -14,23 +17,36 @@ export 'data/upload_result.dart';
 export 'presentation/permission_screen.dart';
 export 'presentation/tomogram_screen.dart';
 
-/// Nested under the home route.
-final List<RouteBase> tomogramRoutes = [
-  GoRoute(
-    path: RoutePaths.tomogramPattern,
-    builder: (context, state) {
-      final extra = state.extra;
-      final opid = int.tryParse(state.pathParameters['opid'] ?? '') ?? 0;
-      final patient = extra is Patient ? extra : Patient(id: 0, opid: opid, name: '');
-      return TomogramScreen(patient: patient);
-    },
-  ),
-  GoRoute(
-    path: RoutePaths.permissionPattern,
-    builder: (context, state) {
-      final extra = state.extra;
-      final permissions = extra is List<Permission> ? extra : const <Permission>[];
-      return PermissionScreen(permissions: permissions);
-    },
-  ),
-];
+/// `/app/tomogram/:opid`, nested under the module entry route.
+final GoRoute tomogramDetailRoute = GoRoute(
+  path: RoutePaths.tomogramPattern,
+  pageBuilder: (context, state) {
+    final extra = state.extra;
+    final opid = int.tryParse(state.pathParameters['opid'] ?? '') ?? 0;
+    final patient = extra is Patient ? extra : Patient(id: 0, opid: opid, name: '');
+    return FadeThroughPage(key: state.pageKey, child: TomogramScreen(patient: patient));
+  },
+);
+
+/// `/app/tomogram/permission`, nested under the module entry route.
+final GoRoute permissionRoute = GoRoute(
+  path: RoutePaths.permissionPattern,
+  pageBuilder: (context, state) {
+    final extra = state.extra;
+    final permissions = extra is List<Permission> ? extra : const <Permission>[];
+    return FadeThroughPage(key: state.pageKey, child: PermissionScreen(permissions: permissions));
+  },
+);
+
+final AppModule tomogramModule = AppModule(
+  id: 'tomogram',
+  title: (l10n) => l10n.tomogramModuleTitle,
+  subtitle: (l10n) => l10n.tomogramModuleSubtitle,
+  icon: Icons.photo_camera_back_outlined,
+  entryRoute: RoutePaths.tomogramEntry,
+  routes: [patientLookupRoute(children: [tomogramDetailRoute, permissionRoute])],
+  badge: (ref) {
+    final count = ref.watch(recentSearchesControllerProvider).length;
+    return count == 0 ? const SizedBox.shrink() : DsChip(text: '$count', mono: true);
+  },
+);
