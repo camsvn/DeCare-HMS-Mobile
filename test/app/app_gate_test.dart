@@ -10,6 +10,7 @@ import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../helpers/fake_camera_service.dart';
 import '../helpers/signed_in_container.dart';
 
 void main() {
@@ -86,6 +87,27 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TomogramScreen), findsOneWidget);
     expect(find.byType(PermissionScreen), findsNothing);
+  });
+
+  testWidgets('/app/tomogram/581/capture opens the capture screen on the root navigator', (tester) async {
+    final fake = FakeCameraService(dir: docs);
+    final c = (await signedInContainer(
+      docs: docs,
+      overrides: [cameraServiceProvider.overrideWithValue(fake)],
+    ))
+        .container;
+    addTearDown(c.dispose);
+    await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
+    await tester.pumpAndSettle();
+
+    expect(RoutePaths.capture(581), '/app/tomogram/581/capture');
+    c.read(routerProvider).go(RoutePaths.capture(581));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CaptureScreen), findsOneWidget);
+    expect(fake.startCount, 1);
+    // On the root navigator, so it covers the tab bar rather than sitting in it.
+    expect(find.byType(DsBottomBar), findsNothing);
   });
 
   testWidgets('system back on the Home tab arms double-press-to-exit', (tester) async {

@@ -254,6 +254,53 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get captureDone => 'Done';
+
+  @override
+  String get captureShutter => 'Take photo';
+
+  @override
+  String captureCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count photos',
+      one: '1 photo',
+      zero: 'No photos yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get captureTorchOn => 'Turn torch on';
+
+  @override
+  String get captureTorchOff => 'Turn torch off';
+
+  @override
+  String get captureRemoveTitle => 'Remove this photo?';
+
+  @override
+  String get captureRemoveBody => 'It has not been added yet and will be deleted.';
+
+  @override
+  String get captureRemove => 'Remove';
+
+  @override
+  String get captureErrorTitle => 'Camera unavailable';
+
+  @override
+  String get captureErrorBody => 'Could not start the camera. Check that no other app is using it and try again.';
+
+  @override
+  String get captureRetry => 'Try again';
+
+  @override
+  String captureLimit(int limit) {
+    return 'Up to $limit photos per session';
+  }
+
+  @override
   String get queueTitle => 'Pending uploads';
 
   @override

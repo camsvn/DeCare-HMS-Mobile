@@ -27,11 +27,18 @@ String liveToken() {
 /// [session] seeds a live token pair, [extraPrefs] any other stored keys. The
 /// dashboard's context strip runs one health check on first build, so the
 /// health API is always mocked to succeed.
+///
+/// [overrides] join the container's own, for a test that drives the real app
+/// and still needs one service faked (the camera, say). They belong here
+/// rather than in a nested `ProviderScope`: a provider that is not itself
+/// overridden is attached to the root container, so a nested override would be
+/// invisible to the providers that read it.
 Future<({ProviderContainer container, InMemorySecureStore store})> signedInContainer({
   required Directory docs,
   String? url = 'http://x',
   bool session = true,
   Map<String, Object> extraPrefs = const {},
+  List<Override> overrides = const [],
 }) async {
   SharedPreferences.setMockInitialValues({
     if (url != null) 'server_url': url,
@@ -54,6 +61,7 @@ Future<({ProviderContainer container, InMemorySecureStore store})> signedInConta
     accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).valueOrNull?.accessToken),
     refreshAccessTokenProvider
         .overrideWith((ref) => () => ref.read(sessionControllerProvider.notifier).refreshAccessToken()),
+    ...overrides,
   ]);
   await container.read(serverConfigControllerProvider.future);
   await container.read(sessionControllerProvider.future);

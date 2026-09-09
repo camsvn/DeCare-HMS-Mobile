@@ -493,6 +493,78 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 photo waiting to upload} other{{count} photos waiting to upload}}'**
   String tomogramPendingLine(int count);
 
+  /// No description provided for @captureDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get captureDone;
+
+  /// No description provided for @captureShutter.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get captureShutter;
+
+  /// No description provided for @captureCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No photos yet} =1{1 photo} other{{count} photos}}'**
+  String captureCount(int count);
+
+  /// No description provided for @captureTorchOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn torch on'**
+  String get captureTorchOn;
+
+  /// No description provided for @captureTorchOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn torch off'**
+  String get captureTorchOff;
+
+  /// No description provided for @captureRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this photo?'**
+  String get captureRemoveTitle;
+
+  /// No description provided for @captureRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It has not been added yet and will be deleted.'**
+  String get captureRemoveBody;
+
+  /// No description provided for @captureRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get captureRemove;
+
+  /// No description provided for @captureErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera unavailable'**
+  String get captureErrorTitle;
+
+  /// No description provided for @captureErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start the camera. Check that no other app is using it and try again.'**
+  String get captureErrorBody;
+
+  /// No description provided for @captureRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get captureRetry;
+
+  /// No description provided for @captureLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Up to {limit} photos per session'**
+  String captureLimit(int limit);
+
   /// No description provided for @queueTitle.
   ///
   /// In en, this message translates to:

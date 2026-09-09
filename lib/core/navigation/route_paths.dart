@@ -14,6 +14,9 @@ abstract final class RoutePaths {
   static String tomogram(int opid) => '$tomogramEntry/$opid';
   static const permissionPattern = 'permission';
   static const permission = '$tomogramEntry/permission';
+  /// In-app capture, nested under one patient's tomogram screen.
+  static const capturePattern = 'capture';
+  static String capture(int opid) => '${tomogram(opid)}/capture';
 
   static const settings = '/app/settings';
   static const aboutPattern = 'about';

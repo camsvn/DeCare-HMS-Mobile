@@ -4,13 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:hms_uploader/app/app_shell.dart';
 import 'package:hms_uploader/app/modules.dart';
 import 'package:hms_uploader/core/design/design.dart';
+import 'package:hms_uploader/core/navigation/navigator_keys.dart';
 import 'package:hms_uploader/core/navigation/route_paths.dart';
 import 'package:hms_uploader/features/auth/auth.dart';
 import 'package:hms_uploader/features/dashboard/dashboard.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
 import 'package:hms_uploader/features/settings/settings.dart';
 
-final rootNavigatorKey = GlobalKey<NavigatorState>();
+// The key moved to `core` so features can name it as a `parentNavigatorKey`;
+// re-exported so `rootNavigatorKey` still resolves through this file.
+export 'package:hms_uploader/core/navigation/navigator_keys.dart';
 
 /// The three-way gate from the React Native `AppNavigator`.
 String? computeRedirect({required String location, required bool hasServerUrl, required bool sessionValid}) {
