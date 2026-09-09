@@ -115,6 +115,33 @@ void main() {
     });
   });
 
+  group('TomogramSet.fromJson', () {
+    Map<String, dynamic> raw(Object? dateTime, {Object? details}) => {
+          'id': 1,
+          'dateTime': dateTime,
+          'doctorId': 1,
+          'tomogramTypeId': 1,
+          'details': details,
+        };
+
+    test('accepts epoch milliseconds for dateTime', () {
+      final millis = DateTime(2026, 9, 8, 14, 32).millisecondsSinceEpoch;
+      expect(TomogramSet.fromJson(raw(millis)).dateTime, DateTime(2026, 9, 8, 14, 32));
+    });
+
+    test('keeps the set with an epoch dateTime when the value is unreadable', () {
+      // Deliberate: a malformed date shows as the epoch rather than dropping
+      // the whole set, matching how the other DTOs default a bad int to 0.
+      expect(TomogramSet.fromJson(raw('not a date')).dateTime, DateTime.fromMillisecondsSinceEpoch(0));
+    });
+
+    test('details that are missing or not a list become an empty list', () {
+      expect(TomogramSet.fromJson(raw('2026-09-08T14:32:00')).details, isEmpty);
+      expect(TomogramSet.fromJson(raw('2026-09-08T14:32:00', details: 'nope')).details, isEmpty);
+      expect(TomogramSet.fromJson(raw('2026-09-08T14:32:00')).narrationsSummary, isNull);
+    });
+  });
+
   group('tomogramHistoryProvider', () {
     late MockTomogramHistoryApi history;
     late MockTomogramApi upload;

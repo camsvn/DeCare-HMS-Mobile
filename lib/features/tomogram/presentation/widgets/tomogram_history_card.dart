@@ -10,6 +10,12 @@ final DateFormat _dateFormat = DateFormat('d MMM HH:mm');
 
 String _formatDate(DateTime dateTime) => _dateFormat.format(dateTime.toLocal());
 
+/// How many sets the expanded card lists. The card sits in the tomogram
+/// screen's non-scrolling [Column], directly above the `Expanded` draft list,
+/// so an uncapped list would push that list to zero height and overflow the
+/// viewport. The collapsed chip still carries the full count.
+const int historyExpandedMax = 5;
+
 /// The sets already uploaded for a patient: a count and the last upload date,
 /// expanding to one row per set.
 ///
@@ -37,16 +43,20 @@ class _TomogramHistoryCardState extends ConsumerState<TomogramHistoryCard> {
               style: context.dsType.body.withColor(context.ds.textSecondary),
             ),
           ),
-          data: (sets) => sets.isEmpty ? const SizedBox.shrink() : _shell(child: _body(sets)),
+          // Only the loaded card is tappable: there is nothing to expand while
+          // it is loading or has failed, so it must not offer ink either.
+          data: (sets) => sets.isEmpty
+              ? const SizedBox.shrink()
+              : _shell(
+                  onTap: () => setState(() => _expanded = !_expanded),
+                  child: _body(sets),
+                ),
         );
   }
 
-  Widget _shell({required Widget child}) => Padding(
+  Widget _shell({required Widget child, VoidCallback? onTap}) => Padding(
         padding: const EdgeInsets.fromLTRB(DsSpace.gutter, DsSpace.x3, DsSpace.gutter, 0),
-        child: DsCard(
-          onTap: () => setState(() => _expanded = !_expanded),
-          child: child,
-        ),
+        child: DsCard(onTap: onTap, child: child),
       );
 
   Widget _body(List<TomogramSet> sets) {
@@ -81,11 +91,19 @@ class _TomogramHistoryCardState extends ConsumerState<TomogramHistoryCard> {
               Icon(_expanded ? Icons.expand_less : Icons.expand_more, size: 20, color: ds.textSecondary),
             ],
           ),
-          if (_expanded)
-            for (final set in sets) ...[
+          if (_expanded) ...[
+            for (final set in sets.take(historyExpandedMax)) ...[
               const SizedBox(height: DsSpace.x3),
               _SetRow(set: set),
             ],
+            if (sets.length > historyExpandedMax) ...[
+              const SizedBox(height: DsSpace.x3),
+              Text(
+                l10n.tomogramHistoryMore(sets.length - historyExpandedMax),
+                style: type.label.withColor(ds.textSecondary),
+              ),
+            ],
+          ],
         ],
       ),
     );

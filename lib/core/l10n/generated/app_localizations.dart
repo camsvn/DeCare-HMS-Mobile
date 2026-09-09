@@ -451,6 +451,12 @@ abstract class AppLocalizations {
   /// **'Last {date}'**
   String tomogramHistoryLast(String date);
 
+  /// No description provided for @tomogramHistoryMore.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{and 1 more} other{and {count} more}}'**
+  String tomogramHistoryMore(int count);
+
   /// No description provided for @tomogramHistoryError.
   ///
   /// In en, this message translates to:

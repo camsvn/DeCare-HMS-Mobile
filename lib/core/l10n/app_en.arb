@@ -75,6 +75,8 @@
   "@tomogramHistoryCount": {"placeholders": {"count": {"type": "int"}}},
   "tomogramHistoryLast": "Last {date}",
   "@tomogramHistoryLast": {"placeholders": {"date": {"type": "String"}}},
+  "tomogramHistoryMore": "{count, plural, =1{and 1 more} other{and {count} more}}",
+  "@tomogramHistoryMore": {"placeholders": {"count": {"type": "int"}}},
   "tomogramHistoryError": "Could not load history",
   "tomogramHistoryNoNarration": "No description",
 

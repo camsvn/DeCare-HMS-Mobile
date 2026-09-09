@@ -82,6 +82,28 @@ void main() {
     expect(find.text('No description'), findsOneWidget);
   });
 
+  testWidgets('expanded rows are capped so the card cannot starve the screen', (tester) async {
+    when(() => api.list(42)).thenAnswer((_) async => [
+          for (var i = 0; i < 8; i++)
+            _set(id: 100 - i, dateTime: DateTime(2026, 9, 8 - i, 14, 32), narrations: ['set $i']),
+        ]);
+    await pump(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('8 sets'), findsOneWidget);
+
+    await tester.tap(find.text('Already uploaded'));
+    await tester.pumpAndSettle();
+
+    for (var i = 0; i < historyExpandedMax; i++) {
+      expect(find.text('set $i'), findsOneWidget);
+    }
+    for (var i = historyExpandedMax; i < 8; i++) {
+      expect(find.text('set $i'), findsNothing);
+    }
+    expect(find.text('and 3 more'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('renders nothing when the patient has no history', (tester) async {
     when(() => api.list(42)).thenAnswer((_) async => const []);
     await pump(tester);
