@@ -18,9 +18,9 @@ class UploadQueueController extends AsyncNotifier<List<PendingUpload>> {
   bool _running = false;
   StreamSubscription<bool>? _sub;
 
-  /// Assume online, so the first event the plugin delivers on subscribe is not
-  /// mistaken for a reconnection.
-  bool _lastOnline = true;
+  /// Set when a trigger arrives while a run is in flight, so the run repeats
+  /// instead of dropping it.
+  bool _rerunRequested = false;
 
   /// True while a run is in flight. Every state update during a run carries the
   /// loading flag, so widgets rebuild and see this change.
@@ -34,9 +34,13 @@ class UploadQueueController extends AsyncNotifier<List<PendingUpload>> {
   Future<void> start() async {
     _sub?.cancel();
     _sub = ref.read(connectivityServiceProvider).onlineChanges.listen((online) {
-      final cameBack = online && !_lastOnline;
-      _lastOnline = online;
-      if (cameBack) unawaited(processQueue());
+      // Every event that reports a network is a trigger, not just one that
+      // follows a reported loss. Tracking the previous state would strand the
+      // queue after an offline launch, where the plugin reports the working
+      // network without ever having reported the missing one. Running again is
+      // free: [processQueue] collapses to nothing when a run is already in
+      // flight or the queue is empty.
+      if (online) unawaited(processQueue());
     });
     ref.onDispose(() => _sub?.cancel());
     // The persisted list has to be in [state] before a run can act on it.
@@ -61,42 +65,55 @@ class UploadQueueController extends AsyncNotifier<List<PendingUpload>> {
     if (await ref.read(connectivityServiceProvider).isOnline()) unawaited(processQueue());
   }
 
-  /// Uploads the entries oldest first. A network failure ends the run and waits
-  /// for the next trigger; any other failure counts an attempt against that
-  /// entry and the run moves on. Only one run at a time.
+  /// Uploads the entries oldest first. A network failure ends the pass and
+  /// waits for the next trigger; any other failure counts an attempt against
+  /// that entry and the pass moves on. Only one run at a time — a trigger that
+  /// arrives mid-run earns one more pass rather than being dropped, since the
+  /// entry it is about may have been enqueued after this run started.
   Future<void> processQueue() async {
-    if (_running) return;
-    final queued = _entries;
-    if (queued.isEmpty) return;
+    if (_running) {
+      _rerunRequested = true;
+      return;
+    }
+    if (_entries.isEmpty) return;
     _running = true;
-    _publish(queued);
+    _publish(_entries);
     try {
-      for (final entry in queued) {
-        if (entry.isFailed) continue;
-        // An enqueue or a discard may have landed while this run was awaiting.
-        if (!_entries.any((e) => e.id == entry.id)) continue;
-        try {
-          await ref.read(tomogramApiProvider).upload(entry.opid, [
-            for (var i = 0; i < entry.files.length; i++)
-              // The id only names the multipart part, so the index is enough
-              // to keep the filenames unique within one request.
-              TomogramDraft(id: 'q$i', filePath: entry.files[i].path, description: entry.files[i].description),
-          ]);
-          await ref.read(pendingUploadsRepositoryProvider).purge(entry);
-          await _replace(entry.id, null);
-          // The patient has one more uploaded set now.
-          ref.invalidate(tomogramHistoryProvider(entry.opid));
-        } on ApiFailure catch (e) {
-          if (e is CannotConnectFailure || e is TimeoutFailure) break;
-          await _replace(
-            entry.id,
-            entry.copyWith(attempts: entry.attempts + 1, lastError: e.detail ?? e.runtimeType.toString()),
-          );
-        }
-      }
+      do {
+        _rerunRequested = false;
+        await _pass();
+      } while (_rerunRequested && _entries.isNotEmpty);
     } finally {
       _running = false;
+      _rerunRequested = false;
       _publish(_entries);
+    }
+  }
+
+  /// One walk over the queue as it stands at the start of the walk.
+  Future<void> _pass() async {
+    for (final entry in _entries) {
+      if (entry.isFailed) continue;
+      // An enqueue or a discard may have landed while this pass was awaiting.
+      if (!_entries.any((e) => e.id == entry.id)) continue;
+      try {
+        await ref.read(tomogramApiProvider).upload(entry.opid, [
+          for (var i = 0; i < entry.files.length; i++)
+            // The id only names the multipart part, so the index is enough
+            // to keep the filenames unique within one request.
+            TomogramDraft(id: 'q$i', filePath: entry.files[i].path, description: entry.files[i].description),
+        ]);
+        await ref.read(pendingUploadsRepositoryProvider).purge(entry);
+        await _replace(entry.id, null);
+        // The patient has one more uploaded set now.
+        ref.invalidate(tomogramHistoryProvider(entry.opid));
+      } on ApiFailure catch (e) {
+        if (e is CannotConnectFailure || e is TimeoutFailure) return;
+        await _replace(
+          entry.id,
+          entry.copyWith(attempts: entry.attempts + 1, lastError: e.detail ?? e.runtimeType.toString()),
+        );
+      }
     }
   }
 
@@ -144,6 +161,17 @@ final uploadQueueProvider =
 
 /// How many uploads are waiting, for the dashboard's pending chip.
 final pendingCountProvider = Provider<int>((ref) => ref.watch(uploadQueueProvider).valueOrNull?.length ?? 0);
+
+/// How many photos are waiting for one OP number, across every entry it has —
+/// two failed uploads for the same patient are one waiting count to the user.
+final pendingFileCountForOpidProvider = Provider.family<int, int>((ref, opid) {
+  final entries = ref.watch(uploadQueueProvider).valueOrNull ?? const <PendingUpload>[];
+  var count = 0;
+  for (final entry in entries) {
+    if (entry.opid == opid) count += entry.files.length;
+  }
+  return count;
+});
 
 /// The queued entry for one OP number, if there is one.
 final pendingForOpidProvider = Provider.family<PendingUpload?, int>((ref, opid) {

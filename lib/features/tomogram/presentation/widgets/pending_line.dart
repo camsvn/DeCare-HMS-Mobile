@@ -16,8 +16,10 @@ class PendingLine extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entry = ref.watch(pendingForOpidProvider(opid));
-    if (entry == null) return const SizedBox.shrink();
+    // The entry gates visibility; the count spans every entry this patient has,
+    // since two failed uploads are still one pile of waiting photos.
+    if (ref.watch(pendingForOpidProvider(opid)) == null) return const SizedBox.shrink();
+    final photos = ref.watch(pendingFileCountForOpidProvider(opid));
     final ds = context.ds;
     return Padding(
       padding: const EdgeInsets.fromLTRB(DsSpace.gutter, DsSpace.x3, DsSpace.gutter, 0),
@@ -29,7 +31,7 @@ class PendingLine extends ConsumerWidget {
             const SizedBox(width: DsSpace.x3),
             Expanded(
               child: Text(
-                context.l10n.tomogramPendingLine(entry.files.length),
+                context.l10n.tomogramPendingLine(photos),
                 style: context.dsType.body.withColor(ds.textSecondary),
               ),
             ),

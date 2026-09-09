@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +10,7 @@ import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/core/storage/secure_store.dart';
 import 'package:hms_uploader/features/auth/auth.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
+import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -21,7 +23,8 @@ String liveToken() {
 }
 
 /// Same wiring as [main], so the expiry path runs against the real providers.
-Future<(ProviderContainer, InMemorySecureStore)> containerWith({String? url, bool session = false}) async {
+Future<(ProviderContainer, InMemorySecureStore)> containerWith(
+    {required Directory docs, String? url, bool session = false}) async {
   SharedPreferences.setMockInitialValues(url == null ? {} : {'server_url': url});
   final prefs = await SharedPreferences.getInstance();
   final store = InMemorySecureStore();
@@ -35,6 +38,7 @@ Future<(ProviderContainer, InMemorySecureStore)> containerWith({String? url, boo
     sharedPreferencesProvider.overrideWithValue(prefs),
     secureStoreProvider.overrideWithValue(store),
     healthCheckApiProvider.overrideWithValue(health),
+    appDocumentsDirProvider.overrideWithValue(docs),
     serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).valueOrNull),
     accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).valueOrNull?.accessToken),
     refreshAccessTokenProvider
@@ -46,9 +50,13 @@ Future<(ProviderContainer, InMemorySecureStore)> containerWith({String? url, boo
 }
 
 void main() {
+  late Directory docs;
+
+  setUp(() async => docs = await Directory.systemTemp.createTemp('expiry_docs'));
+  tearDown(() => docs.delete(recursive: true));
   testWidgets('an auth failure signs out, returns to login and warns the user', (tester) async {
     resetDsBannersForTest();
-    final (c, store) = await containerWith(url: 'http://x', session: true);
+    final (c, store) = await containerWith(docs: docs, url: 'http://x', session: true);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -69,7 +77,7 @@ void main() {
 
   testWidgets('a burst of auth failures signs out once and shows one banner', (tester) async {
     resetDsBannersForTest();
-    final (c, store) = await containerWith(url: 'http://x', session: true);
+    final (c, store) = await containerWith(docs: docs, url: 'http://x', session: true);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -94,7 +102,7 @@ void main() {
 
   testWidgets('an auth failure with no session does nothing', (tester) async {
     resetDsBannersForTest();
-    final (c, _) = await containerWith(url: 'http://x');
+    final (c, _) = await containerWith(docs: docs, url: 'http://x');
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();

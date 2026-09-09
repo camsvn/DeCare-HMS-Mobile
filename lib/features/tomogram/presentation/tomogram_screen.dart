@@ -85,11 +85,20 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
       // Anything the server actively refused is the user's to fix, so those
       // drafts stay put.
       if (e is CannotConnectFailure || e is TimeoutFailure) {
-        await ref.read(uploadQueueProvider.notifier).enqueue(
-              _opid,
-              widget.patient.name,
-              ref.read(tomogramControllerProvider(_opid)).drafts,
-            );
+        try {
+          await ref.read(uploadQueueProvider.notifier).enqueue(
+                _opid,
+                widget.patient.name,
+                ref.read(tomogramControllerProvider(_opid)).drafts,
+              );
+        } catch (_) {
+          // The photos could not even be copied aside (an evicted picker cache,
+          // a full disk). Report the upload failure and keep the drafts, which
+          // is the best the user can act on.
+          if (!mounted) return;
+          showDsBanner(context, l10n.tomogramUploadError(e.describe(l10n)), kind: DsBannerKind.danger);
+          return;
+        }
         // The queue owns its own copies now, so this only drops the originals.
         await notifier.clearAll();
         if (!mounted) return;

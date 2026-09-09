@@ -113,4 +113,23 @@ void main() {
 
     await expectLater(repo.purge(staged), completes);
   });
+
+  test('a copy that fails part-way leaves no half-staged folder behind', () async {
+    final a = jpeg('a.jpg', [0xFF, 0xD8, 0xFF, 1]);
+    await expectLater(
+      repo.stage(PendingUpload(
+        id: 'e1',
+        opid: 7,
+        patientName: 'Jo',
+        files: [
+          PendingFile(path: a.path, description: 'one'),
+          PendingFile(path: '${root.path}/gone.jpg', description: 'two'),
+        ],
+        createdAt: DateTime.utc(2026),
+      )),
+      throwsA(isA<FileSystemException>()),
+    );
+
+    expect(Directory('${root.path}/pending/e1').existsSync(), isFalse);
+  });
 }

@@ -262,9 +262,10 @@ void main() {
     expect(entry.isFailed, isFalse);
   });
 
-  test('coming back online runs the queue', () async {
+  test('a queue left over from an offline launch drains when the network arrives', () async {
     final pending = await seed('e9', 42);
     await repository().write([pending]);
+    // Launched with no network, and the plugin reports no initial state.
     connectivity.online = false;
     final queue = await notifier();
     when(() => api.upload(any(), any())).thenThrow(const CannotConnectFailure());
@@ -274,16 +275,14 @@ void main() {
     expect(container.read(uploadQueueProvider).requireValue.length, 1);
 
     when(() => api.upload(any(), any())).thenAnswer((_) async => const []);
-    connectivity.emit(false);
     connectivity.emit(true);
-    await Future<void>.delayed(Duration.zero);
     await pumpEventQueue();
 
     verify(() => api.upload(42, any())).called(1);
     expect(container.read(uploadQueueProvider).requireValue, isEmpty);
   });
 
-  test('staying online does not re-run the queue', () async {
+  test('losing the network is not a trigger', () async {
     final pending = await seed('e9', 42);
     await repository().write([pending]);
     final queue = await notifier();
@@ -291,10 +290,51 @@ void main() {
     await queue.start();
     verify(() => api.upload(42, any())).called(1);
 
-    connectivity.emit(true);
+    connectivity.emit(false);
     await pumpEventQueue();
 
     verifyNever(() => api.upload(any(), any()));
+  });
+
+  test('reconnects arriving during a run do not double-upload', () async {
+    final pending = await seed('e9', 42);
+    await repository().write([pending]);
+    connectivity.online = false;
+    final queue = await notifier();
+    final gate = Completer<List<UploadResult>>();
+    when(() => api.upload(any(), any())).thenAnswer((_) => gate.future);
+
+    final started = queue.start();
+    await pumpEventQueue();
+    connectivity.emit(true);
+    connectivity.emit(true);
+    await pumpEventQueue();
+    gate.complete(const []);
+    await started;
+    await pumpEventQueue();
+
+    verify(() => api.upload(42, any())).called(1);
+    expect(container.read(uploadQueueProvider).requireValue, isEmpty);
+  });
+
+  test('an entry enqueued during a run is still uploaded by that run', () async {
+    final pending = await seed('e9', 41);
+    await repository().write([pending]);
+    final queue = await notifier();
+    final gate = Completer<List<UploadResult>>();
+    when(() => api.upload(41, any())).thenAnswer((_) => gate.future);
+    when(() => api.upload(42, any())).thenAnswer((_) async => const []);
+
+    final run = queue.processQueue();
+    await pumpEventQueue();
+    await queue.enqueue(42, 'Newer', draftsFrom('b.jpg'));
+    gate.complete(const []);
+    await run;
+    await pumpEventQueue();
+
+    verify(() => api.upload(41, any())).called(1);
+    verify(() => api.upload(42, any())).called(1);
+    expect(container.read(uploadQueueProvider).requireValue, isEmpty);
   });
 
   test('overlapping processQueue calls upload once', () async {
@@ -340,5 +380,22 @@ void main() {
     expect(container.read(pendingCountProvider), 2);
     expect(container.read(pendingForOpidProvider(42))?.patientName, 'Jane Doe');
     expect(container.read(pendingForOpidProvider(99)), isNull);
+  });
+
+  test('the per-opid photo count sums every entry for that patient', () async {
+    connectivity.online = false;
+    final queue = await notifier();
+    final a = File('${picker.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF, 0]);
+    final b = File('${picker.path}/b.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF, 0]);
+    await queue.enqueue(42, 'Jane Doe', [
+      TomogramDraft(id: 'd1', filePath: a.path, description: ''),
+      TomogramDraft(id: 'd2', filePath: b.path, description: ''),
+    ]);
+    await queue.enqueue(42, 'Jane Doe', draftsFrom('c.jpg'));
+    await queue.enqueue(7, 'Other', draftsFrom('d.jpg'));
+
+    expect(container.read(pendingFileCountForOpidProvider(42)), 3);
+    expect(container.read(pendingFileCountForOpidProvider(7)), 1);
+    expect(container.read(pendingFileCountForOpidProvider(99)), 0);
   });
 }

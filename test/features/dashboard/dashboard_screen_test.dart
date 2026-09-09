@@ -163,4 +163,51 @@ void main() {
 
     expect(find.text('Failed 5 times: Image too large'), findsOneWidget);
   });
+
+  testWidgets('one failure already names the reason in the sheet', (tester) async {
+    await PendingUploadsRepository(prefs, docs).write([pending(attempts: 1, lastError: 'Image too large')]);
+    await pumpDashboard(tester);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1 pending'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Failed 1 times: Image too large'), findsOneWidget);
+  });
+
+  testWidgets('a long queue scrolls and keeps Retry now on screen', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await PendingUploadsRepository(prefs, docs).write([
+      for (var i = 0; i < 8; i++)
+        PendingUpload(
+          id: 'q$i',
+          opid: 40 + i,
+          patientName: 'Patient $i',
+          files: const [PendingFile(path: 'a.jpg', description: '')],
+          createdAt: DateTime.utc(2026, 9, 9),
+        ),
+    ]);
+    when(() => uploads.upload(any(), any())).thenAnswer((_) async => const []);
+    await pumpDashboard(tester);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('8 pending'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    final button = tester.getRect(find.text('Retry now'));
+    expect(button.bottom, lessThanOrEqualTo(700.0));
+    expect(button.top, greaterThanOrEqualTo(0.0));
+
+    // The rows scroll rather than growing the sheet past the footer.
+    final firstRowTop = tester.getRect(find.text('Patient 0')).top;
+    await tester.drag(find.text('Patient 0'), const Offset(0, -120));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.text('Patient 0')).top, lessThan(firstRowTop));
+    expect(tester.getRect(find.text('Retry now')), button);
+
+    // A tap that lands proves the footer is hit-testable, not just laid out.
+    await tester.tap(find.text('Retry now'));
+    await tester.pumpAndSettle();
+    verify(() => uploads.upload(any(), any())).called(8);
+  });
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,7 +26,7 @@ String liveToken() {
   return '${b64({'alg': 'HS256'})}.${b64({'exp': exp})}.s';
 }
 
-Future<ProviderContainer> containerWith({String? url, bool session = false}) async {
+Future<ProviderContainer> containerWith({required Directory docs, String? url, bool session = false}) async {
   SharedPreferences.setMockInitialValues(url == null ? {} : {'server_url': url});
   final prefs = await SharedPreferences.getInstance();
   final store = InMemorySecureStore();
@@ -40,6 +41,7 @@ Future<ProviderContainer> containerWith({String? url, bool session = false}) asy
     sharedPreferencesProvider.overrideWithValue(prefs),
     secureStoreProvider.overrideWithValue(store),
     healthCheckApiProvider.overrideWithValue(health),
+    appDocumentsDirProvider.overrideWithValue(docs),
     serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).valueOrNull),
     accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).valueOrNull?.accessToken),
   ]);
@@ -49,8 +51,12 @@ Future<ProviderContainer> containerWith({String? url, bool session = false}) asy
 }
 
 void main() {
+  late Directory docs;
+
+  setUp(() async => docs = await Directory.systemTemp.createTemp('gate_docs'));
+  tearDown(() => docs.delete(recursive: true));
   testWidgets('starts on configure when no url', (tester) async {
-    final c = await containerWith();
+    final c = await containerWith(docs: docs);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -58,7 +64,7 @@ void main() {
   });
 
   testWidgets('starts on login when url but no session', (tester) async {
-    final c = await containerWith(url: 'http://x');
+    final c = await containerWith(docs: docs, url: 'http://x');
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -66,7 +72,7 @@ void main() {
   });
 
   testWidgets('starts on the dashboard when session is valid, and logout returns to login', (tester) async {
-    final c = await containerWith(url: 'http://x', session: true);
+    final c = await containerWith(docs: docs, url: 'http://x', session: true);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -84,7 +90,7 @@ void main() {
   });
 
   testWidgets('tapping the Tomogram module opens the patient lookup', (tester) async {
-    final c = await containerWith(url: 'http://x', session: true);
+    final c = await containerWith(docs: docs, url: 'http://x', session: true);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -97,7 +103,7 @@ void main() {
   });
 
   testWidgets('/app/tomogram/permission opens the permission screen, not the detail screen', (tester) async {
-    final c = await containerWith(url: 'http://x', session: true);
+    final c = await containerWith(docs: docs, url: 'http://x', session: true);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -109,7 +115,7 @@ void main() {
   });
 
   testWidgets('/app/tomogram/:opid opens the tomogram detail screen', (tester) async {
-    final c = await containerWith(url: 'http://x', session: true);
+    final c = await containerWith(docs: docs, url: 'http://x', session: true);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -121,7 +127,7 @@ void main() {
   });
 
   testWidgets('system back on the Home tab arms double-press-to-exit', (tester) async {
-    final c = await containerWith(url: 'http://x', session: true);
+    final c = await containerWith(docs: docs, url: 'http://x', session: true);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();
@@ -139,7 +145,7 @@ void main() {
   });
 
   testWidgets('system back on the Settings tab returns to the Home tab', (tester) async {
-    final c = await containerWith(url: 'http://x', session: true);
+    final c = await containerWith(docs: docs, url: 'http://x', session: true);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
     await tester.pumpAndSettle();

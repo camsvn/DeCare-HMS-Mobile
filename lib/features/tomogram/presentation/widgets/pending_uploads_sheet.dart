@@ -12,6 +12,11 @@ Future<void> showPendingUploadsSheet(BuildContext context) => showDsSheet<void>(
       builder: (_) => const [_PendingUploads()],
     );
 
+/// Everything in the sheet that is not a queue row: the drag handle, the
+/// heading, the retry footer and the sheet's trailing gap. Subtracted from the
+/// height the sheet is allowed so the rows know what is left for them.
+const double _sheetChromeHeight = 150;
+
 class _PendingUploads extends ConsumerWidget {
   const _PendingUploads();
 
@@ -24,32 +29,51 @@ class _PendingUploads extends ConsumerWidget {
     final entries = queue.valueOrNull ?? const <PendingUpload>[];
     final notifier = ref.read(uploadQueueProvider.notifier);
 
+    // showModalBottomSheet caps a sheet like this one at 9/16 of the screen,
+    // and the sheet lays its children out with unbounded height, so the row
+    // list has to cap itself — an uncapped list pushes the retry footer off
+    // the screen as soon as the queue passes a few entries.
+    final rowsMaxHeight = (MediaQuery.sizeOf(context).height * 9 / 16 - _sheetChromeHeight)
+        .clamp(DsListRow.height, double.infinity);
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(DsSpace.gutter, DsSpace.x3, DsSpace.gutter, DsSpace.x2),
           child: Text(l10n.queueTitle, style: type.heading),
         ),
-        for (final entry in entries) ...[
-          DsListRow(
-            title: entry.patientName,
-            leadingIcon: Icons.cloud_upload_outlined,
-            trailingValue: '${entry.files.length}',
-            trailingIcon: Icons.delete_outline,
-            trailingTooltip: l10n.queueDiscard,
-            destructive: entry.isFailed,
-            onTrailingTap: () => _discard(context, ref, entry),
-          ),
-          if (entry.isFailed)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(DsSpace.x3, 0, DsSpace.x3, DsSpace.x3),
-              child: Text(
-                l10n.queueFailedLine(entry.attempts, entry.lastError ?? l10n.errorRejected),
-                style: type.label.withColor(ds.danger),
-              ),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: rowsMaxHeight),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final entry in entries) ...[
+                  DsListRow(
+                    title: entry.patientName,
+                    leadingIcon: Icons.cloud_upload_outlined,
+                    trailingValue: '${entry.files.length}',
+                    trailingIcon: Icons.delete_outline,
+                    trailingTooltip: l10n.queueDiscard,
+                    destructive: entry.isFailed,
+                    onTrailingTap: () => _discard(context, ref, entry),
+                  ),
+                  if (entry.lastError != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(DsSpace.x3, 0, DsSpace.x3, DsSpace.x3),
+                      child: Text(
+                        l10n.queueFailedLine(entry.attempts, entry.lastError!),
+                        style: type.label.withColor(ds.danger),
+                      ),
+                    ),
+                ],
+              ],
             ),
-        ],
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.all(DsSpace.gutter),
           child: DsButton.primary(

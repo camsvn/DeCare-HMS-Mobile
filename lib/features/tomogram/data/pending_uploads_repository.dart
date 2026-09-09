@@ -48,14 +48,21 @@ class PendingUploadsRepository {
   Future<PendingUpload> stage(PendingUpload draft) async {
     final folder = _folderFor(draft.id);
     Directory(folder).createSync(recursive: true);
-    final staged = <PendingFile>[];
-    for (var i = 0; i < draft.files.length; i++) {
-      final source = draft.files[i];
-      final target = '$folder/$i.jpg';
-      File(source.path).copySync(target);
-      staged.add(PendingFile(path: target, description: source.description));
+    try {
+      final staged = <PendingFile>[];
+      for (var i = 0; i < draft.files.length; i++) {
+        final source = draft.files[i];
+        final target = '$folder/$i.jpg';
+        File(source.path).copySync(target);
+        staged.add(PendingFile(path: target, description: source.description));
+      }
+      return draft.copyWith(files: staged);
+    } catch (_) {
+      // Half a set is worse than none: it would upload as an incomplete record
+      // and otherwise leak, since no entry will ever reference it.
+      await purge(draft);
+      rethrow;
     }
-    return draft.copyWith(files: staged);
   }
 
   /// Deletes an entry's staged photos. A folder that is already gone is fine.

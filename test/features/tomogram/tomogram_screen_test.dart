@@ -359,4 +359,61 @@ void main() {
 
     expect(find.textContaining('waiting to upload'), findsNothing);
   });
+
+  testWidgets('the waiting line counts every queued photo for this patient', (tester) async {
+    await PendingUploadsRepository(prefs, docs).write([
+      PendingUpload(
+        id: 'q1',
+        opid: 42,
+        patientName: 'Jane Doe',
+        files: const [PendingFile(path: 'a.jpg', description: ''), PendingFile(path: 'b.jpg', description: '')],
+        createdAt: DateTime.utc(2026, 9, 9),
+      ),
+      PendingUpload(
+        id: 'q2',
+        opid: 42,
+        patientName: 'Jane Doe',
+        files: const [PendingFile(path: 'c.jpg', description: '')],
+        createdAt: DateTime.utc(2026, 9, 9, 1),
+      ),
+      PendingUpload(
+        id: 'q3',
+        opid: 7,
+        patientName: 'Someone Else',
+        files: const [PendingFile(path: 'd.jpg', description: '')],
+        createdAt: DateTime.utc(2026, 9, 9, 2),
+      ),
+    ]);
+
+    await pump(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('3 photos waiting to upload'), findsOneWidget);
+  });
+
+  testWidgets('a staging failure reports the upload error and keeps the drafts', (tester) async {
+    final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
+    when(() => picker.pick(MediaSource.camera))
+        .thenAnswer((_) async => MediaPickResult(accepted: [f.path], rejected: 0));
+    when(() => api.upload(any(), any())).thenThrow(const CannotConnectFailure());
+    await pump(tester);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take Photo'));
+    await tester.pumpAndSettle();
+    // The OS cleared the picker cache between the pick and the upload, so the
+    // queue cannot copy the file aside.
+    f.deleteSync();
+
+    await tester.tap(find.text('Upload'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Tomogram Upload: Could not reach the server'), findsOneWidget);
+    expect(find.text('Description'), findsOneWidget);
+    expect(queueOf(tester), isEmpty);
+    expect(Directory('${docs.path}/pending/id').existsSync(), isFalse);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+  });
 }
