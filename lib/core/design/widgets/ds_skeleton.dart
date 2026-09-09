@@ -19,8 +19,20 @@ class DsSkeleton extends StatefulWidget {
 }
 
 class _DsSkeletonState extends State<DsSkeleton> with SingleTickerProviderStateMixin {
-  late final AnimationController _controller =
-      AnimationController(vsync: this, duration: DsMotion.shimmer)..repeat();
+  late final AnimationController _controller = AnimationController(vsync: this, duration: DsMotion.shimmer);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Never start the shimmer under reduced motion: it would run forever and
+    // pin the frame scheduler.
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _controller.stop();
+      _controller.value = 0;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
+  }
 
   @override
   void dispose() {
