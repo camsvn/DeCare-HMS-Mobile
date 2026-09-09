@@ -44,3 +44,7 @@ app.*.map.json
 
 # Scratch directory (not part of the app)
 .superpowers/
+
+# Release signing (local only; back these up outside the repo)
+android/key.properties
+android/upload-keystore.jks
