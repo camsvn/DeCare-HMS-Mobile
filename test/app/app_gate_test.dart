@@ -75,10 +75,10 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Logout'), findsOneWidget);
-    await tester.tap(find.text('Logout'));
+    expect(find.text('Sign out'), findsOneWidget);
+    await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Yes, I am'));
+    await tester.tap(find.text('Sign out').last);
     await tester.pumpAndSettle();
     expect(find.text('Sign In'), findsOneWidget);
   });
@@ -145,7 +145,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('Logout'), findsOneWidget);
+    expect(find.text('Sign out'), findsOneWidget);
 
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();

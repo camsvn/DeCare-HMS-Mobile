@@ -239,6 +239,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get permissionPhotos => 'Files and media';
 
   @override
+  String get settingsGroupServer => 'Server';
+
+  @override
+  String get settingsGroupAccount => 'Account';
+
+  @override
+  String get settingsGroupHelp => 'Help';
+
+  @override
   String get settingsChangeUrl => 'Change Installation URL';
 
   @override
@@ -248,7 +257,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsAbout => 'About';
 
   @override
-  String get settingsLogout => 'Logout';
+  String get settingsSignOut => 'Sign out';
+
+  @override
+  String get settingsSignOutTitle => 'Sign out?';
+
+  @override
+  String get settingsSignOutBody => 'You will need to sign in again.';
 
   @override
   String get settingsTabHome => 'Home';
@@ -267,9 +282,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aboutContact => 'Contact Us';
-
-  @override
-  String get aboutOr => 'or';
 
   @override
   String get aboutPhone => '+91 80863 58930';

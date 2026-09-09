@@ -523,6 +523,24 @@ abstract class AppLocalizations {
   /// **'Files and media'**
   String get permissionPhotos;
 
+  /// No description provided for @settingsGroupServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Server'**
+  String get settingsGroupServer;
+
+  /// No description provided for @settingsGroupAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get settingsGroupAccount;
+
+  /// No description provided for @settingsGroupHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Help'**
+  String get settingsGroupHelp;
+
   /// No description provided for @settingsChangeUrl.
   ///
   /// In en, this message translates to:
@@ -541,11 +559,23 @@ abstract class AppLocalizations {
   /// **'About'**
   String get settingsAbout;
 
-  /// No description provided for @settingsLogout.
+  /// No description provided for @settingsSignOut.
   ///
   /// In en, this message translates to:
-  /// **'Logout'**
-  String get settingsLogout;
+  /// **'Sign out'**
+  String get settingsSignOut;
+
+  /// No description provided for @settingsSignOutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out?'**
+  String get settingsSignOutTitle;
+
+  /// No description provided for @settingsSignOutBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You will need to sign in again.'**
+  String get settingsSignOutBody;
 
   /// No description provided for @settingsTabHome.
   ///
@@ -582,12 +612,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Contact Us'**
   String get aboutContact;
-
-  /// No description provided for @aboutOr.
-  ///
-  /// In en, this message translates to:
-  /// **'or'**
-  String get aboutOr;
 
   /// No description provided for @aboutPhone.
   ///
