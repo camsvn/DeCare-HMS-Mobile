@@ -154,6 +154,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSearchPlaceholder => 'Enter OP Number';
 
   @override
+  String get homeGo => 'Go';
+
+  @override
+  String get homeRecent => 'Recent';
+
+  @override
+  String get homeClear => 'Clear';
+
+  @override
   String get homeFetchingPatient => 'Fetching Patient';
 
   @override
@@ -180,6 +189,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramEmptyBody => 'You can add tomogram details using the \'+\' button at top-right, they\'ll appear here as added.';
 
   @override
+  String get tomogramUpload => 'Upload';
+
+  @override
   String get tomogramUploading => 'Uploading';
 
   @override
@@ -196,6 +208,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String tomogramPickLimit(int limit) {
     return 'Tomogram: Only $limit images per pick';
+  }
+
+  @override
+  String get tomogramDiscardTitle => 'Discard photos?';
+
+  @override
+  String get tomogramDiscardBody => 'The photos you added will be removed.';
+
+  @override
+  String tomogramCounter(int index, int total) {
+    return '$index of $total';
   }
 
   @override

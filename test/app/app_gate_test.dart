@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/app/app.dart';
@@ -47,15 +46,6 @@ Future<ProviderContainer> containerWith({String? url, bool session = false}) asy
   await container.read(serverConfigControllerProvider.future);
   await container.read(sessionControllerProvider.future);
   return container;
-}
-
-/// The 800x600 default leaves the not-yet-restyled tomogram screen 22 px short
-/// once the shell's bottom bar is subtracted; give these router tests a phone
-/// -shaped surface instead. (Task 7 restyles that screen.)
-void tallSurface(WidgetTester tester) {
-  tester.view.physicalSize = const Size(400, 800);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
 }
 
 void main() {
@@ -107,7 +97,6 @@ void main() {
   });
 
   testWidgets('/app/tomogram/permission opens the permission screen, not the detail screen', (tester) async {
-    tallSurface(tester);
     final c = await containerWith(url: 'http://x', session: true);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));
@@ -120,7 +109,6 @@ void main() {
   });
 
   testWidgets('/app/tomogram/:opid opens the tomogram detail screen', (tester) async {
-    tallSurface(tester);
     final c = await containerWith(url: 'http://x', session: true);
     addTearDown(c.dispose);
     await tester.pumpWidget(UncontrolledProviderScope(container: c, child: const HmsApp()));

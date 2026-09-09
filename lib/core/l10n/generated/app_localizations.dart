@@ -373,6 +373,24 @@ abstract class AppLocalizations {
   /// **'Enter OP Number'**
   String get homeSearchPlaceholder;
 
+  /// No description provided for @homeGo.
+  ///
+  /// In en, this message translates to:
+  /// **'Go'**
+  String get homeGo;
+
+  /// No description provided for @homeRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get homeRecent;
+
+  /// No description provided for @homeClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get homeClear;
+
   /// No description provided for @homeFetchingPatient.
   ///
   /// In en, this message translates to:
@@ -421,6 +439,12 @@ abstract class AppLocalizations {
   /// **'You can add tomogram details using the \'+\' button at top-right, they\'ll appear here as added.'**
   String get tomogramEmptyBody;
 
+  /// No description provided for @tomogramUpload.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload'**
+  String get tomogramUpload;
+
   /// No description provided for @tomogramUploading.
   ///
   /// In en, this message translates to:
@@ -450,6 +474,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tomogram: Only {limit} images per pick'**
   String tomogramPickLimit(int limit);
+
+  /// No description provided for @tomogramDiscardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard photos?'**
+  String get tomogramDiscardTitle;
+
+  /// No description provided for @tomogramDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The photos you added will be removed.'**
+  String get tomogramDiscardBody;
+
+  /// No description provided for @tomogramCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'{index} of {total}'**
+  String tomogramCounter(int index, int total);
 
   /// No description provided for @permissionTitle.
   ///

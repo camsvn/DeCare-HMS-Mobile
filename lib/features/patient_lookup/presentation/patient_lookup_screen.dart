@@ -1,20 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
-import 'package:hms_uploader/core/theme/app_colors.dart';
-import 'package:hms_uploader/core/theme/app_spacing.dart';
-import 'package:hms_uploader/core/theme/app_text_styles.dart';
-import 'package:hms_uploader/core/widgets/app_buttons.dart';
-import 'package:hms_uploader/core/widgets/app_header.dart';
-import 'package:hms_uploader/core/widgets/flash_banner.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
-import 'package:hms_uploader/core/widgets/loader_modal.dart';
 import 'package:hms_uploader/features/patient_lookup/application/patient_lookup_controller.dart';
 import 'package:hms_uploader/features/patient_lookup/application/recent_searches_controller.dart';
 import 'package:hms_uploader/features/patient_lookup/data/patient.dart';
-import 'package:hms_uploader/features/patient_lookup/presentation/widgets/home_empty_state.dart';
 import 'package:hms_uploader/features/patient_lookup/presentation/widgets/op_search_bar.dart';
-import 'package:hms_uploader/features/patient_lookup/presentation/widgets/recent_search_row.dart';
 
 /// Patient lookup: OP number search plus recent searches. [onPatientSelected]
 /// fires after a successful lookup (the route wires it to the tomogram screen).
@@ -33,13 +26,17 @@ class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
     if (patient != null && mounted) widget.onPatientSelected(patient);
   }
 
+  void _remove(int id) => ref.read(recentSearchesControllerProvider.notifier).remove(id);
+
   @override
   Widget build(BuildContext context) {
+    final ds = context.ds;
+    final type = context.dsType;
     final l10n = context.l10n;
     ref.listen(patientLookupControllerProvider, (prev, next) {
       final error = next.error;
       if (!next.isLoading && next.hasError && error is ApiFailure) {
-        showFlash(context, l10n.homePatientError(error.describe(l10n)), type: FlashType.danger);
+        showDsBanner(context, l10n.homePatientError(error.describe(l10n)), kind: DsBannerKind.danger);
       }
     });
     final loading = ref.watch(patientLookupControllerProvider).isLoading;
@@ -47,47 +44,71 @@ class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
 
     // No back-press handling here: this is a StatefulShellRoute branch page, so
     // the system back press goes to the root navigator and AppShell owns it.
-    return LoaderModal(
-      visible: loading,
-      text: l10n.homeFetchingPatient,
-      child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        body: Column(
-          children: [
-            AppHeader(title: l10n.commonHeader),
-            Expanded(
-              child: recents.isEmpty
-                  ? const HomeEmptyState()
-                  : ListView(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(l10n.homeRecentSearches, style: AppTextStyles.bold),
-                            LinkButton(
-                              label: l10n.homeClearAll,
-                              color: AppColors.dim,
-                              onPressed: () => ref.read(recentSearchesControllerProvider.notifier).clear(),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        for (final p in recents)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                            child: RecentSearchRow(
-                              patient: p,
-                              onTap: () => _lookup(p.opid),
-                              onDelete: () => ref.read(recentSearchesControllerProvider.notifier).remove(p.id),
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      appBar: DsAppBar(title: l10n.tomogramModuleTitle),
+      body: Column(
+        children: [
+          OpSearchBar(onSubmit: _lookup),
+          Expanded(
+            child: loading
+                ? ListView(
+                    padding: const EdgeInsets.only(top: DsSpace.x2),
+                    children: [DsSkeleton.row(), DsSkeleton.row(), DsSkeleton.row()],
+                  )
+                : recents.isEmpty
+                    ? DsEmptyState(
+                        illustration: SvgPicture.asset('assets/images/blank_canvas.svg'),
+                        heading: l10n.homeEmptyTitle,
+                        body: l10n.homeEmptyBody,
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(DsSpace.gutter, 0, DsSpace.gutter, DsSpace.x8),
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(l10n.homeRecent, style: type.heading),
+                              DsButton.ghost(
+                                label: l10n.homeClear,
+                                onPressed: () => ref.read(recentSearchesControllerProvider.notifier).clear(),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: DsSpace.x2),
+                          DsCard(
+                            padding: EdgeInsets.zero,
+                            child: Column(
+                              children: [
+                                for (final p in recents) ...[
+                                  Dismissible(
+                                    key: ValueKey('recent-${p.id}'),
+                                    direction: DismissDirection.endToStart,
+                                    background: Container(
+                                      color: ds.danger,
+                                      alignment: Alignment.centerRight,
+                                      padding: const EdgeInsets.only(right: DsSpace.x4),
+                                      child: Icon(Icons.delete_outline, color: ds.textOnShell),
+                                    ),
+                                    onDismissed: (_) => _remove(p.id),
+                                    child: DsListRow(
+                                      leadingIcon: Icons.person_outline,
+                                      title: p.name,
+                                      trailingValue: '${p.opid}',
+                                      trailingIcon: Icons.delete_outline,
+                                      onTrailingTap: () => _remove(p.id),
+                                      onTap: () => _lookup(p.opid),
+                                    ),
+                                  ),
+                                  if (p != recents.last) Divider(height: 1, color: ds.borderSubtle),
+                                ],
+                              ],
                             ),
                           ),
-                      ],
-                    ),
-            ),
-            OpSearchBar(onSubmit: _lookup),
-          ],
-        ),
+                        ],
+                      ),
+          ),
+        ],
       ),
     );
   }

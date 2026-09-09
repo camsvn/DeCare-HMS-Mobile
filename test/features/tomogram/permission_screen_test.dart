@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:mocktail/mocktail.dart';
@@ -19,6 +20,8 @@ void main() {
       const PermissionScreen(permissions: [Permission.camera, Permission.photos]),
       overrides: [permissionGatewayProvider.overrideWithValue(gateway)],
     );
+    expect(find.text('DeCare HMS'), findsOneWidget);
+    expect(find.byIcon(Icons.lock_outline), findsOneWidget);
     expect(find.text('Grant Permission to access Camera'), findsOneWidget);
     await tester.tap(find.text('Grant Permission'));
     await tester.pump();

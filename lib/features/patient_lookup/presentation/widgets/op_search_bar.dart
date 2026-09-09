@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hms_uploader/core/theme/app_colors.dart';
-import 'package:hms_uploader/core/theme/app_spacing.dart';
-import 'package:hms_uploader/core/widgets/app_text_field.dart';
+import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 
-/// Numeric OP-number field with clear and submit buttons.
+/// Numeric OP-number field on a white strip under the app bar. The gradient
+/// "Go" button appears only once the field has text.
 class OpSearchBar extends StatefulWidget {
   const OpSearchBar({super.key, required this.onSubmit});
 
@@ -39,32 +38,40 @@ class _OpSearchBarState extends State<OpSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    final ds = context.ds;
+    final l10n = context.l10n;
     final hasText = _controller.text.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.xs, AppSpacing.md, AppSpacing.md),
+    return Container(
+      padding: const EdgeInsets.all(DsSpace.gutter),
+      decoration: BoxDecoration(
+        color: ds.card,
+        border: Border(bottom: BorderSide(color: ds.borderSubtle)),
+      ),
       child: Row(
         children: [
           Expanded(
-            child: AppTextField(
+            child: DsTextField(
               controller: _controller,
-              hint: context.l10n.homeSearchPlaceholder,
+              mono: true,
+              hint: l10n.homeSearchPlaceholder,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               maxLength: 7,
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _submit(),
+              prefix: const Icon(Icons.search, size: 20),
               suffix: hasText
-                  ? IconButton(icon: const Icon(Icons.close, color: AppColors.dim), onPressed: _controller.clear)
-                  : const Icon(Icons.search, color: AppColors.dim),
+                  ? IconButton(
+                      icon: const Icon(Icons.close, size: 20),
+                      onPressed: _controller.clear,
+                      visualDensity: VisualDensity.compact,
+                    )
+                  : null,
             ),
           ),
           if (hasText) ...[
-            const SizedBox(width: AppSpacing.xs),
-            IconButton.filled(
-              style: IconButton.styleFrom(backgroundColor: AppColors.primary),
-              icon: const Icon(Icons.check, color: AppColors.goGreen),
-              onPressed: _submit,
-            ),
+            const SizedBox(width: DsSpace.x2),
+            DsButton.primary(label: l10n.homeGo, expand: false, height: 40, onPressed: _submit),
           ],
         ],
       ),

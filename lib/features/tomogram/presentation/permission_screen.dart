@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hms_uploader/core/theme/app_colors.dart';
-import 'package:hms_uploader/core/theme/app_spacing.dart';
-import 'package:hms_uploader/core/theme/app_text_styles.dart';
-import 'package:hms_uploader/core/widgets/app_buttons.dart';
-import 'package:hms_uploader/core/widgets/app_header.dart';
+import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/tomogram/application/permission_gateway.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -51,38 +47,32 @@ class _PermissionScreenState extends ConsumerState<PermissionScreen> with Widget
 
   @override
   Widget build(BuildContext context) {
+    final ds = context.ds;
+    final type = context.dsType;
     final l10n = context.l10n;
     final first = widget.permissions.isEmpty ? Permission.camera : widget.permissions.first;
     return Scaffold(
-      body: Column(
-        children: [
-          AppHeader(
-            title: l10n.commonHeader,
-            leftIcon: Icons.arrow_back,
-            onLeftTap: () => Navigator.of(context).maybePop(),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(l10n.permissionTitle(_name(context, first)),
-                      style: AppTextStyles.header, textAlign: TextAlign.center),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(l10n.permissionBody, style: AppTextStyles.body, textAlign: TextAlign.center),
-                  const SizedBox(height: AppSpacing.lg),
-                  PrimaryButton(
-                    label: l10n.permissionGrant,
-                    color: AppColors.errorRed,
-                    onPressed: () => ref.read(permissionGatewayProvider).openSettings(),
-                  ),
-                ],
+      appBar: DsAppBar(title: l10n.commonHeader),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(DsSpace.x6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const DsIconTile(icon: Icons.lock_outline, size: 56),
+              const SizedBox(height: DsSpace.x6),
+              Text(l10n.permissionTitle(_name(context, first)), style: type.heading, textAlign: TextAlign.center),
+              const SizedBox(height: DsSpace.x2),
+              Text(l10n.permissionBody,
+                  style: type.body.withColor(ds.textSecondary), textAlign: TextAlign.center),
+              const SizedBox(height: DsSpace.x6),
+              DsButton.primary(
+                label: l10n.permissionGrant,
+                onPressed: () => ref.read(permissionGatewayProvider).openSettings(),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
