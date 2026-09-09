@@ -382,7 +382,7 @@ abstract class AppLocalizations {
   /// No description provided for @tomogramEmptyBody.
   ///
   /// In en, this message translates to:
-  /// **'You can add tomogram details using the \'+\' button at top-right, they\'ll appear here as added.'**
+  /// **'You can add tomogram photos with the \'+\' button. They will appear here as you add them.'**
   String get tomogramEmptyBody;
 
   /// No description provided for @tomogramUpload.

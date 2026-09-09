@@ -59,7 +59,7 @@
   "tomogramTakePhoto": "Take Photo",
   "tomogramDescription": "Description",
   "tomogramEmptyTitle": "There is no tomogram added.",
-  "tomogramEmptyBody": "You can add tomogram details using the '+' button at top-right, they'll appear here as added.",
+  "tomogramEmptyBody": "You can add tomogram photos with the '+' button. They will appear here as you add them.",
   "tomogramUpload": "Upload",
   "tomogramUploading": "Uploading",
   "tomogramUploaded": "Tomogram: Uploaded",

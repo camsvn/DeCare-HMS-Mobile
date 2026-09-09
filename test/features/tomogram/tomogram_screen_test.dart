@@ -52,6 +52,7 @@ void main() {
     expect(find.text('Jane Doe'), findsOneWidget);
     expect(find.text('42'), findsOneWidget);
     expect(find.text('There is no tomogram added.'), findsOneWidget);
+    expect(find.textContaining("'+' button"), findsOneWidget);
     expect(find.text('Upload'), findsNothing);
   });
 

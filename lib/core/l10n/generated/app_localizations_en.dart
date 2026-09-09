@@ -157,7 +157,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramEmptyTitle => 'There is no tomogram added.';
 
   @override
-  String get tomogramEmptyBody => 'You can add tomogram details using the \'+\' button at top-right, they\'ll appear here as added.';
+  String get tomogramEmptyBody => 'You can add tomogram photos with the \'+\' button. They will appear here as you add them.';
 
   @override
   String get tomogramUpload => 'Upload';
