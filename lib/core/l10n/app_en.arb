@@ -3,6 +3,8 @@
   "appTitle": "DeCare HMS",
   "commonHeader": "DeCare HMS",
   "commonCancel": "Cancel",
+  "commonConfirm": "Confirm",
+  "commonDiscard": "Discard",
   "commonPleaseWait": "Please wait",
   "commonConfirmTitle": "Are you sure?",
   "commonConfirmNo": "No, I'm Not",

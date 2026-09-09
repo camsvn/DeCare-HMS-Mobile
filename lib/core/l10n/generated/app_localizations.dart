@@ -109,6 +109,18 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get commonCancel;
 
+  /// No description provided for @commonConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get commonConfirm;
+
+  /// No description provided for @commonDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get commonDiscard;
+
   /// No description provided for @commonPleaseWait.
   ///
   /// In en, this message translates to:

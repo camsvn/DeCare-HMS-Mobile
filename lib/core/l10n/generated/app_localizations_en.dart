@@ -14,6 +14,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCancel => 'Cancel';
 
   @override
+  String get commonConfirm => 'Confirm';
+
+  @override
+  String get commonDiscard => 'Discard';
+
+  @override
   String get commonPleaseWait => 'Please wait';
 
   @override
