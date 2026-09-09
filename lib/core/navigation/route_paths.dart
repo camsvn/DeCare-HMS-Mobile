@@ -2,11 +2,18 @@
 abstract final class RoutePaths {
   static const configure = '/configure';
   static const login = '/login';
-  static const home = '/app/home';
-  static const tomogramPattern = 'tomogram/:opid';
-  static String tomogram(int opid) => '$home/tomogram/$opid';
+
+  /// Dashboard: the Home tab root.
+  static const dashboard = '/app/home';
+  static const home = dashboard;
+
+  /// Tomogram module.
+  static const tomogramEntry = '/app/tomogram';
+  static const tomogramPattern = ':opid';
+  static String tomogram(int opid) => '$tomogramEntry/$opid';
   static const permissionPattern = 'permission';
-  static const permission = '$home/permission';
+  static const permission = '$tomogramEntry/permission';
+
   static const settings = '/app/settings';
   static const aboutPattern = 'about';
   static const about = '$settings/about';
