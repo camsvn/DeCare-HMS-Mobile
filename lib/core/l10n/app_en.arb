@@ -39,6 +39,8 @@
   "dashboardChecking": "Checking…",
   "dashboardConnected": "Connected",
   "dashboardUnreachable": "Server unreachable",
+  "dashboardPending": "{count, plural, =1{1 pending} other{{count} pending}}",
+  "@dashboardPending": {"placeholders": {"count": {"type": "int"}}},
 
   "tomogramModuleTitle": "Tomogram",
   "tomogramModuleSubtitle": "Upload skin photos to a patient record",
@@ -79,6 +81,17 @@
   "@tomogramHistoryMore": {"placeholders": {"count": {"type": "int"}}},
   "tomogramHistoryError": "Could not load history",
   "tomogramHistoryNoNarration": "No description",
+  "tomogramQueued": "Saved offline. It will upload when the server is reachable.",
+  "tomogramPendingLine": "{count, plural, =1{1 photo waiting to upload} other{{count} photos waiting to upload}}",
+  "@tomogramPendingLine": {"placeholders": {"count": {"type": "int"}}},
+
+  "queueTitle": "Pending uploads",
+  "queueRetry": "Retry now",
+  "queueDiscard": "Discard",
+  "queueDiscardTitle": "Discard pending upload?",
+  "queueDiscardBody": "The photos will be deleted from this device.",
+  "queueFailedLine": "Failed {attempts} times: {error}",
+  "@queueFailedLine": {"placeholders": {"attempts": {"type": "int"}, "error": {"type": "String"}}},
 
   "permissionTitleBar": "Permission",
   "permissionTitle": "Grant Permission to access {name}",

@@ -9,7 +9,9 @@ import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/tomogram/application/media_picker_service.dart';
 import 'package:hms_uploader/features/tomogram/application/tomogram_controller.dart';
+import 'package:hms_uploader/features/tomogram/application/upload_queue_controller.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/add_source_sheet.dart';
+import 'package:hms_uploader/features/tomogram/presentation/widgets/pending_line.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_card.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_history_card.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -70,13 +72,31 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
   Future<void> _upload() async {
     FocusScope.of(context).unfocus();
     final l10n = context.l10n;
+    final notifier = ref.read(tomogramControllerProvider(_opid).notifier);
     try {
-      await ref.read(tomogramControllerProvider(_opid).notifier).upload();
+      await notifier.upload();
       if (!mounted) return;
       showDsBanner(context, l10n.tomogramUploaded, kind: DsBannerKind.success);
       _pop();
     } on ApiFailure catch (e) {
       if (!mounted) return;
+      // Unreachable server: hand the photos to the offline queue rather than
+      // asking the user to sit on the screen until the network comes back.
+      // Anything the server actively refused is the user's to fix, so those
+      // drafts stay put.
+      if (e is CannotConnectFailure || e is TimeoutFailure) {
+        await ref.read(uploadQueueProvider.notifier).enqueue(
+              _opid,
+              widget.patient.name,
+              ref.read(tomogramControllerProvider(_opid)).drafts,
+            );
+        // The queue owns its own copies now, so this only drops the originals.
+        await notifier.clearAll();
+        if (!mounted) return;
+        showDsBanner(context, l10n.tomogramQueued, kind: DsBannerKind.warning);
+        _pop();
+        return;
+      }
       showDsBanner(context, l10n.tomogramUploadError(e.describe(l10n)), kind: DsBannerKind.danger);
     }
   }
@@ -131,8 +151,11 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
         body: Column(
           children: [
             if (state.uploading) const DsProgressBar(),
-            // Collapses to nothing when the patient has no uploads yet.
-            if (_opid > 0) TomogramHistoryCard(opid: _opid),
+            // Both collapse to nothing: no queued upload, no history yet.
+            if (_opid > 0) ...[
+              PendingLine(opid: _opid),
+              TomogramHistoryCard(opid: _opid),
+            ],
             Expanded(
               child: drafts.isEmpty
                   ? DsEmptyState(

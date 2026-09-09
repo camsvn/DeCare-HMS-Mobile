@@ -289,6 +289,12 @@ abstract class AppLocalizations {
   /// **'Server unreachable'**
   String get dashboardUnreachable;
 
+  /// No description provided for @dashboardPending.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 pending} other{{count} pending}}'**
+  String dashboardPending(int count);
+
   /// No description provided for @tomogramModuleTitle.
   ///
   /// In en, this message translates to:
@@ -468,6 +474,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No description'**
   String get tomogramHistoryNoNarration;
+
+  /// No description provided for @tomogramQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved offline. It will upload when the server is reachable.'**
+  String get tomogramQueued;
+
+  /// No description provided for @tomogramPendingLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 photo waiting to upload} other{{count} photos waiting to upload}}'**
+  String tomogramPendingLine(int count);
+
+  /// No description provided for @queueTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending uploads'**
+  String get queueTitle;
+
+  /// No description provided for @queueRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry now'**
+  String get queueRetry;
+
+  /// No description provided for @queueDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get queueDiscard;
+
+  /// No description provided for @queueDiscardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard pending upload?'**
+  String get queueDiscardTitle;
+
+  /// No description provided for @queueDiscardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The photos will be deleted from this device.'**
+  String get queueDiscardBody;
+
+  /// No description provided for @queueFailedLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed {attempts} times: {error}'**
+  String queueFailedLine(int attempts, String error);
 
   /// No description provided for @permissionTitleBar.
   ///

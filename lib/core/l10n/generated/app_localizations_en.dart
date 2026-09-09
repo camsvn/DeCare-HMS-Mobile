@@ -110,6 +110,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardUnreachable => 'Server unreachable';
 
   @override
+  String dashboardPending(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count pending',
+      one: '1 pending',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get tomogramModuleTitle => 'Tomogram';
 
   @override
@@ -224,6 +235,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tomogramHistoryNoNarration => 'No description';
+
+  @override
+  String get tomogramQueued => 'Saved offline. It will upload when the server is reachable.';
+
+  @override
+  String tomogramPendingLine(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count photos waiting to upload',
+      one: '1 photo waiting to upload',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get queueTitle => 'Pending uploads';
+
+  @override
+  String get queueRetry => 'Retry now';
+
+  @override
+  String get queueDiscard => 'Discard';
+
+  @override
+  String get queueDiscardTitle => 'Discard pending upload?';
+
+  @override
+  String get queueDiscardBody => 'The photos will be deleted from this device.';
+
+  @override
+  String queueFailedLine(int attempts, String error) {
+    return 'Failed $attempts times: $error';
+  }
 
   @override
   String get permissionTitleBar => 'Permission';

@@ -45,7 +45,8 @@ void main() {
     final b = png('b.png');
     final c = jpeg('c.jpg');
     final d = jpeg('d.jpg');
-    when(() => picker.pickMultiImage()).thenAnswer((_) async => [XFile(a.path), XFile(b.path), XFile(c.path), XFile(d.path)]);
+    when(() => picker.pickMultiImage(maxWidth: any(named: 'maxWidth'), maxHeight: any(named: 'maxHeight'), imageQuality: any(named: 'imageQuality')))
+        .thenAnswer((_) async => [XFile(a.path), XFile(b.path), XFile(c.path), XFile(d.path)]);
     final result = await service.pick(MediaSource.gallery);
     expect(result.accepted, [a.path, c.path]);
     expect(result.rejected, 1);
@@ -54,9 +55,44 @@ void main() {
 
   test('camera pick returns single JPEG or nothing', () async {
     final a = jpeg('a.jpg');
-    when(() => picker.pickImage(source: ImageSource.camera)).thenAnswer((_) async => XFile(a.path));
+    when(() => picker.pickImage(
+          source: ImageSource.camera,
+          maxWidth: any(named: 'maxWidth'),
+          maxHeight: any(named: 'maxHeight'),
+          imageQuality: any(named: 'imageQuality'),
+        )).thenAnswer((_) async => XFile(a.path));
     expect((await service.pick(MediaSource.camera)).accepted, [a.path]);
-    when(() => picker.pickImage(source: ImageSource.camera)).thenAnswer((_) async => null);
+    when(() => picker.pickImage(
+          source: ImageSource.camera,
+          maxWidth: any(named: 'maxWidth'),
+          maxHeight: any(named: 'maxHeight'),
+          imageQuality: any(named: 'imageQuality'),
+        )).thenAnswer((_) async => null);
     expect((await service.pick(MediaSource.camera)).accepted, isEmpty);
+  });
+
+  test('the camera capture is resized and re-encoded so uploads stay small', () async {
+    final a = jpeg('a.jpg');
+    when(() => picker.pickImage(
+          source: ImageSource.camera,
+          maxWidth: any(named: 'maxWidth'),
+          maxHeight: any(named: 'maxHeight'),
+          imageQuality: any(named: 'imageQuality'),
+        )).thenAnswer((_) async => XFile(a.path));
+
+    await service.pick(MediaSource.camera);
+
+    verify(() => picker.pickImage(source: ImageSource.camera, maxWidth: 2000, maxHeight: 2000, imageQuality: 85)).called(1);
+    expect(pickerMaxDimension, 2000);
+    expect(pickerQuality, 85);
+  });
+
+  test('gallery picks are resized and re-encoded too', () async {
+    when(() => picker.pickMultiImage(maxWidth: any(named: 'maxWidth'), maxHeight: any(named: 'maxHeight'), imageQuality: any(named: 'imageQuality')))
+        .thenAnswer((_) async => []);
+
+    await service.pick(MediaSource.gallery);
+
+    verify(() => picker.pickMultiImage(maxWidth: 2000, maxHeight: 2000, imageQuality: 85)).called(1);
   });
 }

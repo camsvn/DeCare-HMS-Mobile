@@ -6,8 +6,10 @@ import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/auth/auth.dart';
 import 'package:hms_uploader/features/dashboard/application/connection_status_controller.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
+import 'package:hms_uploader/features/tomogram/tomogram.dart';
 
-/// Navy strip under the app bar: server host, username, connection dot.
+/// Navy strip under the app bar: server host, username, queued uploads,
+/// connection dot.
 class ContextStrip extends ConsumerWidget {
   const ContextStrip({super.key});
 
@@ -21,6 +23,7 @@ class ContextStrip extends ConsumerWidget {
     final token = ref.watch(sessionControllerProvider).valueOrNull?.accessToken;
     final user = token == null ? null : jwtClaim(token, 'username');
     final status = ref.watch(connectionStatusProvider);
+    final pending = ref.watch(pendingCountProvider);
     final checking = status.isLoading;
     final ok = status.valueOrNull ?? false;
     final statusLabel = checking
@@ -44,6 +47,16 @@ class ContextStrip extends ConsumerWidget {
               ],
             ),
           ),
+          // Only surfaced while something is actually waiting, and tappable so
+          // the user can see what and retry it.
+          if (pending > 0) ...[
+            InkWell(
+              onTap: () => showPendingUploadsSheet(context),
+              borderRadius: BorderRadius.circular(DsRadius.full),
+              child: DsChip(text: l10n.dashboardPending(pending), onShell: true),
+            ),
+            const SizedBox(width: DsSpace.x3),
+          ],
           DsStatusDot(ok: ok, color: checking ? ds.textOnShellMuted : null),
           const SizedBox(width: DsSpace.x2),
           Text(statusLabel, style: type.label.withColor(ds.textOnShellMuted)),

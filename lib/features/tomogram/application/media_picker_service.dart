@@ -9,6 +9,12 @@ enum MediaSource { camera, gallery }
 /// The React Native app allowed two gallery images per pick.
 const int galleryPickLimit = 2;
 
+/// Captures and gallery picks are downscaled to fit this box and re-encoded as
+/// JPEG at [pickerQuality]: a 12 MP phone photo is several megabytes, which is
+/// a slow upload on clinic wifi and larger than the record needs.
+const double pickerMaxDimension = 2000;
+const int pickerQuality = 85;
+
 class MediaPickResult {
   const MediaPickResult({required this.accepted, required this.rejected, this.overLimit = 0});
 
@@ -62,8 +68,19 @@ class DefaultMediaPickerService implements MediaPickerService {
   @override
   Future<MediaPickResult> pick(MediaSource source) async {
     final files = switch (source) {
-      MediaSource.camera => [await _picker.pickImage(source: ImageSource.camera)],
-      MediaSource.gallery => await _picker.pickMultiImage(),
+      MediaSource.camera => [
+          await _picker.pickImage(
+            source: ImageSource.camera,
+            maxWidth: pickerMaxDimension,
+            maxHeight: pickerMaxDimension,
+            imageQuality: pickerQuality,
+          ),
+        ],
+      MediaSource.gallery => await _picker.pickMultiImage(
+          maxWidth: pickerMaxDimension,
+          maxHeight: pickerMaxDimension,
+          imageQuality: pickerQuality,
+        ),
     };
     final accepted = <String>[];
     var rejected = 0;

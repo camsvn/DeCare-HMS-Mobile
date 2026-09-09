@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/features/auth/auth.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
+import 'package:hms_uploader/features/tomogram/tomogram.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> main() async {
@@ -17,8 +20,11 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   final prefs = await SharedPreferences.getInstance();
+  // Where the offline upload queue keeps its staged photos.
+  final documentsDir = await getApplicationDocumentsDirectory();
   final container = ProviderContainer(overrides: [
     sharedPreferencesProvider.overrideWithValue(prefs),
+    appDocumentsDirProvider.overrideWithValue(documentsDir),
     // Bridge feature state into the core network layer without core importing features.
     serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).valueOrNull),
     accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).valueOrNull?.accessToken),
@@ -28,6 +34,10 @@ Future<void> main() async {
   // Load persisted state before the first frame so the redirect gate is exact.
   await container.read(serverConfigControllerProvider.future);
   await container.read(sessionControllerProvider.future);
+
+  // Drain whatever the last run could not upload, and keep watching the
+  // network. Not awaited: the first frame must not wait on an upload.
+  unawaited(container.read(uploadQueueProvider.notifier).start());
 
   // Keep framework errors visible and stop an unhandled async error from
   // taking the isolate down in release.
