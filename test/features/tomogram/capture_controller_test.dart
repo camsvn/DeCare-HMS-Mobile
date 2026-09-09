@@ -178,6 +178,45 @@ void main() {
     expect(shots.every((p) => File(p).existsSync()), isTrue);
   });
 
+  // The cold start is slow (`availableCameras` then `initialize`), and both the
+  // back gesture and a background can land inside it. Whoever gets there first
+  // wins: the start that finishes afterwards must not leave a live camera
+  // behind, nor a session that thinks it can shoot.
+  test('a start still in flight when the session is disposed leaves no camera open', () async {
+    // Its own container: `overrideWithValue` replaces the provider's body, and
+    // with it the `onDispose` that hands the device back, so the release this
+    // test is about would never happen. The override mirrors that body.
+    final popped = ProviderContainer(overrides: [
+      cameraServiceProvider.overrideWith((ref) {
+        ref.onDispose(() => unawaited(fake.stop().catchError((Object _) {})));
+        return fake;
+      }),
+    ]);
+    popped.listen(captureControllerProvider, (_, __) {});
+    fake.startGate = Completer<void>();
+    final pending = popped.read(captureControllerProvider.notifier).start();
+
+    popped.dispose();
+    fake.startGate!.complete();
+    await pending;
+
+    expect(fake.isReady, isFalse);
+    expect(fake.stopCount, 1);
+  });
+
+  test('a start cancelled by a stop does not ready the session', () async {
+    fake.startGate = Completer<void>();
+    final pending = capture().start();
+
+    await capture().stop();
+    fake.startGate!.complete();
+    await pending;
+
+    expect(fake.isReady, isFalse);
+    expect(state().status, isNot(CaptureStatus.ready));
+    expect(state().canShoot, isFalse);
+  });
+
   test('the torch is ignored while the camera is not ready', () async {
     await capture().toggleTorch();
 

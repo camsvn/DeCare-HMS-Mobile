@@ -263,6 +263,36 @@ void main() {
     expect(fake.focusCalls.last.dy, closeTo(0.5, 0.01));
   });
 
+  testWidgets('a portrait preview is sized and read in the ratio it is displayed at', (tester) async {
+    // What `CameraService.previewAspectRatio` reports is the *displayed* ratio,
+    // so a portrait preview of a 16:9 sensor arrives as 9:16. The cover box has
+    // to be built in that ratio: sized with the sensor's own 1.78 it would be a
+    // landscape box, and its tight constraints would squash the texture.
+    fake.aspectRatio = 9 / 16;
+    await open(tester);
+
+    final box = tester
+        .widgetList<SizedBox>(find.descendant(of: find.byType(FittedBox), matching: find.byType(SizedBox)))
+        .firstWhere((s) => s.height == 1000);
+    expect(box.width, closeTo(562.5, 0.01));
+
+    final area = tester.getRect(find.byKey(capturePreviewAreaKey));
+    await tester.tapAt(area.center);
+    await tester.pumpAndSettle();
+
+    expect(fake.focusCalls.single.dx, closeTo(0.5, 0.01));
+    expect(fake.focusCalls.single.dy, closeTo(0.5, 0.01));
+
+    await tester.tapAt(Offset(area.left + 1, area.center.dy));
+    await tester.pumpAndSettle();
+
+    // A 9:16 frame in a 400-wide portrait area is cropped top and bottom, not
+    // left and right, so the area's left edge really is the frame's left edge.
+    // Sized in the sensor's ratio instead, this tap would land near 0.31.
+    expect(fake.focusCalls.last.dx, lessThan(0.1));
+    expect(fake.focusCalls.last.dy, closeTo(0.5, 0.05));
+  });
+
   testWidgets('a shot and a focus tap leave the camera preview alone', (tester) async {
     await open(tester);
     final builds = fake.previewBuilds;

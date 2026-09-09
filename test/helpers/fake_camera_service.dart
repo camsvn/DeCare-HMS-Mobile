@@ -24,8 +24,14 @@ class FakeCameraService implements CameraService {
   /// capture in flight and shoot again while the controller is busy.
   Completer<void>? gate;
 
-  /// The preview's width / height once started. Settable, so a test can put
-  /// the screen's cover-crop arithmetic under a known frame shape.
+  /// When set, [start] waits on it before readying, so a test can hold a cold
+  /// start in flight and stop (or dispose) the session underneath it.
+  Completer<void>? startGate;
+
+  /// The preview's *displayed* width / height once started, as
+  /// [CameraService.previewAspectRatio] reports it — so a portrait preview of
+  /// a 16:9 sensor is 9/16 here. Settable, so a test can put the screen's
+  /// cover-crop arithmetic under a known frame shape.
   double aspectRatio = 3 / 4;
 
   int startCount = 0;
@@ -40,6 +46,10 @@ class FakeCameraService implements CameraService {
   bool _ready = false;
   int _shots = 0;
 
+  /// Mirrors `PluginCameraService`'s generation latch: [stop] cancels a [start]
+  /// that is still in flight, so the fake races the way the real service does.
+  int _generation = 0;
+
   @override
   bool get isReady => _ready;
 
@@ -49,6 +59,12 @@ class FakeCameraService implements CameraService {
   @override
   Future<void> start() async {
     startCount++;
+    final gen = ++_generation;
+    final held = startGate;
+    if (held != null) await held.future;
+    // Overtaken by a `stop` (or another `start`): the device this call opened
+    // is gone, so it must not report itself ready — or failed.
+    if (gen != _generation) return;
     if (failStart) throw StateError('no camera');
     _ready = true;
   }
@@ -56,6 +72,7 @@ class FakeCameraService implements CameraService {
   @override
   Future<void> stop() async {
     stopCount++;
+    _generation++;
     _ready = false;
   }
 

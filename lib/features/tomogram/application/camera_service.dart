@@ -12,8 +12,10 @@ abstract class CameraService {
   /// True once [start] has initialised a camera and [takePicture] can be used.
   bool get isReady;
 
-  /// Preview width / height. 1 until the camera is ready, so a layout built
-  /// before initialisation still gets a usable number.
+  /// Width / height of the preview *as displayed*, which is not the sensor's
+  /// own ratio: a portrait preview shows a landscape sensor on its side. 1
+  /// until the camera is ready, so a layout built before initialisation still
+  /// gets a usable number.
   double get previewAspectRatio;
 
   /// Opens the back camera. Throws when there is no usable camera.
@@ -35,6 +37,21 @@ abstract class CameraService {
   Future<void> focusAt(Offset normalized);
 }
 
+/// What [CameraPreview] lays a [sensorRatio] out as when the preview is shown
+/// at [orientation].
+///
+/// The sensor reports width / height in its own landscape frame, but
+/// `CameraPreview` builds `AspectRatio(1 / aspectRatio)` unless the applicable
+/// orientation is landscape (see its `_getApplicableOrientation`). A caller
+/// sizing a box for the preview needs the ratio the preview will actually be,
+/// or the texture is forced into a transposed box.
+@visibleForTesting
+double displayedAspectRatio(double sensorRatio, DeviceOrientation orientation) {
+  final landscape =
+      orientation == DeviceOrientation.landscapeLeft || orientation == DeviceOrientation.landscapeRight;
+  return landscape ? sensorRatio : 1 / sensorRatio;
+}
+
 /// [CameraService] on `package:camera`.
 ///
 /// Not unit-tested: every call here is a platform channel. It stays thin, and
@@ -43,17 +60,35 @@ abstract class CameraService {
 class PluginCameraService implements CameraService {
   CameraController? _controller;
 
+  /// Bumped by every [start] and every [stop]. A [start] that is overtaken —
+  /// by a [stop] or by another [start] — sees its generation go stale and
+  /// disposes the controller it opened instead of publishing it. Without it a
+  /// screen popped or backgrounded during the (slow) cold start leaves an
+  /// initialised camera nobody holds a reference to: [stop] clears
+  /// `_controller` before `start` ever assigns it.
+  int _generation = 0;
+
   @override
   bool get isReady => _controller?.value.isInitialized ?? false;
 
   @override
-  double get previewAspectRatio => isReady ? _controller!.value.aspectRatio : 1;
+  double get previewAspectRatio {
+    if (!isReady) return 1;
+    final value = _controller!.value;
+    // `previewPauseOrientation` is not consulted: this service never pauses
+    // the preview, so it is always null here.
+    return displayedAspectRatio(
+      value.aspectRatio,
+      value.lockedCaptureOrientation ?? value.deviceOrientation,
+    );
+  }
 
   /// A failed `initialize` disposes its controller before the error leaves, so
   /// a retry is not met with "camera in use" by the half-open one it left.
   @override
   Future<void> start() async {
     if (isReady) return;
+    final gen = ++_generation;
     final cameras = await availableCameras();
     if (cameras.isEmpty) throw StateError('No camera');
     final back = cameras.firstWhere(
@@ -74,12 +109,23 @@ class PluginCameraService implements CameraService {
       await controller.dispose();
       rethrow;
     }
+    if (gen != _generation) {
+      await controller.dispose();
+      return;
+    }
     await _tryOptional(() => controller.lockCaptureOrientation(DeviceOrientation.portraitUp));
+    if (gen != _generation) {
+      await controller.dispose();
+      return;
+    }
     _controller = controller;
   }
 
   @override
   Future<void> stop() async {
+    // Bumped before anything else, so a `start` still inside `initialize`
+    // disposes what it opened rather than publishing it after this returns.
+    _generation++;
     final controller = _controller;
     // Cleared first: `isReady` must be false for the whole of `dispose`.
     _controller = null;
@@ -92,18 +138,26 @@ class PluginCameraService implements CameraService {
   @override
   Future<String> takePicture() async => (await _controller!.takePicture()).path;
 
+  // The controller is captured before the optional call in both of these: a
+  // `stop` racing in nulls the field, and `_controller!` would then throw a
+  // `TypeError`, which `_tryOptional` does not (and should not) swallow.
   @override
-  Future<void> setTorch(bool on) =>
-      _tryOptional(() => _controller!.setFlashMode(on ? FlashMode.torch : FlashMode.off));
+  Future<void> setTorch(bool on) async {
+    final controller = _controller;
+    if (controller == null) return;
+    await _tryOptional(() => controller.setFlashMode(on ? FlashMode.torch : FlashMode.off));
+  }
 
   @override
   Future<void> focusAt(Offset normalized) async {
+    final controller = _controller;
+    if (controller == null) return;
     // Outside 0..1 the plugin throws `ArgumentError`, which is a programming
     // error `_tryOptional` deliberately does not swallow: clamp instead of
     // trusting the caller's hit-test arithmetic.
     final point = Offset(normalized.dx.clamp(0.0, 1.0), normalized.dy.clamp(0.0, 1.0));
-    await _tryOptional(() => _controller!.setFocusPoint(point));
-    await _tryOptional(() => _controller!.setExposurePoint(point));
+    await _tryOptional(() => controller.setFocusPoint(point));
+    await _tryOptional(() => controller.setExposurePoint(point));
   }
 
   /// Runs a call the device may not support. Only the plugin's "cannot do

@@ -66,7 +66,12 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
     state = state.copyWith(status: CaptureStatus.starting);
     try {
       await _camera.start();
-      state = state.copyWith(status: CaptureStatus.ready);
+      // Readiness comes from the camera, not from "the call returned": a
+      // `stop` racing into a cold start cancels it, and the session must not
+      // then offer a shutter for a device that is closed.
+      state = state.copyWith(
+        status: _camera.isReady ? CaptureStatus.ready : CaptureStatus.starting,
+      );
     } catch (_) {
       state = state.copyWith(status: CaptureStatus.failed);
     }
