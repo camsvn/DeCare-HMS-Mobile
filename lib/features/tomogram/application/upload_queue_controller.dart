@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
+import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/features/tomogram/application/connectivity_provider.dart';
 import 'package:hms_uploader/features/tomogram/application/tomogram_controller.dart';
 import 'package:hms_uploader/features/tomogram/application/tomogram_history_controller.dart';
@@ -17,10 +19,17 @@ import 'package:hms_uploader/features/tomogram/data/tomogram_draft.dart';
 class UploadQueueController extends AsyncNotifier<List<PendingUpload>> {
   bool _running = false;
   StreamSubscription<bool>? _sub;
+  ProviderSubscription<String?>? _tokenSub;
 
   /// Set when a trigger arrives while a run is in flight, so the run repeats
   /// instead of dropping it.
   bool _rerunRequested = false;
+
+  /// Whether this run has already spent its one post-refresh retry. A 401
+  /// usually means the interceptor has just renewed the token, so one more
+  /// pass is worth it — but only one, so a genuinely dead session cannot spin
+  /// the queue against the server.
+  bool _authRetryUsed = false;
 
   /// True while a run is in flight. Every state update during a run carries the
   /// loading flag, so widgets rebuild and see this change.
@@ -42,7 +51,16 @@ class UploadQueueController extends AsyncNotifier<List<PendingUpload>> {
       // flight or the queue is empty.
       if (online) unawaited(processQueue());
     });
-    ref.onDispose(() => _sub?.cancel());
+    // Signing in is a trigger too: a queue that was held back while the user
+    // was signed out can go now, without waiting for a connectivity event.
+    _tokenSub?.close();
+    _tokenSub = ref.listen<String?>(accessTokenProvider, (prev, next) {
+      if (prev == null && next != null) unawaited(processQueue());
+    });
+    ref.onDispose(() {
+      _sub?.cancel();
+      _tokenSub?.close();
+    });
     // The persisted list has to be in [state] before a run can act on it.
     await future;
     await processQueue();
@@ -65,18 +83,25 @@ class UploadQueueController extends AsyncNotifier<List<PendingUpload>> {
     if (await ref.read(connectivityServiceProvider).isOnline()) unawaited(processQueue());
   }
 
-  /// Uploads the entries oldest first. A network failure ends the pass and
-  /// waits for the next trigger; any other failure counts an attempt against
-  /// that entry and the pass moves on. Only one run at a time — a trigger that
-  /// arrives mid-run earns one more pass rather than being dropped, since the
-  /// entry it is about may have been enqueued after this run started.
+  /// Uploads the entries oldest first. A network failure or a 401 ends the pass
+  /// and waits for the next trigger; any other failure counts an attempt
+  /// against that entry and the pass moves on. Only one run at a time — a
+  /// trigger that arrives mid-run earns one more pass rather than being
+  /// dropped, since the entry it is about may have been enqueued after this run
+  /// started.
+  ///
+  /// Does nothing at all while the user is signed out: every request would come
+  /// back 401, and burning the attempt ceiling on requests that cannot succeed
+  /// would leave the queue failed for no reason.
   Future<void> processQueue() async {
+    if (ref.read(accessTokenProvider) == null) return;
     if (_running) {
       _rerunRequested = true;
       return;
     }
     if (_entries.isEmpty) return;
     _running = true;
+    _authRetryUsed = false;
     _publish(_entries);
     try {
       do {
@@ -96,6 +121,14 @@ class UploadQueueController extends AsyncNotifier<List<PendingUpload>> {
       if (entry.isFailed) continue;
       // An enqueue or a discard may have landed while this pass was awaiting.
       if (!_entries.any((e) => e.id == entry.id)) continue;
+      // The staged photos are gone — an OS cleanup of the documents folder, or
+      // a purge that only half ran. There is nothing left to send, so drop the
+      // entry instead of failing it against the server forever.
+      if (entry.files.any((f) => !File(f.path).existsSync())) {
+        await ref.read(pendingUploadsRepositoryProvider).purge(entry);
+        await _replace(entry.id, null);
+        continue;
+      }
       try {
         await ref.read(tomogramApiProvider).upload(entry.opid, [
           for (var i = 0; i < entry.files.length; i++)
@@ -103,15 +136,35 @@ class UploadQueueController extends AsyncNotifier<List<PendingUpload>> {
             // to keep the filenames unique within one request.
             TomogramDraft(id: 'q$i', filePath: entry.files[i].path, description: entry.files[i].description),
         ]);
-        await ref.read(pendingUploadsRepositoryProvider).purge(entry);
+        // Persist the removal before deleting the photos: a crash in between
+        // then leaves an orphan folder, not an entry pointing at files that
+        // are already gone.
         await _replace(entry.id, null);
+        await ref.read(pendingUploadsRepositoryProvider).purge(entry);
         // The patient has one more uploaded set now.
         ref.invalidate(tomogramHistoryProvider(entry.opid));
-      } on ApiFailure catch (e) {
-        if (e is CannotConnectFailure || e is TimeoutFailure) return;
+      } catch (e) {
+        // Not just [ApiFailure]: `dioProvider` throws a [StateError] when no
+        // server is configured, and `start()` is unawaited, so anything that
+        // escaped here would land in the zone's error handler instead.
+        final failure = ApiFailure.from(e);
+        if (failure is CannotConnectFailure || failure is TimeoutFailure) return;
+        if (failure is UnauthorizedFailure) {
+          // Not this entry's fault: the token was stale, and the interceptor
+          // has just renewed it. End the pass without counting an attempt and
+          // ask for one more pass with the fresh token.
+          if (!_authRetryUsed) {
+            _authRetryUsed = true;
+            _rerunRequested = true;
+          }
+          return;
+        }
         await _replace(
           entry.id,
-          entry.copyWith(attempts: entry.attempts + 1, lastError: e.detail ?? e.runtimeType.toString()),
+          entry.copyWith(
+            attempts: entry.attempts + 1,
+            lastError: failure.detail ?? failure.runtimeType.toString(),
+          ),
         );
       }
     }

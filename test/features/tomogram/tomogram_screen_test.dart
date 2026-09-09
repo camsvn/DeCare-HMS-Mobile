@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
+import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
@@ -68,6 +69,8 @@ void main() {
           appDocumentsDirProvider.overrideWithValue(docs),
           connectivityServiceProvider.overrideWithValue(connectivity),
           uuidProvider.overrideWithValue(() => 'id'),
+          // The queue only runs for a signed-in user.
+          accessTokenProvider.overrideWithValue('test-token'),
         ],
       );
 

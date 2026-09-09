@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/modules/app_module.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
@@ -57,15 +58,24 @@ void main() {
         appDocumentsDirProvider.overrideWithValue(docs),
         connectivityServiceProvider.overrideWithValue(connectivity),
         tomogramApiProvider.overrideWithValue(uploads),
+        // The queue only runs for a signed-in user.
+        accessTokenProvider.overrideWithValue('test-token'),
       ];
+
+  /// A staged photo that really is on disk: the queue discards an entry whose
+  /// files have vanished, so a fixture pointing at nothing is never uploaded.
+  String stagedPath(String name) {
+    final file = File('${docs.path}/$name')..writeAsBytesSync([0xFF, 0xD8, 0xFF, 0]);
+    return file.path;
+  }
 
   PendingUpload pending({int attempts = 0, String? lastError}) => PendingUpload(
         id: 'q1',
         opid: 42,
         patientName: 'Jane Doe',
-        files: const [
-          PendingFile(path: 'a.jpg', description: ''),
-          PendingFile(path: 'b.jpg', description: ''),
+        files: [
+          PendingFile(path: stagedPath('a.jpg'), description: ''),
+          PendingFile(path: stagedPath('b.jpg'), description: ''),
         ],
         createdAt: DateTime.utc(2026, 9, 9),
         attempts: attempts,
@@ -183,7 +193,7 @@ void main() {
           id: 'q$i',
           opid: 40 + i,
           patientName: 'Patient $i',
-          files: const [PendingFile(path: 'a.jpg', description: '')],
+          files: [PendingFile(path: stagedPath('a.jpg'), description: '')],
           createdAt: DateTime.utc(2026, 9, 9),
         ),
     ]);

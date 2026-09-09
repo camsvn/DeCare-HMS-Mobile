@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
+import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:mocktail/mocktail.dart';
@@ -14,6 +15,30 @@ import '../../helpers/fake_connectivity.dart';
 class MockTomogramApi extends Mock implements TomogramApi {}
 
 class MockTomogramHistoryApi extends Mock implements TomogramHistoryApi {}
+
+/// Stands in for the auth feature's access token, which the app bridges into
+/// `accessTokenProvider` in `main.dart`. A `StateProvider` so a test can sign
+/// in or out mid-run and the queue's listener sees it.
+final tokenProvider = StateProvider<String?>((ref) => 'live-token');
+
+/// Records the order of the repository calls a successful upload performs.
+class RecordingRepository extends PendingUploadsRepository {
+  RecordingRepository(super.prefs, super.root);
+
+  final List<String> calls = [];
+
+  @override
+  Future<void> write(List<PendingUpload> entries) {
+    calls.add('write');
+    return super.write(entries);
+  }
+
+  @override
+  Future<void> purge(PendingUpload entry) {
+    calls.add('purge');
+    return super.purge(entry);
+  }
+}
 
 void main() {
   late Directory docs;
@@ -44,7 +69,7 @@ void main() {
   });
 
   /// Built lazily so a test can seed prefs before the notifier reads them.
-  ProviderContainer build() {
+  ProviderContainer build({PendingUploadsRepository? repo}) {
     container = ProviderContainer(overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       appDocumentsDirProvider.overrideWithValue(docs),
@@ -52,16 +77,21 @@ void main() {
       tomogramHistoryApiProvider.overrideWithValue(history),
       connectivityServiceProvider.overrideWithValue(connectivity),
       uuidProvider.overrideWithValue(() => 'e${nextId++}'),
+      accessTokenProvider.overrideWith((ref) => ref.watch(tokenProvider)),
+      if (repo != null) pendingUploadsRepositoryProvider.overrideWithValue(repo),
     ]);
     addTearDown(container.dispose);
     return container;
   }
 
-  Future<UploadQueueController> notifier() async {
-    final c = build();
+  Future<UploadQueueController> notifier({PendingUploadsRepository? repo}) async {
+    final c = build(repo: repo);
     await c.read(uploadQueueProvider.future);
     return c.read(uploadQueueProvider.notifier);
   }
+
+  /// Signs the user out (or back in) the way the auth feature would.
+  void setToken(String? token) => container.read(tokenProvider.notifier).state = token;
 
   PendingUploadsRepository repository() => PendingUploadsRepository(prefs, docs);
 
@@ -223,11 +253,140 @@ void main() {
     connectivity.online = false;
     final queue = await notifier();
     await queue.enqueue(41, 'Older', draftsFrom('a.jpg'));
-    when(() => api.upload(any(), any())).thenThrow(const UnauthorizedFailure());
+    when(() => api.upload(any(), any())).thenThrow(const ServerFailure());
 
     await queue.processQueue();
 
-    expect(container.read(uploadQueueProvider).requireValue.single.lastError, 'UnauthorizedFailure');
+    expect(container.read(uploadQueueProvider).requireValue.single.lastError, 'ServerFailure');
+  });
+
+  test('an unexpected error counts an attempt instead of escaping the run', () async {
+    connectivity.online = false;
+    final queue = await notifier();
+    await queue.enqueue(41, 'Older', draftsFrom('a.jpg'));
+    // What `dioProvider` throws when no server URL is configured. `start()` is
+    // unawaited in `main`, so an escaping error would reach the zone handler.
+    when(() => api.upload(any(), any())).thenThrow(StateError('No server URL configured'));
+
+    await queue.processQueue();
+
+    final entry = container.read(uploadQueueProvider).requireValue.single;
+    expect(entry.attempts, 1);
+    expect(entry.lastError, 'BadDataFailure');
+  });
+
+  group('session', () {
+    test('queue does not run while signed out', () async {
+      final pending = await seed('e9', 42);
+      await repository().write([pending]);
+      connectivity.online = false;
+      final queue = await notifier();
+      setToken(null);
+      when(() => api.upload(any(), any())).thenAnswer((_) async => const []);
+
+      await queue.start();
+      connectivity.emit(true);
+      await pumpEventQueue();
+
+      // Every request would 401, so nothing is sent and no attempt is burnt.
+      verifyNever(() => api.upload(any(), any()));
+      final entry = container.read(uploadQueueProvider).requireValue.single;
+      expect(entry.attempts, 0);
+      expect(entry.lastError, isNull);
+    });
+
+    test('a 401 ends the pass without counting an attempt and re-runs once', () async {
+      final pending = await seed('e9', 42);
+      await repository().write([pending]);
+      connectivity.online = false;
+      final queue = await notifier();
+      var calls = 0;
+      when(() => api.upload(any(), any())).thenAnswer((_) async {
+        calls++;
+        // The interceptor refreshed the token behind this first 401, so the
+        // second attempt carries a live one.
+        if (calls == 1) throw const UnauthorizedFailure();
+        return const [];
+      });
+
+      await queue.processQueue();
+
+      expect(calls, 2);
+      expect(container.read(uploadQueueProvider).requireValue, isEmpty);
+      expect(repository().read(), isEmpty);
+    });
+
+    test('a second 401 stops the run instead of spinning', () async {
+      final pending = await seed('e9', 42);
+      await repository().write([pending]);
+      connectivity.online = false;
+      final queue = await notifier();
+      var calls = 0;
+      when(() => api.upload(any(), any())).thenAnswer((_) async {
+        calls++;
+        throw const UnauthorizedFailure();
+      });
+
+      await queue.processQueue();
+
+      // One retry after the refresh, then the queue waits for a real sign-in.
+      expect(calls, 2);
+      final entry = container.read(uploadQueueProvider).requireValue.single;
+      expect(entry.attempts, 0);
+      expect(entry.lastError, isNull);
+    });
+
+    test('signing in triggers a run', () async {
+      final pending = await seed('e9', 42);
+      await repository().write([pending]);
+      connectivity.online = false;
+      final queue = await notifier();
+      setToken(null);
+      when(() => api.upload(any(), any())).thenAnswer((_) async => const []);
+
+      await queue.start();
+      verifyNever(() => api.upload(any(), any()));
+
+      setToken('fresh-token');
+      await pumpEventQueue();
+
+      verify(() => api.upload(42, any())).called(1);
+      expect(container.read(uploadQueueProvider).requireValue, isEmpty);
+    });
+  });
+
+  test('an entry whose staged files vanished is discarded', () async {
+    final pending = await seed('e9', 42);
+    await repository().write([pending]);
+    connectivity.online = false;
+    final queue = await notifier();
+    // An OS cleanup, or a purge that only half ran on the previous launch.
+    File(pending.files.single.path).deleteSync();
+    when(() => api.upload(any(), any())).thenAnswer((_) async => const []);
+
+    await queue.processQueue();
+
+    verifyNever(() => api.upload(any(), any()));
+    expect(container.read(uploadQueueProvider).requireValue, isEmpty);
+    expect(repository().read(), isEmpty);
+    expect(Directory('${docs.path}/pending/e9').existsSync(), isFalse);
+  });
+
+  test('a successful upload persists the removal before deleting the files', () async {
+    final pending = await seed('e9', 42);
+    final recorder = RecordingRepository(prefs, docs);
+    await recorder.write([pending]);
+    recorder.calls.clear();
+    connectivity.online = false;
+    final queue = await notifier(repo: recorder);
+    when(() => api.upload(any(), any())).thenAnswer((_) async => const []);
+
+    await queue.processQueue();
+
+    // The entry leaves prefs first: a crash in between leaves an orphan folder
+    // rather than an entry pointing at photos that are already gone.
+    expect(recorder.calls, ['write', 'purge']);
+    expect(repository().read(), isEmpty);
   });
 
   test('entries at the attempt ceiling are skipped until retryAll', () async {
