@@ -15,6 +15,7 @@
   "errorRejected": "Request rejected",
   "errorBadData": "Unexpected response from server",
   "errorInvalidCredentials": "Invalid username or password",
+  "errorSessionExpired": "Session expired, please sign in again",
 
   "configureUrlHeading": "Connect to your server",
   "configureUrlBody": "Input server URL of your self-hosted DeCare-HMS installation.",

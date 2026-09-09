@@ -47,6 +47,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorInvalidCredentials => 'Invalid username or password';
 
   @override
+  String get errorSessionExpired => 'Session expired, please sign in again';
+
+  @override
   String get configureUrlHeading => 'Connect to your server';
 
   @override

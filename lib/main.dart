@@ -22,6 +22,8 @@ Future<void> main() async {
     // Bridge feature state into the core network layer without core importing features.
     serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).valueOrNull),
     accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).valueOrNull?.accessToken),
+    refreshAccessTokenProvider
+        .overrideWith((ref) => () => ref.read(sessionControllerProvider.notifier).refreshAccessToken()),
   ]);
   // Load persisted state before the first frame so the redirect gate is exact.
   await container.read(serverConfigControllerProvider.future);

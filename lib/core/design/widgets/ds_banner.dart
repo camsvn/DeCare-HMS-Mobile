@@ -11,7 +11,14 @@ enum DsBannerKind { success, warning, danger, info }
 
 /// Queued top banners: each shows for 2.5 s, then the next one plays.
 void showDsBanner(BuildContext context, String message, {DsBannerKind kind = DsBannerKind.info}) {
-  _DsBannerQueue.instance.enqueue(Overlay.of(context, rootOverlay: true), message, kind);
+  showDsBannerIn(Overlay.of(context, rootOverlay: true), message, kind: kind);
+}
+
+/// Same, for callers that hold an [OverlayState] instead of a context inside
+/// it: the root navigator sits *above* its own overlay, so `Overlay.of` on its
+/// context finds nothing.
+void showDsBannerIn(OverlayState overlay, String message, {DsBannerKind kind = DsBannerKind.info}) {
+  _DsBannerQueue.instance.enqueue(overlay, message, kind);
 }
 
 /// The queue is a process-wide singleton, so a banner left mid-flight by one

@@ -7,6 +7,9 @@ import 'package:hms_uploader/features/auth/data/session.dart';
 
 abstract class AuthApi {
   Future<Session> login(String username, String password);
+
+  /// Exchanges a refresh token for a new access token.
+  Future<String> refresh(String refreshToken);
 }
 
 class DioAuthApi implements AuthApi {
@@ -34,6 +37,23 @@ class DioAuthApi implements AuthApi {
         throw const UnauthorizedFailure();
       }
       throw failure;
+    }
+  }
+
+  @override
+  Future<String> refresh(String refreshToken) async {
+    try {
+      final response = await _dio.post<dynamic>(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+      final data = unwrapEnvelope(response.data);
+      if (data is! Map) throw const BadDataFailure();
+      final access = data['accessToken'];
+      if (access is! String || access.isEmpty) throw const BadDataFailure();
+      return access;
+    } catch (e) {
+      throw ApiFailure.from(e);
     }
   }
 }

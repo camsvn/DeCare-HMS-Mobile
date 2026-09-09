@@ -59,6 +59,39 @@ void main() {
     expect(await store.read('access_token'), isNull);
   });
 
+  test('refreshAccessToken stores the new token', () async {
+    await store.write('access_token', 'a');
+    await store.write('refresh_token', 'r');
+    when(() => api.refresh('r')).thenAnswer((_) async => 'A2');
+    await container.read(sessionControllerProvider.future);
+
+    final token = await container.read(sessionControllerProvider.notifier).refreshAccessToken();
+    expect(token, 'A2');
+    expect(container.read(sessionControllerProvider).value?.accessToken, 'A2');
+    expect(container.read(sessionControllerProvider).value?.refreshToken, 'r');
+    expect(await store.read('access_token'), 'A2');
+    expect(await store.read('refresh_token'), 'r');
+  });
+
+  test('refreshAccessToken returns null on failure without clearing the session', () async {
+    await store.write('access_token', 'a');
+    await store.write('refresh_token', 'r');
+    when(() => api.refresh(any())).thenThrow(const UnauthorizedFailure());
+    await container.read(sessionControllerProvider.future);
+
+    final token = await container.read(sessionControllerProvider.notifier).refreshAccessToken();
+    expect(token, isNull);
+    expect(container.read(sessionControllerProvider).value?.accessToken, 'a');
+    expect(await store.read('access_token'), 'a');
+    expect(await store.read('refresh_token'), 'r');
+  });
+
+  test('refreshAccessToken returns null when there is no session', () async {
+    await container.read(sessionControllerProvider.future);
+    expect(await container.read(sessionControllerProvider.notifier).refreshAccessToken(), isNull);
+    verifyNever(() => api.refresh(any()));
+  });
+
   group('DioAuthApi', () {
     test('posts credentials and parses tokens', () async {
       final dio = MockDio();
@@ -85,6 +118,31 @@ void main() {
         response: Response(requestOptions: req, statusCode: 404, data: {'status': 'fail', 'data': 'Invalid Credentials'}),
       ));
       expect(() => DioAuthApi(dio).login('u', 'p'), throwsA(isA<UnauthorizedFailure>()));
+    });
+
+    test('refresh posts the refresh token and returns the new access token', () async {
+      final dio = MockDio();
+      when(() => dio.post<dynamic>('/auth/refresh', data: {'refreshToken': 'R'}))
+          .thenAnswer((_) async => Response(
+                requestOptions: RequestOptions(path: '/auth/refresh'),
+                statusCode: 200,
+                data: {
+                  'status': 'success',
+                  'data': {'accessToken': 'A2'},
+                },
+              ));
+      expect(await DioAuthApi(dio).refresh('R'), 'A2');
+    });
+
+    test('refresh maps a 401 to UnauthorizedFailure', () async {
+      final dio = MockDio();
+      final req = RequestOptions(path: '/auth/refresh');
+      when(() => dio.post<dynamic>(any(), data: any(named: 'data'))).thenThrow(DioException(
+        requestOptions: req,
+        type: DioExceptionType.badResponse,
+        response: Response(requestOptions: req, statusCode: 401, data: {'status': 'fail', 'data': 'Invalid Refresh Token'}),
+      ));
+      expect(() => DioAuthApi(dio).refresh('R'), throwsA(isA<UnauthorizedFailure>()));
     });
   });
 }

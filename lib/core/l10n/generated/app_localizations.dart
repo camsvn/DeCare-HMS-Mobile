@@ -175,6 +175,12 @@ abstract class AppLocalizations {
   /// **'Invalid username or password'**
   String get errorInvalidCredentials;
 
+  /// No description provided for @errorSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Session expired, please sign in again'**
+  String get errorSessionExpired;
+
   /// No description provided for @configureUrlHeading.
   ///
   /// In en, this message translates to:
