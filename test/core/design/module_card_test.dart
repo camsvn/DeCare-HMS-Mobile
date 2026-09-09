@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/design/design.dart';
 
 void main() {
+  _fillTests();
   testWidgets('module card shows content and taps', (tester) async {
     var taps = 0;
     await tester.pumpWidget(MaterialApp(
@@ -56,5 +57,21 @@ void main() {
     expect(card.label, isNot(contains('3')));
     expect(tester.getSemantics(find.text('3')).label, '3');
     handle.dispose();
+  });
+}
+
+void _fillTests() {
+  testWidgets('the card fills the cell it is given, like its grid neighbours', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: Center(
+        child: SizedBox(
+          width: 200,
+          height: 220,
+          child: ModuleCard(icon: Icons.camera_alt, title: 'Tomogram', subtitle: 'Upload', onTap: () {}),
+        ),
+      ),
+    ));
+    expect(tester.getSize(find.byType(DsCard)), const Size(200, 220));
   });
 }

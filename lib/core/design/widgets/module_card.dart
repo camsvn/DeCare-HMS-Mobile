@@ -36,7 +36,10 @@ class _ModuleCardState extends State<ModuleCard> {
         scale: _pressed ? 0.98 : 1,
         duration: DsMotion.of(context, DsMotion.fast),
         curve: DsMotion.curve,
+        // Expand so the card fills its grid cell like its neighbours; a loose
+        // stack would shrink-wrap it to its text.
         child: Stack(
+          fit: StackFit.expand,
           children: [
             // The merge covers the tappable card, so its title, subtitle and
             // button flag read as one node. The badge floats above it, outside
