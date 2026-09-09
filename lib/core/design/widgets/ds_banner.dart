@@ -32,15 +32,20 @@ class _DsBannerQueue {
     if (!overlay.mounted) return _next();
     _showing = true;
     late OverlayEntry entry;
+    var released = false;
+    void release() {
+      if (released) return;
+      released = true;
+      if (entry.mounted) entry.remove();
+      _showing = false;
+      _next();
+    }
+
     entry = OverlayEntry(
       builder: (_) => _DsBannerView(
         message: message,
         kind: kind,
-        onDone: () {
-          entry.remove();
-          _showing = false;
-          _next();
-        },
+        onDone: release,
       ),
     );
     overlay.insert(entry);
@@ -77,6 +82,7 @@ class _DsBannerViewState extends State<_DsBannerView> with SingleTickerProviderS
   void dispose() {
     _dismiss?.cancel();
     _controller.dispose();
+    scheduleMicrotask(widget.onDone);
     super.dispose();
   }
 

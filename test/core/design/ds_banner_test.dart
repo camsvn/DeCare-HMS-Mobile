@@ -31,4 +31,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Second'), findsNothing);
   });
+
+  testWidgets('releases the queue when the view is disposed mid-banner', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showDsBanner(context, 'Before'),
+            child: const Text('go'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('go'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Tear down the overlay mid-banner without ever letting the dismiss
+    // timer fire, simulating a route/app teardown while a banner is showing.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump();
+
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showDsBanner(context, 'After'),
+            child: const Text('go2'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('go2'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('After'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+  });
 }
