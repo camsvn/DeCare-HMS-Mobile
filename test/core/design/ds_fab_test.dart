@@ -23,7 +23,7 @@ void main() {
     expect(node.label, contains('Add photo'));
     expect(node.hasFlag(SemanticsFlag.isButton), isTrue);
     expect(node.hasFlag(SemanticsFlag.isEnabled), isTrue);
-    expect(find.byType(Opacity), findsNothing);
+    expect(find.descendant(of: find.byType(DsFab), matching: find.byType(Opacity)), findsNothing);
     handle.dispose();
   });
 
