@@ -41,7 +41,7 @@ lib/
     network/           Dio client, Bearer interceptor, JSend envelope, ApiFailure
     storage/           shared_preferences and secure storage providers
     navigation/        RoutePaths
-    theme/ l10n/ widgets/ utils/
+    design/ l10n/ widgets/ utils/ modules/
   features/<name>/
     <name>.dart        barrel: the only file other features may import
     data/              API classes, DTOs, repositories
@@ -50,6 +50,26 @@ lib/
 ```
 
 Features: `server_config`, `auth`, `patient_lookup`, `tomogram`, `settings`.
+
+## Design system
+
+Screens are built entirely from `lib/core/design/`:
+
+- `lib/core/design/tokens/` — `DsColors`, `DsType`, `DsSpace`, `DsRadius`, `DsMotion`. Access
+  them through `context.ds` (colours), `context.dsType` (text styles) or the static token
+  classes (`DsSpace`, `DsRadius`, `DsMotion`) — never a raw `Color(0x...)`, literal size or
+  font name in a screen.
+- `lib/core/design/widgets/` — the shared widget library (`DsButton`, `DsTextField`,
+  `DsCard`, `DsDialog`, `DsSheet`, `DsBanner` via `showDsBanner`, `DsEmptyState`,
+  `DsAppBar`, `DsBottomBar`, `DsFab`, `DsIconTile`, `DsListRow`, `DsChip`,
+  `DsProgressBar`, `DsSkeleton`, `DsStatusDot`, `ModuleCard`, `DsOnboardingScaffold`) plus
+  the `FadeThroughPage` route transition. Import them all via `lib/core/design/design.dart`.
+- The accent gradient (`ds.accentGradient`) is reserved for the primary action, module icon
+  tiles, the FAB, progress indicators and the active tab underline; it is not used
+  decoratively elsewhere.
+
+To register a new dashboard module: define an `AppModule` (`lib/core/modules/app_module.dart`)
+in the feature's barrel file, then add it to the `appModules` list in `lib/app/modules.dart`.
 
 ## Adding a workflow
 

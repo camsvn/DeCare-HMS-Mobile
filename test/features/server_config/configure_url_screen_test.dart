@@ -7,7 +7,7 @@ import 'package:hms_uploader/core/l10n/generated/app_localizations.dart';
 import 'package:hms_uploader/core/navigation/route_paths.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
-import 'package:hms_uploader/core/theme/app_theme.dart';
+import 'package:hms_uploader/core/design/ds_theme.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -83,7 +83,7 @@ void main() {
     await tester.pumpWidget(UncontrolledProviderScope(
       container: container,
       child: MaterialApp.router(
-        theme: buildAppTheme(),
+        theme: buildDsTheme(),
         localizationsDelegates: const [
           AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,

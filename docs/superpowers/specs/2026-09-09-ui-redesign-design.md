@@ -30,7 +30,7 @@ Colour (light):
 | `accentSolid` | `#2F8FE5` | links, focus ring, small icons |
 | `success` / `warning` / `danger` | `#1F9D6A` / `#E0A100` / `#E5484D` | banners, status dot, destructive icons |
 
-Rule: the gradient appears on at most one element per screen, plus the active tab underline.
+Rule: the gradient is reserved for the primary action, module icon tiles, the FAB, progress and the active tab underline; decorative use elsewhere is not allowed.
 
 Typography: Inter, bundled at `assets/fonts/Inter-{Regular,Medium,SemiBold,Bold}.ttf`, declared in `pubspec.yaml`.
 
@@ -112,7 +112,7 @@ Icons: Flutter Material icons, outlined variants only, 20 dp in rows, 24 dp in b
 
 **Tomogram** (`/app/tomogram/:opid`): app bar title = patient name, with a mono `DsChip` of the OP number beside it; back arrow; trailing `DsButton.ghost` "Upload" in `accentSolid` visible once a draft exists. Back with drafts present asks via `showDsDialog` ("Discard photos?") before clearing and popping; without drafts it pops directly. The separate patient bar and footer OP field are removed. Draft cards: `DsCard` with the image 16:10, radius 8, a mono "1 of 3" `DsChip` at the image corner, trash icon button, description `DsTextField` (3 lines, 200 char counter). `DsFab` bottom-right, 16 dp above the bottom bar. During upload: `DsProgressBar` under the app bar, FAB and Upload disabled. Success: success banner, pop. Failure: danger banner, drafts kept.
 
-**Permission**: inside the shell; icon tile, heading, body, `DsButton.primary` "Open settings".
+**Permission**: inside the shell; icon tile, heading, body, `DsButton.primary` "Grant Permission".
 
 **Settings**: app bar "Settings". `DsCard` group "Server": row with the host as mono trailing value and chevron → change-URL flow (dialog then reset+logout). Group "Account": row with the username (mono), row "Sign out" destructive → dialog then logout. Group "Help": row "About" → About. Footer: app version and build from `package_info_plus`, `label` style, centred.
 

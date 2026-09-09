@@ -23,19 +23,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonPleaseWait => 'Please wait';
 
   @override
-  String get commonConfirmTitle => 'Are you sure?';
-
-  @override
-  String get commonConfirmNo => 'No, I\'m Not';
-
-  @override
-  String get commonConfirmYes => 'Yes, I am';
-
-  @override
   String get commonPressBackAgain => 'App: Press back again to exit';
-
-  @override
-  String get commonCannotGoBack => 'Can\'t go back';
 
   @override
   String get errorCannotConnect => 'Could not reach the server';
@@ -60,9 +48,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorInvalidCredentials => 'Invalid username or password';
-
-  @override
-  String get configureUrlTitle => 'Installation URL';
 
   @override
   String get configureUrlHeading => 'Connect to your server';
@@ -129,17 +114,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramModuleSubtitle => 'Upload skin photos to a patient record';
 
   @override
-  String tomogramRecentBadge(int count) {
-    return '$count recent';
-  }
-
-  @override
-  String get homeRecentSearches => 'Recent Searches:';
-
-  @override
-  String get homeClearAll => 'clear all';
-
-  @override
   String homeRecentRow(String name, int opid) {
     return '$name, $opid';
   }
@@ -178,9 +152,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tomogramDescription => 'Description';
-
-  @override
-  String get tomogramOpNumber => 'Op Number';
 
   @override
   String get tomogramEmptyTitle => 'There is no tomogram added.';

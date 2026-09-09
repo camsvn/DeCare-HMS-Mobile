@@ -127,35 +127,11 @@ abstract class AppLocalizations {
   /// **'Please wait'**
   String get commonPleaseWait;
 
-  /// No description provided for @commonConfirmTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Are you sure?'**
-  String get commonConfirmTitle;
-
-  /// No description provided for @commonConfirmNo.
-  ///
-  /// In en, this message translates to:
-  /// **'No, I\'m Not'**
-  String get commonConfirmNo;
-
-  /// No description provided for @commonConfirmYes.
-  ///
-  /// In en, this message translates to:
-  /// **'Yes, I am'**
-  String get commonConfirmYes;
-
   /// No description provided for @commonPressBackAgain.
   ///
   /// In en, this message translates to:
   /// **'App: Press back again to exit'**
   String get commonPressBackAgain;
-
-  /// No description provided for @commonCannotGoBack.
-  ///
-  /// In en, this message translates to:
-  /// **'Can\'t go back'**
-  String get commonCannotGoBack;
 
   /// No description provided for @errorCannotConnect.
   ///
@@ -204,12 +180,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Invalid username or password'**
   String get errorInvalidCredentials;
-
-  /// No description provided for @configureUrlTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Installation URL'**
-  String get configureUrlTitle;
 
   /// No description provided for @configureUrlHeading.
   ///
@@ -331,24 +301,6 @@ abstract class AppLocalizations {
   /// **'Upload skin photos to a patient record'**
   String get tomogramModuleSubtitle;
 
-  /// No description provided for @tomogramRecentBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} recent'**
-  String tomogramRecentBadge(int count);
-
-  /// No description provided for @homeRecentSearches.
-  ///
-  /// In en, this message translates to:
-  /// **'Recent Searches:'**
-  String get homeRecentSearches;
-
-  /// No description provided for @homeClearAll.
-  ///
-  /// In en, this message translates to:
-  /// **'clear all'**
-  String get homeClearAll;
-
   /// No description provided for @homeRecentRow.
   ///
   /// In en, this message translates to:
@@ -420,12 +372,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Description'**
   String get tomogramDescription;
-
-  /// No description provided for @tomogramOpNumber.
-  ///
-  /// In en, this message translates to:
-  /// **'Op Number'**
-  String get tomogramOpNumber;
 
   /// No description provided for @tomogramEmptyTitle.
   ///

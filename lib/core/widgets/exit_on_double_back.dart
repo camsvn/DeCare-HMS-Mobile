@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hms_uploader/core/widgets/flash_banner.dart';
+import 'package:hms_uploader/core/design/widgets/ds_banner.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 
 /// Double-press back to exit, matching the React Native `useBackButtonHandler`.
@@ -46,7 +46,7 @@ class ExitOnDoubleBackState extends State<ExitOnDoubleBack> {
       return;
     }
     _armTimer = Timer(widget.window, () => _armTimer = null);
-    showFlash(context, context.l10n.commonPressBackAgain, type: FlashType.warning);
+    showDsBanner(context, context.l10n.commonPressBackAgain, kind: DsBannerKind.warning);
   }
 
   @override

@@ -6,11 +6,7 @@
   "commonConfirm": "Confirm",
   "commonDiscard": "Discard",
   "commonPleaseWait": "Please wait",
-  "commonConfirmTitle": "Are you sure?",
-  "commonConfirmNo": "No, I'm Not",
-  "commonConfirmYes": "Yes, I am",
   "commonPressBackAgain": "App: Press back again to exit",
-  "commonCannotGoBack": "Can't go back",
 
   "errorCannotConnect": "Could not reach the server",
   "errorTimeout": "The server took too long to respond",
@@ -21,7 +17,6 @@
   "errorBadData": "Unexpected response from server",
   "errorInvalidCredentials": "Invalid username or password",
 
-  "configureUrlTitle": "Installation URL",
   "configureUrlHeading": "Connect to your server",
   "configureUrlBody": "Input server URL of your self-hosted DeCare-HMS installation.",
   "configureUrlPlaceholder": "Eg: http://your-hms-server-url.com",
@@ -47,11 +42,7 @@
 
   "tomogramModuleTitle": "Tomogram",
   "tomogramModuleSubtitle": "Upload skin photos to a patient record",
-  "tomogramRecentBadge": "{count} recent",
-  "@tomogramRecentBadge": {"placeholders": {"count": {"type": "int"}}},
 
-  "homeRecentSearches": "Recent Searches:",
-  "homeClearAll": "clear all",
   "homeRecentRow": "{name}, {opid}",
   "@homeRecentRow": {"placeholders": {"name": {"type": "String"}, "opid": {"type": "int"}}},
   "homeEmptyTitle": "There is no patient selected.",
@@ -67,7 +58,6 @@
   "tomogramChooseGallery": "Choose from Gallery",
   "tomogramTakePhoto": "Take Photo",
   "tomogramDescription": "Description",
-  "tomogramOpNumber": "Op Number",
   "tomogramEmptyTitle": "There is no tomogram added.",
   "tomogramEmptyBody": "You can add tomogram details using the '+' button at top-right, they'll appear here as added.",
   "tomogramUpload": "Upload",
