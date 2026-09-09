@@ -4,8 +4,11 @@ import 'package:hms_uploader/core/design/tokens/ds_radius.dart';
 import 'package:hms_uploader/core/design/tokens/ds_space.dart';
 import 'package:hms_uploader/core/design/tokens/ds_type.dart';
 
-/// 56 dp row: optional leading icon, title, optional mono value, chevron or
-/// trailing icon action (which does not trigger [onTap]).
+/// Row of 56 dp or taller: optional leading icon, title, optional mono value,
+/// chevron or trailing icon action (which does not trigger [onTap]).
+///
+/// Rows carry content, so the title follows the reader's text size all the way
+/// and the row grows with it — unlike the shell chrome, which clamps.
 class DsListRow extends StatelessWidget {
   const DsListRow({
     super.key,
@@ -39,10 +42,10 @@ class DsListRow extends StatelessWidget {
     final ds = context.ds;
     final type = context.dsType;
     final titleColor = destructive ? ds.danger : ds.textPrimary;
-    return SizedBox(
-      height: height,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: height),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: DsSpace.x3),
+        padding: const EdgeInsets.symmetric(horizontal: DsSpace.x3, vertical: DsSpace.x2),
         child: Row(
           children: [
             // The merge puts the row's label and its button flag on one

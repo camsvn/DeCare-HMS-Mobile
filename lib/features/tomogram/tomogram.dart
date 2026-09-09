@@ -6,6 +6,7 @@ import 'package:hms_uploader/core/navigation/route_paths.dart';
 import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/tomogram/presentation/permission_screen.dart';
 import 'package:hms_uploader/features/tomogram/presentation/tomogram_screen.dart';
+import 'package:hms_uploader/features/tomogram/presentation/widgets/recent_count_badge.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 export 'application/connectivity_provider.dart';
@@ -25,6 +26,7 @@ export 'presentation/permission_screen.dart';
 export 'presentation/tomogram_screen.dart';
 export 'presentation/widgets/pending_line.dart';
 export 'presentation/widgets/pending_uploads_sheet.dart';
+export 'presentation/widgets/recent_count_badge.dart';
 export 'presentation/widgets/tomogram_history_card.dart';
 
 /// `/app/tomogram/:opid`, nested under the module entry route.
@@ -56,8 +58,5 @@ final AppModule tomogramModule = AppModule(
   entryRoute: RoutePaths.tomogramEntry,
   // `permissionRoute` first: go_router matches sub-routes in order.
   routes: [patientLookupRoute(children: [permissionRoute, tomogramDetailRoute])],
-  badge: (ref) {
-    final count = ref.watch(recentSearchesControllerProvider).length;
-    return count == 0 ? const SizedBox.shrink() : DsChip(text: '$count', mono: true);
-  },
+  badge: () => const RecentCountBadge(),
 );

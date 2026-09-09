@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:hms_uploader/core/design/ds_theme.dart';
 import 'package:hms_uploader/core/design/tokens/ds_motion.dart';
 import 'package:hms_uploader/core/design/tokens/ds_radius.dart';
-import 'package:hms_uploader/core/design/tokens/ds_space.dart';
+import 'package:hms_uploader/core/design/widgets/ds_list_row.dart';
 
-/// Shimmering placeholder blocks.
+/// A shimmering placeholder block. It owns no margin: the caller places it,
+/// the same way it will place the content that replaces it.
 class DsSkeleton extends StatefulWidget {
-  const DsSkeleton._({super.key, required this.height, required this.rows});
+  const DsSkeleton._({super.key, required this.height});
 
-  factory DsSkeleton.row({Key? key}) => DsSkeleton._(key: key, height: 56, rows: 1);
-  factory DsSkeleton.card({Key? key, double height = 120}) => DsSkeleton._(key: key, height: height, rows: 1);
+  /// Stands in for one [DsListRow].
+  factory DsSkeleton.row({Key? key}) => DsSkeleton._(key: key, height: DsListRow.height);
+
+  /// Stands in for a card of [height].
+  factory DsSkeleton.card({Key? key, double height = 120}) => DsSkeleton._(key: key, height: height);
 
   final double height;
-  final int rows;
 
   @override
   State<DsSkeleton> createState() => _DsSkeletonState();
@@ -49,7 +52,6 @@ class _DsSkeletonState extends State<DsSkeleton> with SingleTickerProviderStateM
         final t = _controller.value;
         return Container(
           height: widget.height,
-          margin: const EdgeInsets.symmetric(horizontal: DsSpace.gutter, vertical: DsSpace.x1),
           decoration: BoxDecoration(
             borderRadius: DsRadius.mediumAll,
             gradient: LinearGradient(

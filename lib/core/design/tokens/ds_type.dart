@@ -15,6 +15,11 @@ class DsType extends ThemeExtension<DsType> {
 
   static const String family = 'Inter';
 
+  /// How far the shell chrome (app bar, bottom bar) follows the reader's text
+  /// size. Content scales without limit; chrome stops here so that it cannot
+  /// swallow the screen it frames.
+  static const double barScaleMax = 1.3;
+
   final TextStyle display;
   final TextStyle title;
   final TextStyle heading;

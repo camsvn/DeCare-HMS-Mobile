@@ -62,7 +62,7 @@ class _DsOnboardingScaffoldState extends State<DsOnboardingScaffold> with Single
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: ds.card,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(DsRadius.sheet)),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(DsRadius.onboarding)),
                     ),
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(DsSpace.x6, DsSpace.x6, DsSpace.x6, DsSpace.x8),

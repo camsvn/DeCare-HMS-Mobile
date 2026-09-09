@@ -4,7 +4,9 @@ import 'package:hms_uploader/core/design/tokens/ds_radius.dart';
 
 /// Gradient square with a white icon: the module-card and empty-state motif.
 class DsIconTile extends StatelessWidget {
-  const DsIconTile({super.key, required this.icon, this.size = 40});
+  const DsIconTile({super.key, required this.icon, this.size = defaultSize});
+
+  static const double defaultSize = 40;
 
   final IconData icon;
   final double size;

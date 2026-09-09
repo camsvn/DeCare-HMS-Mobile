@@ -23,4 +23,37 @@ void main() {
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.style?.fontFeatures, contains(const FontFeature.tabularFigures()));
   });
+
+  testWidgets('shows prefix, suffix and — when asked — the counter, and caps the length', (tester) async {
+    final controller = TextEditingController(text: 'ab');
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: Scaffold(
+        body: DsTextField(
+          controller: controller,
+          prefix: const Icon(Icons.person_outline),
+          suffix: const Icon(Icons.clear),
+          maxLength: 6,
+          showCounter: true,
+        ),
+      ),
+    ));
+    expect(find.byIcon(Icons.person_outline), findsOneWidget);
+    expect(find.byIcon(Icons.clear), findsOneWidget);
+    expect(find.text('2/6'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'abcdefghij');
+    await tester.pump();
+    expect(controller.text, 'abcdef');
+    expect(find.text('6/6'), findsOneWidget);
+  });
+
+  testWidgets('hides the counter unless it is asked for', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: const Scaffold(body: DsTextField(maxLength: 6)),
+    ));
+    expect(find.text('0/6'), findsNothing);
+    expect(tester.widget<TextField>(find.byType(TextField)).decoration?.counterText, '');
+  });
 }

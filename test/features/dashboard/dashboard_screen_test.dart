@@ -9,6 +9,7 @@ import 'package:hms_uploader/core/modules/app_module.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/core/storage/secure_store.dart';
 import 'package:hms_uploader/features/dashboard/dashboard.dart';
+import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:mocktail/mocktail.dart';
@@ -21,13 +22,14 @@ class MockHealthCheckApi extends Mock implements HealthCheckApi {}
 
 class MockTomogramApi extends Mock implements TomogramApi {}
 
-AppModule fakeModule(String id, String title) => AppModule(
+AppModule fakeModule(String id, String title, {Widget Function()? badge}) => AppModule(
       id: id,
       title: (_) => title,
       subtitle: (_) => 'sub',
       icon: Icons.extension,
       entryRoute: '/app/$id',
       routes: const [],
+      badge: badge,
     );
 
 void main() {
@@ -109,6 +111,33 @@ void main() {
     expect(find.byType(ModuleCard), findsNWidgets(2));
     expect(find.byType(ModulePlaceholderCard), findsNothing);
     expect(find.text('Server unreachable'), findsOneWidget);
+  });
+
+  testWidgets('a module badge renders through the no-argument builder', (tester) async {
+    await pumpApp(
+      tester,
+      DashboardScreen(modules: [fakeModule('a', 'Alpha', badge: () => const DsChip(text: '3', mono: true))]),
+      overrides: baseOverrides(),
+    );
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(ModuleCard), matching: find.text('3')), findsOneWidget);
+  });
+
+  testWidgets('the tomogram badge shows nothing when no patient is remembered', (tester) async {
+    await pumpApp(tester, DashboardScreen(modules: [tomogramModule]), overrides: baseOverrides());
+    await tester.pumpAndSettle();
+    expect(find.byType(RecentCountBadge), findsOneWidget);
+    expect(find.descendant(of: find.byType(ModuleCard), matching: find.byType(DsChip)), findsNothing);
+  });
+
+  testWidgets('the tomogram badge counts remembered patients', (tester) async {
+    await RecentSearchesRepository(prefs).write(const [
+      Patient(id: 1, opid: 580, name: 'Jane Doe'),
+      Patient(id: 2, opid: 581, name: 'John Doe'),
+    ]);
+    await pumpApp(tester, DashboardScreen(modules: [tomogramModule]), overrides: baseOverrides());
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(ModuleCard), matching: find.text('2')), findsOneWidget);
   });
 
   testWidgets('no pending chip when the queue is empty', (tester) async {

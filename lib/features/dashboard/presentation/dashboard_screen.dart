@@ -47,11 +47,16 @@ class DashboardScreen extends ConsumerWidget {
                           icon: modules[i].icon,
                           title: modules[i].title(l10n),
                           subtitle: modules[i].subtitle(l10n),
-                          badge: modules[i].badge?.call(ref),
+                          badge: modules[i].badge?.call(),
                           onTap: () => open(context, modules[i]),
                         ),
                       ),
-                    if (modules.length == 1) ModulePlaceholderCard(label: l10n.dashboardMorePlaceholder),
+                    if (modules.length == 1)
+                      _Staggered(
+                        // Last in the stagger, so the grid fills in one sweep.
+                        index: modules.length,
+                        child: ModulePlaceholderCard(label: l10n.dashboardMorePlaceholder),
+                      ),
                   ],
                 ),
               ],

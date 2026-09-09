@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hms_uploader/core/l10n/generated/app_localizations.dart';
 
@@ -25,6 +24,8 @@ class AppModule {
   /// Routes nested under the Home tab branch.
   final List<RouteBase> routes;
 
-  /// Optional live badge for the dashboard card.
-  final Widget Function(WidgetRef ref)? badge;
+  /// Optional live badge for the dashboard card. It takes no arguments: a
+  /// badge that needs providers builds its own `ConsumerWidget`, so that this
+  /// contract — and `core` — stay clear of Riverpod.
+  final Widget Function()? badge;
 }

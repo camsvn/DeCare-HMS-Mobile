@@ -81,6 +81,16 @@ To register a new dashboard module:
    `FadeThroughPage(key: state.pageKey, child: ...)` so it matches the rest of the app.
 5. The module's routes are nested under the Home branch of the shell, so the bottom bar and
    the shell's back handling stay in place; do not add them to the root router.
+6. `AppModule.badge` is an optional `Widget Function()` for the dashboard card. It takes no
+   arguments — `core` knows nothing of Riverpod — so a badge that watches a provider is a
+   `ConsumerWidget` of the feature's own:
+
+   ```dart
+   badge: () => const RecentCountBadge(),
+   ```
+
+   (see `lib/features/tomogram/presentation/widgets/recent_count_badge.dart`, which shows a
+   `DsChip` with the count or nothing at all).
 
 ## Adding a workflow
 

@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:hms_uploader/core/design/tokens/ds_motion.dart';
 
 /// Whether the soft keyboard is up.
 ///
@@ -43,7 +44,7 @@ class _HideWithKeyboardState extends State<HideWithKeyboard> with WidgetsBinding
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
+      duration: DsMotion.of(context, DsMotion.base),
       child: isKeyboardVisible(context) ? const SizedBox.shrink() : widget.child,
     );
   }

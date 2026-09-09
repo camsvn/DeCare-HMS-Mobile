@@ -88,4 +88,38 @@ void main() {
     expect(node.hasFlag(SemanticsFlag.isButton), isTrue);
     handle.dispose();
   });
+
+  testWidgets('every variant, disabled, is dimmed, silent and reads disabled', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: const Scaffold(
+        body: Column(
+          children: [
+            DsButton.primary(label: 'One', onPressed: null),
+            DsButton.secondary(label: 'Two', onPressed: null),
+            DsButton.ghost(label: 'Three', onPressed: null),
+            DsButton.destructive(label: 'Four', onPressed: null),
+          ],
+        ),
+      ),
+    ));
+    for (final label in ['One', 'Two', 'Three', 'Four']) {
+      final button = find.widgetWithText(DsButton, label);
+      // A disabled button does not even take the press scale.
+      final gesture = await tester.startGesture(tester.getCenter(button));
+      await tester.pump();
+      final scale = tester.widget<AnimatedScale>(find.descendant(of: button, matching: find.byType(AnimatedScale)));
+      expect(scale.scale, 1, reason: '$label reacted to a press while disabled');
+      await gesture.up();
+      await tester.pump();
+      final opacity = tester.widget<Opacity>(find.descendant(of: button, matching: find.byType(Opacity)));
+      expect(opacity.opacity, 0.5, reason: '$label is not dimmed');
+      final node = tester.getSemantics(button);
+      expect(node.label, label);
+      expect(node.hasFlag(SemanticsFlag.isButton), isTrue);
+      expect(node.hasFlag(SemanticsFlag.isEnabled), isFalse, reason: '$label does not read disabled');
+    }
+    handle.dispose();
+  });
 }

@@ -40,4 +40,35 @@ void main() {
     expect(action.hasFlag(SemanticsFlag.isButton), isTrue);
     handle.dispose();
   });
+
+  testWidgets('grows with large text instead of clipping it', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    Future<double> pumpAt(double scale) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: buildDsTheme(),
+        home: Builder(
+          // Keep the ambient size and padding; only the text scale changes.
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(scale)),
+            child: const Scaffold(
+              body: DsListRow(
+                leadingIcon: Icons.person_outline,
+                title: 'Jane Doe Roe',
+                trailingValue: '580',
+              ),
+            ),
+          ),
+        ),
+      ));
+      expect(tester.takeException(), isNull);
+      return tester.getSize(find.byType(DsListRow)).height;
+    }
+
+    final base = await pumpAt(1);
+    expect(base, DsListRow.height);
+    // Rows carry the content, so they follow the reader's text size all the way.
+    expect(await pumpAt(2), greaterThan(base));
+  });
 }

@@ -28,36 +28,52 @@ class _ModuleCardState extends State<ModuleCard> {
   Widget build(BuildContext context) {
     final ds = context.ds;
     final type = context.dsType;
-    return MergeSemantics(
-      child: Listener(
-        onPointerDown: (_) => setState(() => _pressed = true),
-        onPointerUp: (_) => setState(() => _pressed = false),
-        onPointerCancel: (_) => setState(() => _pressed = false),
-        child: AnimatedScale(
-          scale: _pressed ? 0.98 : 1,
-          duration: DsMotion.of(context, DsMotion.fast),
-          curve: DsMotion.curve,
-          child: DsCard(
-            onTap: widget.onTap,
-            padding: const EdgeInsets.all(DsSpace.x3),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+    return Listener(
+      onPointerDown: (_) => setState(() => _pressed = true),
+      onPointerUp: (_) => setState(() => _pressed = false),
+      onPointerCancel: (_) => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.98 : 1,
+        duration: DsMotion.of(context, DsMotion.fast),
+        curve: DsMotion.curve,
+        child: Stack(
+          children: [
+            // The merge covers the tappable card, so its title, subtitle and
+            // button flag read as one node. The badge floats above it, outside
+            // the merge, keeping the node — and the label — of a live value.
+            MergeSemantics(
+              child: DsCard(
+                onTap: widget.onTap,
+                padding: const EdgeInsets.all(DsSpace.x3),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     DsIconTile(icon: widget.icon),
-                    const Spacer(),
-                    if (widget.badge != null) widget.badge!,
+                    const SizedBox(height: DsSpace.x3),
+                    Text(widget.title, style: type.heading, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Text(widget.subtitle,
+                        style: type.label.withColor(ds.textSecondary), maxLines: 2, overflow: TextOverflow.ellipsis),
                   ],
                 ),
-                const SizedBox(height: DsSpace.x3),
-                Text(widget.title, style: type.heading, maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 2),
-                Text(widget.subtitle, style: type.label.withColor(ds.textSecondary), maxLines: 2, overflow: TextOverflow.ellipsis),
-              ],
+              ),
             ),
-          ),
+            if (widget.badge != null)
+              Positioned(
+                top: DsSpace.x3,
+                right: DsSpace.x3,
+                // Centred against the icon tile, as when they shared a row.
+                // It ignores pointers — the text under a finger would
+                // otherwise swallow the card's tap — but keeps its semantics.
+                child: IgnorePointer(
+                  child: SizedBox(
+                    height: DsIconTile.defaultSize,
+                    child: Center(child: widget.badge!),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

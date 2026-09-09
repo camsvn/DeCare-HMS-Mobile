@@ -14,15 +14,21 @@ class DsChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ds = context.ds;
-    final base = mono ? context.dsType.mono : context.dsType.label;
+    final type = context.dsType;
+    // A mono chip keeps the label's size, so that a count and a word read as
+    // the same kind of thing; only the figures change.
+    final style = (mono ? type.mono : type.label).copyWith(
+      fontSize: type.label.fontSize,
+      color: onShell ? ds.textOnShell : ds.textSecondary,
+    );
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: DsSpace.x2, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: DsSpace.x2, vertical: DsSpace.x1),
       decoration: BoxDecoration(
         color: onShell ? ds.shellRaised : ds.canvas,
         borderRadius: BorderRadius.circular(DsRadius.full),
         border: onShell ? null : Border.all(color: ds.borderSubtle),
       ),
-      child: Text(text, style: base.copyWith(fontSize: 12, color: onShell ? ds.textOnShell : ds.textSecondary)),
+      child: Text(text, style: style),
     );
   }
 }

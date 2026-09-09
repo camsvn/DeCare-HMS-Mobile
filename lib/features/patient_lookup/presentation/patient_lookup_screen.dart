@@ -56,8 +56,13 @@ class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
           Expanded(
             child: loading
                 ? ListView(
-                    padding: const EdgeInsets.only(top: DsSpace.x2),
-                    children: [DsSkeleton.row(), DsSkeleton.row(), DsSkeleton.row()],
+                    padding: const EdgeInsets.fromLTRB(DsSpace.gutter, DsSpace.x2, DsSpace.gutter, 0),
+                    // The skeletons carry no margin of their own, so the list
+                    // spaces them the way it will space the rows to come.
+                    children: [
+                      for (var i = 0; i < 3; i++)
+                        Padding(padding: const EdgeInsets.only(bottom: DsSpace.x2), child: DsSkeleton.row()),
+                    ],
                   )
                 : recents.isEmpty
                     ? DsEmptyState(
