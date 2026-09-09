@@ -31,6 +31,26 @@ Note: re-running `dart run flutter_native_splash:create` rewrites
 `android:screenOrientation="portrait"` attribute from the launcher activity.
 Restore it afterwards, or the app will rotate out of portrait.
 
+## Release
+
+1. Bump `version` in `pubspec.yaml` (`x.y.z+buildNumber`) before every release build.
+2. Build the signed artifacts:
+
+   ```bash
+   flutter build appbundle --release   # Play Store upload
+   flutter build apk --release         # sideload/manual distribution
+   ```
+
+3. Signing reads `android/key.properties` (gitignored, local only), which points at
+   `android/upload-keystore.jks` (gitignored). See `android/key.properties.example` for the
+   expected keys. If `key.properties` is missing, `release` builds fall back to the debug
+   signing config (this is what happens in CI — **CI does not sign releases**; only a
+   machine with the real `key.properties`/keystore produces a Play-uploadable artifact).
+4. **Back up `android/upload-keystore.jks` and the passwords in `android/key.properties`
+   outside this repository.** The upload key cannot be recovered or reset if lost, and a
+   lost upload key means the app can no longer be updated under its existing Play Store
+   listing — a new listing would be required.
+
 ## Structure
 
 ```
