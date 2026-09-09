@@ -10,6 +10,9 @@ typedef TokenRefresher = Future<String?> Function();
 ///
 /// [onAuthFailure] fires at most once per request: the retry re-enters this
 /// interceptor, so the already-retried branch is the only place that reports it.
+/// It fires only when the server actually refused the session. A refresh that
+/// could not reach the server at all says nothing about the session, so the
+/// original 401 is surfaced and the user stays signed in.
 ///
 /// Deliberately a plain [Interceptor], not a [QueuedInterceptor]: the refresher
 /// posts `/auth/refresh` through this same client, so with a queued interceptor
@@ -49,17 +52,19 @@ class AuthInterceptor extends Interceptor {
     }
   }
 
+  /// A null return means "the refresh was refused"; a throw means "the refresh
+  /// could not be carried out", which [onError] must not read as a dead session.
   Future<String?> _callRefresher() async {
     try {
       return await refresher!();
     } catch (e) {
       // A missing provider override looks exactly like a rejected refresh;
-      // say so in debug builds instead of silently signing the user out.
+      // say so in debug builds instead of leaving it to the caller's guess.
       assert(() {
         debugPrint('refresh failed: $e');
         return true;
       }());
-      return null;
+      rethrow;
     }
   }
 
@@ -86,7 +91,16 @@ class AuthInterceptor extends Interceptor {
       return handler.next(err);
     }
 
-    final newToken = await _refresh();
+    final String? newToken;
+    try {
+      newToken = await _refresh();
+    } catch (_) {
+      // The refresh itself could not be carried out (no network, a timeout, a
+      // 5xx). The session may be perfectly good, so surface the original 401
+      // and let the caller try again later. [_refresh] has already cleared the
+      // in-flight future, so the next 401 starts a fresh attempt.
+      return handler.next(err);
+    }
     if (newToken == null || newToken.isEmpty) {
       onAuthFailure?.call();
       return handler.next(err);

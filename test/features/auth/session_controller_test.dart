@@ -108,6 +108,41 @@ void main() {
     verifyNever(() => api.refresh(any()));
   });
 
+  test('refreshAccessToken rethrows a connection failure and keeps the session', () async {
+    await store.write('access_token', 'a');
+    await store.write('refresh_token', 'r');
+    when(() => api.refresh(any())).thenThrow(const CannotConnectFailure());
+    await container.read(sessionControllerProvider.future);
+
+    // A transient network failure is not an answer about the session, so it
+    // must not degrade to "refresh refused" (which signs the user out).
+    await expectLater(
+      container.read(sessionControllerProvider.notifier).refreshAccessToken(),
+      throwsA(isA<CannotConnectFailure>()),
+    );
+    expect(container.read(sessionControllerProvider).value?.accessToken, 'a');
+    expect(await store.read('access_token'), 'a');
+    expect(await store.read('refresh_token'), 'r');
+  });
+
+  test('a logout during an in-flight refresh leaves the session signed out', () async {
+    await store.write('access_token', 'a');
+    await store.write('refresh_token', 'r');
+    final gate = Completer<String>();
+    when(() => api.refresh('r')).thenAnswer((_) => gate.future);
+    await container.read(sessionControllerProvider.future);
+    final notifier = container.read(sessionControllerProvider.notifier);
+
+    final pending = notifier.refreshAccessToken();
+    await notifier.logout();
+    gate.complete('A2');
+
+    expect(await pending, isNull);
+    expect(container.read(sessionControllerProvider).value, isNull);
+    expect(await store.read('access_token'), isNull);
+    expect(await store.read('refresh_token'), isNull);
+  });
+
   test('logout drops the session before the store clear completes', () async {
     final gate = Completer<void>();
     final slow = GatedSecureStore(gate.future);

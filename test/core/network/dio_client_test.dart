@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/network/dio_client.dart';
 
 void main() {
@@ -215,6 +216,42 @@ void main() {
       expect(refreshCalls, 1);
       expect(adapter.authHeaders.length, 1);
       // The session is fine, so no session-expiry signal.
+      expect(failures, 0);
+    });
+
+    test('refresh that cannot reach the server surfaces the original 401 without signalling expiry', () async {
+      // A dead network during the refresh is not a dead session: the original
+      // 401 must reach the caller and the user must stay signed in.
+      var refreshCalls = 0;
+      var failures = 0;
+      final dio = buildDio(
+        baseUrl: 'http://x/api',
+        tokenReader: () => 'old',
+        refresher: () async {
+          refreshCalls++;
+          throw const CannotConnectFailure();
+        },
+        onAuthFailure: () => failures++,
+      );
+      final adapter = _ScriptedAdapter([(401, '{"status":"fail","data":"Invalid token"}')]);
+      dio.httpClientAdapter = adapter;
+
+      await expectLater(
+        dio.get<dynamic>('/a'),
+        throwsA(isA<DioException>().having((e) => e.response?.statusCode, 'statusCode', 401)),
+      );
+      expect(refreshCalls, 1);
+      expect(failures, 0);
+      // No retry: the token was never renewed.
+      expect(adapter.authHeaders, ['Bearer old']);
+
+      // The single-flight future was cleared, so the next 401 tries again
+      // instead of re-using the failed refresh forever.
+      await expectLater(
+        dio.get<dynamic>('/a'),
+        throwsA(isA<DioException>().having((e) => e.response?.statusCode, 'statusCode', 401)),
+      );
+      expect(refreshCalls, 2);
       expect(failures, 0);
     });
   });
