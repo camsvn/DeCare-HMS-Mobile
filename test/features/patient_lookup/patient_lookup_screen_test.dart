@@ -202,6 +202,9 @@ void main() {
     await tester.pump();
     expect(selected, [ann]);
     expect(recentTitles(tester), ['Jane']);
+    // The request has landed but the screen it opened has not closed yet: Go
+    // stays busy for as long as the rows below it stay inert.
+    expect(tester.widget<OpSearchBar>(find.byType(OpSearchBar)).busy, isTrue);
     navigated.complete();
     await tester.pumpAndSettle();
     expect(recentTitles(tester), ['Ann', 'Jane']);

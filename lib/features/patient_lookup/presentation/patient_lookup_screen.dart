@@ -59,8 +59,11 @@ class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
         showDsBanner(context, l10n.homePatientError(error.describe(l10n)), kind: DsBannerKind.danger);
       }
     });
-    final loading = ref.watch(patientLookupControllerProvider).isLoading;
     final recents = ref.watch(recentSearchesControllerProvider);
+    // The whole screen keys off the one in-flight OP number, not the
+    // controller's transient isLoading: the request resolving is not the end of
+    // the lookup — the route it opens has to close first — so Go must not
+    // re-enable while the rows below it are still inert.
     final busy = _lookingUp != null;
 
     // No back-press handling here: this is a StatefulShellRoute branch page, so
@@ -70,7 +73,7 @@ class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
       appBar: DsAppBar(title: l10n.tomogramModuleTitle),
       body: Column(
         children: [
-          OpSearchBar(onSubmit: _lookup, busy: loading),
+          OpSearchBar(onSubmit: _lookup, busy: busy),
           Expanded(
             // A lookup leaves the list exactly where it is: no skeletons, no
             // reordering. The only change is the spinner in the row being

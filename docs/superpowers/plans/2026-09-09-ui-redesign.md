@@ -2679,11 +2679,12 @@ git add -A && git commit -m "feat(ui): onboarding scaffold; Configure URL and Lo
       appBar: DsAppBar(title: l10n.tomogramModuleTitle),
       body: Column(
         children: [
-          OpSearchBar(onSubmit: _lookup),
+          // Superseded 2026-09-10: the search bar and the rows share one
+          // in-flight guard and no skeletons are built here at all. See
+          // lib/features/patient_lookup/presentation/patient_lookup_screen.dart.
+          OpSearchBar(onSubmit: _lookup, busy: busy),
           Expanded(
-            child: loading
-                ? ListView(children: [DsSkeleton.row(), DsSkeleton.row(), DsSkeleton.row()])
-                : recents.isEmpty
+            child: recents.isEmpty
                     ? DsEmptyState(
                         illustration: SvgPicture.asset('assets/images/blank_canvas.svg'),
                         heading: l10n.homeEmptyTitle,
