@@ -9,6 +9,7 @@ import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/tomogram/application/camera_service.dart';
 import 'package:hms_uploader/features/tomogram/application/capture_controller.dart';
+import 'package:hms_uploader/features/tomogram/data/shot.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/shot_strip.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/shutter_button.dart';
 
@@ -59,7 +60,7 @@ Offset coverTapToFrame(Offset local, Size area, double aspectRatio) {
 /// Full-screen burst capture: one tap per photo, a strip of what has been
 /// taken, and the whole set handed back on Done.
 ///
-/// Pops with the captured paths in capture order, or with `null` when the
+/// Pops with the captured shots in capture order, or with `null` when the
 /// session is abandoned (close or back, after confirming the discard).
 class CaptureScreen extends ConsumerStatefulWidget {
   const CaptureScreen({super.key});
@@ -131,7 +132,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   /// Pops with [result]. Not `maybePop`: the enclosing [PopScope] still
   /// reports the pre-clear `canPop` until the next build, so asking the route
   /// again would bounce straight back into the discard prompt.
-  void _pop(List<String>? result) {
+  void _pop(List<Shot>? result) {
     final navigator = Navigator.of(context);
     if (navigator.canPop()) navigator.pop(result);
   }
@@ -161,10 +162,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     // Taken before the await: the result belongs to *this* route, and reading
     // the navigator afterwards would hand it to whatever is on top by then.
     final navigator = Navigator.of(context);
-    final paths = await _capture.takeAll();
+    final shots = await _capture.takeAll();
     if (!mounted) return;
     setState(() => _finishing = false);
-    if (navigator.canPop()) navigator.pop(paths);
+    if (navigator.canPop()) navigator.pop(shots);
   }
 
   /// Close and system back. Shots are unsaved work, so confirm first.
@@ -333,7 +334,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
       padding: const EdgeInsets.all(DsSpace.x3),
       child: Column(
         children: [
-          ShotStrip(paths: shots, onTap: (path) => unawaited(_confirmRemove(path))),
+          ShotStrip(
+            paths: [for (final shot in shots) shot.path],
+            onTap: (path) => unawaited(_confirmRemove(path)),
+          ),
           if (shots.isNotEmpty) const SizedBox(height: DsSpace.x3),
           Row(
             children: [

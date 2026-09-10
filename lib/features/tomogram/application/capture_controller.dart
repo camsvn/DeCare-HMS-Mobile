@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hms_uploader/core/utils/temp_files.dart';
 import 'package:hms_uploader/features/tomogram/application/camera_service.dart';
 import 'package:hms_uploader/features/tomogram/application/jpeg_orientation.dart';
+import 'package:hms_uploader/features/tomogram/data/shot.dart';
 
 /// Photos one capture session may hold. A tomogram series is a handful of
 /// angles; the cap keeps a stuck shutter finger from filling the cache.
@@ -14,14 +15,19 @@ class CaptureState {
   const CaptureState({
     this.status = CaptureStatus.starting,
     this.shots = const [],
+    this.label = '',
     this.busy = false,
     this.torch = false,
   });
 
   final CaptureStatus status;
 
-  /// Captured JPEG paths, in capture order.
-  final List<String> shots;
+  /// The shots taken so far, in capture order.
+  final List<Shot> shots;
+
+  /// The description the next shot will be taken under; `''` for none. It is
+  /// the session's, so a run of angles of the same part is typed once.
+  final String label;
 
   /// A `takePicture` is in flight, so the shutter is disabled.
   final bool busy;
@@ -32,9 +38,17 @@ class CaptureState {
 
   bool get canShoot => status == CaptureStatus.ready && !busy && !atLimit;
 
-  CaptureState copyWith({CaptureStatus? status, List<String>? shots, bool? busy, bool? torch}) => CaptureState(
+  CaptureState copyWith({
+    CaptureStatus? status,
+    List<Shot>? shots,
+    String? label,
+    bool? busy,
+    bool? torch,
+  }) =>
+      CaptureState(
         status: status ?? this.status,
         shots: shots ?? this.shots,
+        label: label ?? this.label,
         busy: busy ?? this.busy,
         torch: torch ?? this.torch,
       );
@@ -55,7 +69,7 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   CaptureState build() {
     _camera = ref.watch(cameraServiceProvider);
     ref.onDispose(() {
-      final paths = state.shots;
+      final paths = state.shots.map((s) => s.path).toList();
       // Best effort and synchronous: a dispose callback cannot wait for the
       // camera's background post-processing, so a bake still in flight may
       // leave its `.tmp` sibling behind. Both names go, and `deleteFiles`
@@ -95,6 +109,10 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
     }
   }
 
+  /// The description the next shots will carry, trimmed; `''` or whitespace
+  /// clears it. Shots already taken keep the label they were taken with.
+  void setLabel(String label) => state = state.copyWith(label: label.trim());
+
   /// Takes one photo. Returns false when the session cannot shoot (not ready,
   /// already shooting, at the limit) or the capture failed, in which case the
   /// shot list is untouched.
@@ -103,7 +121,10 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
     state = state.copyWith(busy: true);
     try {
       final path = await _camera.takePicture();
-      state = state.copyWith(shots: [...state.shots, path], busy: false);
+      state = state.copyWith(
+        shots: [...state.shots, Shot(path: path, label: state.label)],
+        busy: false,
+      );
       return true;
     } catch (_) {
       state = state.copyWith(busy: false);
@@ -114,8 +135,8 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   /// Drops one shot and deletes its file. Only the first match goes, so the
   /// list and the one deleted file stay in step.
   Future<void> remove(String path) async {
-    final shots = List<String>.of(state.shots);
-    final index = shots.indexOf(path);
+    final shots = List<Shot>.of(state.shots);
+    final index = shots.indexWhere((s) => s.path == path);
     if (index < 0) return;
     shots.removeAt(index);
     state = state.copyWith(shots: shots);
@@ -142,7 +163,7 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
 
   /// Abandons the session: every shot's file is deleted.
   Future<void> discardAll() async {
-    final paths = state.shots;
+    final paths = state.shots.map((s) => s.path).toList();
     state = state.copyWith(shots: const []);
     await _flush();
     await deleteFiles(_withTempSiblings(paths));
@@ -154,11 +175,11 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   /// Waits for the camera's background post-processing first, so what is
   /// handed over is the finished JPEG and not one mid-rewrite. The shots stay
   /// in the state until then, so the screen can show that it is finishing.
-  Future<List<String>> takeAll() async {
-    final paths = List<String>.of(state.shots);
+  Future<List<Shot>> takeAll() async {
+    final shots = List<Shot>.of(state.shots);
     await _flush();
     state = state.copyWith(shots: const []);
-    return paths;
+    return shots;
   }
 
   /// Waits for the camera's background post-processing, ignoring a failure.

@@ -16,7 +16,7 @@ void main() {
   late FakeCameraService fake;
 
   /// What the pushed screen popped with, one entry per completed push.
-  late List<List<String>?> results;
+  late List<List<Shot>?> results;
 
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('capture_screen');
@@ -39,7 +39,7 @@ void main() {
         builder: (context) => Center(
           child: TextButton(
             onPressed: () async => results.add(
-              await Navigator.of(context).push<List<String>>(
+              await Navigator.of(context).push<List<Shot>>(
                 MaterialPageRoute(builder: (_) => const CaptureScreen()),
               ),
             ),
@@ -63,7 +63,7 @@ void main() {
   CaptureState stateOf(WidgetTester tester) =>
       ProviderScope.containerOf(tester.element(find.byType(CaptureScreen))).read(captureControllerProvider);
 
-  List<String> shotsOf(WidgetTester tester) => stateOf(tester).shots;
+  List<Shot> shotsOf(WidgetTester tester) => stateOf(tester).shots;
 
   Finder thumbnails() => find.descendant(of: find.byType(ShotStrip), matching: find.byType(Image));
 
@@ -108,8 +108,8 @@ void main() {
 
     expect(results, hasLength(1));
     expect(results.single, shots);
-    expect(results.single!.first, endsWith('shot_0.jpg'));
-    expect(results.single!.last, endsWith('shot_1.jpg'));
+    expect(results.single!.first.path, endsWith('shot_0.jpg'));
+    expect(results.single!.last.path, endsWith('shot_1.jpg'));
     // Handed over, not discarded: the draft list owns the files now.
     expect(filesOnDisk(), hasLength(2));
   });
@@ -185,13 +185,13 @@ void main() {
 
     expect(find.byType(CaptureScreen), findsNothing);
     expect(results, [shots]);
-    expect(shots.every((p) => File(p).existsSync()), isTrue);
+    expect(shots.every((s) => File(s.path).existsSync()), isTrue);
   });
 
   testWidgets('tapping a thumbnail asks, then removes it and deletes the file', (tester) async {
     await open(tester);
     await shoot(tester);
-    final path = shotsOf(tester).single;
+    final path = shotsOf(tester).single.path;
 
     await tester.tap(thumbnails());
     await tester.pumpAndSettle();
@@ -210,7 +210,7 @@ void main() {
   testWidgets('closing with shots asks to discard, deletes the files and pops with null', (tester) async {
     await open(tester);
     await shoot(tester);
-    final path = shotsOf(tester).single;
+    final path = shotsOf(tester).single.path;
 
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
@@ -388,7 +388,7 @@ void main() {
   testWidgets('system back with shots asks to discard, then pops with null', (tester) async {
     await open(tester);
     await shoot(tester);
-    final path = shotsOf(tester).single;
+    final path = shotsOf(tester).single.path;
 
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();

@@ -11,6 +11,7 @@ import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/tomogram/application/media_picker_service.dart';
 import 'package:hms_uploader/features/tomogram/application/tomogram_controller.dart';
 import 'package:hms_uploader/features/tomogram/application/upload_queue_controller.dart';
+import 'package:hms_uploader/features/tomogram/data/shot.dart';
 import 'package:hms_uploader/features/tomogram/data/tomogram_draft.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/add_source_sheet.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/pending_line.dart';
@@ -26,9 +27,9 @@ class TomogramScreen extends ConsumerStatefulWidget {
   /// Defaults to pushing the permission screen. Injectable for tests.
   final void Function(List<Permission> denied)? onPermissionsDenied;
 
-  /// Defaults to pushing the in-app capture screen, which pops the JPEG paths
-  /// it took (or null when the user discarded them). Injectable for tests.
-  final Future<List<String>?> Function(BuildContext context)? onCapture;
+  /// Defaults to pushing the in-app capture screen, which pops the shots it
+  /// took (or null when the user discarded them). Injectable for tests.
+  final Future<List<Shot>?> Function(BuildContext context)? onCapture;
 
   @override
   ConsumerState<TomogramScreen> createState() => _TomogramScreenState();
@@ -68,10 +69,11 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
   }
 
   /// Hands off to the capture screen, which takes a burst of photos and pops
-  /// their paths. A null result means the user discarded the lot.
+  /// them. A null result means the user discarded the lot.
   Future<void> _capture() async {
-    final paths = await (widget.onCapture ?? _pushCapture)(context);
-    if (paths == null) return;
+    final shots = await (widget.onCapture ?? _pushCapture)(context);
+    if (shots == null) return;
+    final paths = [for (final shot in shots) shot.path];
     if (!mounted) {
       // This screen left while the capture screen was up (a route change, a
       // deep link): nothing is left to own these files, so they would sit in
@@ -82,8 +84,8 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
     ref.read(tomogramControllerProvider(_opid).notifier).addFiles(paths);
   }
 
-  Future<List<String>?> _pushCapture(BuildContext context) =>
-      context.push<List<String>>(RoutePaths.capture(_opid));
+  Future<List<Shot>?> _pushCapture(BuildContext context) =>
+      context.push<List<Shot>>(RoutePaths.capture(_opid));
 
   /// Copies [source]'s description onto every draft. Only asks first when that
   /// would replace something the user typed on another photo.

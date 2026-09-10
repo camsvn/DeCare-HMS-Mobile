@@ -26,6 +26,10 @@ class MockTomogramHistoryApi extends Mock implements TomogramHistoryApi {}
 
 const jane = Patient(id: 1, opid: 42, name: 'Jane Doe');
 
+/// What the capture screen pops for [paths]: unlabelled shots, which is what
+/// this screen sees when nothing was typed while shooting.
+List<Shot> shotsFor(Iterable<String> paths) => [for (final path in paths) Shot(path: path)];
+
 void main() {
   late Directory dir;
   late Directory docs;
@@ -58,7 +62,7 @@ void main() {
   Future<void> pump(
     WidgetTester tester, {
     void Function(List<Permission> denied)? onPermissionsDenied,
-    Future<List<String>?> Function(BuildContext context)? onCapture,
+    Future<List<Shot>?> Function(BuildContext context)? onCapture,
     String Function()? uuid,
   }) =>
       pumpApp(
@@ -112,7 +116,7 @@ void main() {
   Future<void> pumpTwoDrafts(WidgetTester tester) async {
     tallSurface(tester);
     final paths = [jpeg('a.jpg').path, jpeg('b.jpg').path];
-    await pump(tester, uuid: ids(), onCapture: (_) async => paths);
+    await pump(tester, uuid: ids(), onCapture: (_) async => shotsFor(paths));
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -124,7 +128,7 @@ void main() {
     // there (a route change or a deep link while it was open). Nothing owns
     // those files then, so they must not be left behind in the cache.
     final paths = [jpeg('a.jpg').path, jpeg('b.jpg').path];
-    final popped = Completer<List<String>?>();
+    final popped = Completer<List<Shot>?>();
     await pump(tester, onCapture: (_) => popped.future);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
@@ -133,7 +137,7 @@ void main() {
     expect(paths.every((p) => File(p).existsSync()), isTrue);
 
     await tester.pumpWidget(const SizedBox());
-    popped.complete(paths);
+    popped.complete(shotsFor(paths));
     await tester.pump();
 
     expect(paths.any((p) => File(p).existsSync()), isFalse);
@@ -186,7 +190,7 @@ void main() {
   testWidgets('upload success flashes and clears drafts', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
     when(() => api.upload(42, any())).thenAnswer((_) async => const []);
-    await pump(tester, onCapture: (_) async => [f.path]);
+    await pump(tester, onCapture: (_) async => shotsFor([f.path]));
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -206,7 +210,7 @@ void main() {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
     final gate = Completer<List<UploadResult>>();
     when(() => api.upload(42, any())).thenAnswer((_) => gate.future);
-    await pump(tester, onCapture: (_) async => [f.path]);
+    await pump(tester, onCapture: (_) async => shotsFor([f.path]));
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -229,7 +233,7 @@ void main() {
   testWidgets('a rejected upload flashes the error, keeps the card and does not queue', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
     when(() => api.upload(any(), any())).thenThrow(const RejectedFailure('Image too large'));
-    await pump(tester, onCapture: (_) async => [f.path]);
+    await pump(tester, onCapture: (_) async => shotsFor([f.path]));
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -246,7 +250,7 @@ void main() {
 
   testWidgets('back with drafts asks to discard and clears them on confirm', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
-    await pump(tester, onCapture: (_) async => [f.path]);
+    await pump(tester, onCapture: (_) async => shotsFor([f.path]));
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -302,7 +306,7 @@ void main() {
         ]);
     when(() => api.upload(42, any())).thenAnswer((_) async => const []);
 
-    await pump(tester, onCapture: (_) async => [f.path]);
+    await pump(tester, onCapture: (_) async => shotsFor([f.path]));
     await tester.pumpAndSettle();
     expect(find.text('Already uploaded'), findsOneWidget);
     expect(find.text('1 set'), findsOneWidget);
@@ -327,7 +331,7 @@ void main() {
   testWidgets('a connection failure queues the photos, clears the drafts and says so', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
     when(() => api.upload(any(), any())).thenThrow(const CannotConnectFailure());
-    await pump(tester, onCapture: (_) async => [f.path]);
+    await pump(tester, onCapture: (_) async => shotsFor([f.path]));
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -356,7 +360,7 @@ void main() {
   testWidgets('a timeout queues the photos too', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
     when(() => api.upload(any(), any())).thenThrow(const TimeoutFailure());
-    await pump(tester, onCapture: (_) async => [f.path]);
+    await pump(tester, onCapture: (_) async => shotsFor([f.path]));
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -453,7 +457,7 @@ void main() {
   testWidgets('a staging failure reports the upload error and keeps the drafts', (tester) async {
     final f = File('${dir.path}/a.jpg')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
     when(() => api.upload(any(), any())).thenThrow(const CannotConnectFailure());
-    await pump(tester, onCapture: (_) async => [f.path]);
+    await pump(tester, onCapture: (_) async => shotsFor([f.path]));
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -483,7 +487,7 @@ void main() {
       uuid: ids(),
       onCapture: (_) async {
         captures++;
-        return paths;
+        return shotsFor(paths);
       },
     );
     await tester.tap(find.byIcon(Icons.add));
@@ -512,7 +516,7 @@ void main() {
   });
 
   testWidgets('a single photo has nothing to apply its description to', (tester) async {
-    await pump(tester, onCapture: (_) async => [jpeg('a.jpg').path]);
+    await pump(tester, onCapture: (_) async => shotsFor([jpeg('a.jpg').path]));
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));

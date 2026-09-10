@@ -60,9 +60,58 @@ void main() {
     expect(await capture().shoot(), isTrue);
 
     final shots = state().shots;
-    expect(shots, ['${dir.path}/shot_0.jpg', '${dir.path}/shot_1.jpg']);
-    expect(shots.every((p) => File(p).existsSync()), isTrue);
+    expect(shots, [
+      Shot(path: '${dir.path}/shot_0.jpg'),
+      Shot(path: '${dir.path}/shot_1.jpg'),
+    ]);
+    expect(shots.every((s) => File(s.path).existsSync()), isTrue);
     expect(state().busy, isFalse);
+  });
+
+  test('a shot taken with no label set is unlabelled', () async {
+    await capture().start();
+    await capture().shoot();
+
+    expect(state().label, '');
+    expect(state().shots.single.label, '');
+  });
+
+  // The label belongs to the session, not to one shot: it stays put until it
+  // is changed, so a run of angles of the same part is typed once.
+  test('each shot carries the label the session had when it was taken', () async {
+    await capture().start();
+
+    capture().setLabel('Left forearm');
+    await capture().shoot();
+    await capture().shoot();
+    capture().setLabel('Right cheek');
+    await capture().shoot();
+
+    final shots = state().shots;
+    expect(shots.map((s) => s.path), [
+      '${dir.path}/shot_0.jpg',
+      '${dir.path}/shot_1.jpg',
+      '${dir.path}/shot_2.jpg',
+    ]);
+    // Only the third shot took the new label; the earlier two kept theirs.
+    expect(shots.map((s) => s.label), ['Left forearm', 'Left forearm', 'Right cheek']);
+    expect(state().label, 'Right cheek');
+  });
+
+  test('setLabel trims, and a whitespace label is no label at all', () async {
+    await capture().start();
+
+    capture().setLabel('  Left forearm  ');
+    await capture().shoot();
+
+    expect(state().label, 'Left forearm');
+    expect(state().shots.single.label, 'Left forearm');
+
+    capture().setLabel('   ');
+    await capture().shoot();
+
+    expect(state().label, '');
+    expect(state().shots.map((s) => s.label), ['Left forearm', '']);
   });
 
   test('shoot before start does nothing', () async {
@@ -119,11 +168,11 @@ void main() {
     await capture().shoot();
     final shots = state().shots;
 
-    await capture().remove(shots.first);
+    await capture().remove(shots.first.path);
 
     expect(state().shots, [shots.last]);
-    expect(File(shots.first).existsSync(), isFalse);
-    expect(File(shots.last).existsSync(), isTrue);
+    expect(File(shots.first.path).existsSync(), isFalse);
+    expect(File(shots.last.path).existsSync(), isTrue);
   });
 
   test('discardAll deletes every shot', () async {
@@ -135,21 +184,36 @@ void main() {
     await capture().discardAll();
 
     expect(state().shots, isEmpty);
-    expect(shots.any((p) => File(p).existsSync()), isFalse);
+    expect(shots.any((s) => File(s.path).existsSync()), isFalse);
     expect(filesOnDisk(), isEmpty);
   });
 
-  test('takeAll hands the paths over and keeps the files', () async {
+  test('takeAll hands the shots over and keeps the files', () async {
     await capture().start();
     await capture().shoot();
     await capture().shoot();
 
     final taken = await capture().takeAll();
 
-    expect(taken, ['${dir.path}/shot_0.jpg', '${dir.path}/shot_1.jpg']);
+    expect(taken.map((s) => s.path), ['${dir.path}/shot_0.jpg', '${dir.path}/shot_1.jpg']);
     expect(state().shots, isEmpty);
-    expect(taken.every((p) => File(p).existsSync()), isTrue);
+    expect(taken.every((s) => File(s.path).existsSync()), isTrue);
     expect(fake.flushCount, 1);
+  });
+
+  test('takeAll hands over each shot with the label it was taken with', () async {
+    await capture().start();
+    capture().setLabel('Left forearm');
+    await capture().shoot();
+    capture().setLabel('Back');
+    await capture().shoot();
+
+    final taken = await capture().takeAll();
+
+    expect(taken, [
+      Shot(path: '${dir.path}/shot_0.jpg', label: 'Left forearm'),
+      Shot(path: '${dir.path}/shot_1.jpg', label: 'Back'),
+    ]);
   });
 
   // The camera rewrites each shot's orientation in the background, so what is
@@ -160,9 +224,9 @@ void main() {
     fake.flushGate = Completer<void>();
 
     var handed = false;
-    final taken = capture().takeAll().then((paths) {
+    final taken = capture().takeAll().then((shots) {
       handed = true;
-      return paths;
+      return shots;
     });
     await pumpEventQueue();
 
@@ -172,7 +236,7 @@ void main() {
 
     fake.flushGate!.complete();
 
-    expect(await taken, ['${dir.path}/shot_0.jpg']);
+    expect(await taken, [Shot(path: '${dir.path}/shot_0.jpg')]);
     expect(state().shots, isEmpty);
   });
 
@@ -181,7 +245,7 @@ void main() {
     await capture().shoot();
     fake.failFlush = true;
 
-    expect(await capture().takeAll(), ['${dir.path}/shot_0.jpg']);
+    expect(await capture().takeAll(), [Shot(path: '${dir.path}/shot_0.jpg')]);
     expect(File('${dir.path}/shot_0.jpg').existsSync(), isTrue);
   });
 
@@ -190,7 +254,7 @@ void main() {
   test('remove waits for the post-processing before deleting', () async {
     await capture().start();
     await capture().shoot();
-    final path = state().shots.single;
+    final path = state().shots.single.path;
     fake.flushGate = Completer<void>();
 
     final removing = capture().remove(path);
@@ -209,7 +273,7 @@ void main() {
   test('discardAll waits for the post-processing before deleting', () async {
     await capture().start();
     await capture().shoot();
-    final path = state().shots.single;
+    final path = state().shots.single.path;
     fake.flushGate = Completer<void>();
 
     final discarding = capture().discardAll();
@@ -229,11 +293,11 @@ void main() {
     await capture().shoot();
     await capture().shoot();
     final shots = state().shots;
-    expect(shots.every((p) => File(p).existsSync()), isTrue);
+    expect(shots.every((s) => File(s.path).existsSync()), isTrue);
 
     container.dispose();
 
-    expect(shots.any((p) => File(p).existsSync()), isFalse);
+    expect(shots.any((s) => File(s.path).existsSync()), isFalse);
   });
 
   test('stop releases the camera and keeps the shots', () async {
@@ -248,7 +312,7 @@ void main() {
     expect(state().torch, isFalse);
     expect(fake.stopCount, 1);
     expect(state().shots, shots);
-    expect(shots.every((p) => File(p).existsSync()), isTrue);
+    expect(shots.every((s) => File(s.path).existsSync()), isTrue);
   });
 
   // The cold start is slow (`availableCameras` then `initialize`), and both the
