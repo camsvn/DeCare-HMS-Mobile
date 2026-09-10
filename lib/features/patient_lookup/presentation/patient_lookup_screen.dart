@@ -9,24 +9,41 @@ import 'package:hms_uploader/features/patient_lookup/application/recent_searches
 import 'package:hms_uploader/features/patient_lookup/data/patient.dart';
 import 'package:hms_uploader/features/patient_lookup/presentation/widgets/op_search_bar.dart';
 
+/// Diameter of the progress ring in a recent row's trailing slot, and its stroke.
+const double _rowSpinnerSize = 18;
+const double _rowSpinnerStroke = 2;
+
 /// Patient lookup: OP number search plus recent searches. [onPatientSelected]
-/// fires after a successful lookup (the route wires it to the tomogram screen).
+/// fires after a successful lookup (the route wires it to the tomogram screen)
+/// and its future completes when that screen is done — the patient is recorded
+/// in recents only then, so the list does not reorder under the departing user.
 class PatientLookupScreen extends ConsumerStatefulWidget {
   const PatientLookupScreen({super.key, required this.onPatientSelected});
 
-  final ValueChanged<Patient> onPatientSelected;
+  final Future<void> Function(Patient patient) onPatientSelected;
 
   @override
   ConsumerState<PatientLookupScreen> createState() => _PatientLookupScreenState();
 }
 
 class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
+  /// OP number of the lookup in flight, if any: the row it belongs to spins,
+  /// and the list as a whole stays visible but inert.
+  int? _lookingUp;
+
   Future<void> _lookup(int opid) async {
     // One lookup at a time: a second tap on Go or on a recent row would
     // otherwise fire a second request and push the tomogram route twice.
-    if (ref.read(patientLookupControllerProvider).isLoading) return;
-    final patient = await ref.read(patientLookupControllerProvider.notifier).search(opid);
-    if (patient != null && mounted) widget.onPatientSelected(patient);
+    if (_lookingUp != null) return;
+    setState(() => _lookingUp = opid);
+    try {
+      final patient = await ref.read(patientLookupControllerProvider.notifier).search(opid);
+      if (patient == null || !mounted) return;
+      await widget.onPatientSelected(patient);
+      if (mounted) ref.read(recentSearchesControllerProvider.notifier).add(patient);
+    } finally {
+      if (mounted) setState(() => _lookingUp = null);
+    }
   }
 
   void _remove(int id) => ref.read(recentSearchesControllerProvider.notifier).remove(id);
@@ -44,6 +61,7 @@ class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
     });
     final loading = ref.watch(patientLookupControllerProvider).isLoading;
     final recents = ref.watch(recentSearchesControllerProvider);
+    final busy = _lookingUp != null;
 
     // No back-press handling here: this is a StatefulShellRoute branch page, so
     // the system back press goes to the root navigator and AppShell owns it.
@@ -54,68 +72,71 @@ class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
         children: [
           OpSearchBar(onSubmit: _lookup, busy: loading),
           Expanded(
-            child: loading
-                ? ListView(
-                    padding: const EdgeInsets.fromLTRB(DsSpace.gutter, DsSpace.x2, DsSpace.gutter, 0),
-                    // The skeletons carry no margin of their own, so the list
-                    // spaces them the way it will space the rows to come.
-                    children: [
-                      for (var i = 0; i < 3; i++)
-                        Padding(padding: const EdgeInsets.only(bottom: DsSpace.x2), child: DsSkeleton.row()),
-                    ],
+            // A lookup leaves the list exactly where it is: no skeletons, no
+            // reordering. The only change is the spinner in the row being
+            // looked up, and that every row stops responding until it lands.
+            child: recents.isEmpty
+                ? DsEmptyState(
+                    illustration: SvgPicture.asset('assets/images/blank_canvas.svg'),
+                    heading: l10n.homeEmptyTitle,
+                    body: l10n.homeEmptyBody,
                   )
-                : recents.isEmpty
-                    ? DsEmptyState(
-                        illustration: SvgPicture.asset('assets/images/blank_canvas.svg'),
-                        heading: l10n.homeEmptyTitle,
-                        body: l10n.homeEmptyBody,
-                      )
-                    : ListView(
-                        padding: const EdgeInsets.fromLTRB(DsSpace.gutter, 0, DsSpace.gutter, DsSpace.x8),
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(DsSpace.gutter, 0, DsSpace.gutter, DsSpace.x8),
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(l10n.homeRecent, style: type.heading),
-                              DsButton.ghost(
-                                label: l10n.homeClear,
-                                onPressed: () => ref.read(recentSearchesControllerProvider.notifier).clear(),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: DsSpace.x2),
-                          DsCard(
-                            padding: EdgeInsets.zero,
-                            child: Column(
-                              children: [
-                                for (final p in recents) ...[
-                                  Dismissible(
-                                    key: ValueKey('recent-${p.id}'),
-                                    direction: DismissDirection.endToStart,
-                                    background: Container(
-                                      color: ds.danger,
-                                      alignment: Alignment.centerRight,
-                                      padding: const EdgeInsets.only(right: DsSpace.x4),
-                                      child: Icon(Icons.delete_outline, color: ds.textOnShell),
-                                    ),
-                                    onDismissed: (_) => _remove(p.id),
-                                    child: DsListRow(
-                                      leadingIcon: Icons.person_outline,
-                                      title: p.name,
-                                      trailingValue: '${p.opid}',
-                                      trailingIcon: Icons.delete_outline,
-                                      trailingTooltip: l10n.homeRemoveRecent,
-                                      onTrailingTap: () => _remove(p.id),
-                                      onTap: () => _lookup(p.opid),
-                                    ),
-                                  ),
-                                  if (p != recents.last) Divider(height: 1, color: ds.borderSubtle),
-                                ],
-                              ],
-                            ),
+                          Text(l10n.homeRecent, style: type.heading),
+                          DsButton.ghost(
+                            label: l10n.homeClear,
+                            onPressed: () => ref.read(recentSearchesControllerProvider.notifier).clear(),
                           ),
                         ],
                       ),
+                      const SizedBox(height: DsSpace.x2),
+                      DsCard(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          children: [
+                            for (final p in recents) ...[
+                              Dismissible(
+                                key: ValueKey('recent-${p.id}'),
+                                direction: busy ? DismissDirection.none : DismissDirection.endToStart,
+                                background: Container(
+                                  color: ds.danger,
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: DsSpace.x4),
+                                  child: Icon(Icons.delete_outline, color: ds.textOnShell),
+                                ),
+                                onDismissed: (_) => _remove(p.id),
+                                child: DsListRow(
+                                  leadingIcon: Icons.person_outline,
+                                  title: p.name,
+                                  trailingValue: '${p.opid}',
+                                  trailingIcon: Icons.delete_outline,
+                                  trailingTooltip: l10n.homeRemoveRecent,
+                                  onTrailingTap: busy ? null : () => _remove(p.id),
+                                  trailing: _lookingUp == p.opid
+                                      ? SizedBox(
+                                          width: _rowSpinnerSize,
+                                          height: _rowSpinnerSize,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: _rowSpinnerStroke,
+                                            color: ds.textSecondary,
+                                          ),
+                                        )
+                                      : null,
+                                  onTap: busy ? null : () => _lookup(p.opid),
+                                ),
+                              ),
+                              if (p != recents.last) Divider(height: 1, color: ds.borderSubtle),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),

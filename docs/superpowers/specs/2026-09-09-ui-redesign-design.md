@@ -96,7 +96,7 @@ Each feature that is a module exports one `AppModule` from its barrel. `lib/app/
 | `DsProgressBar` | new | 3 dp indeterminate bar with the gradient, used under the app bar during upload. |
 | `DsChip` | new | mono or label text on `shellRaised` (on navy) or `canvas` (on white). |
 
-`LoaderModal` is removed. Lookups show `DsSkeleton` in the results area; uploads show `DsProgressBar` and disable the action.
+`LoaderModal` is removed. A lookup keeps the recent list on screen and spins in the row it came from (see **Find patient**); uploads show `DsProgressBar` and disable the action.
 
 Icons: Flutter Material icons, outlined variants only, 20 dp in rows, 24 dp in bars.
 
@@ -108,7 +108,7 @@ Icons: Flutter Material icons, outlined variants only, 20 dp in rows, 24 dp in b
 
 **Dashboard**: as section 3. App bar title "DeCare HMS".
 
-**Find patient** (`patient_lookup`, route `/app/tomogram`): app bar "Tomogram" with back arrow. Search bar under the app bar: `DsTextField(mono: true)` numeric with search prefix, clear suffix when non-empty, and a gradient "Go" `DsButton.primary` (compact, 40 dp) that appears only with text. "Recent" heading with ghost "Clear". `DsListRow`s: person icon tile, name, mono OP number, trash icon; `Dismissible` swipe-to-delete as well. `DsSkeleton.row` x3 while a lookup runs. `DsEmptyState` with the existing illustration.
+**Find patient** (`patient_lookup`, route `/app/tomogram`): app bar "Tomogram" with back arrow. Search bar under the app bar: `DsTextField(mono: true)` numeric with search prefix, clear suffix when non-empty, and a gradient "Go" `DsButton.primary` (compact, 40 dp) that appears only with text. "Recent" heading with ghost "Clear". `DsListRow`s: person icon tile, name, mono OP number, trash icon; `Dismissible` swipe-to-delete as well. While a lookup runs the list stays exactly as it is — no skeletons, no reordering: the search bar goes busy, every row goes inert, and the row whose OP is being looked up shows a small progress ring in place of its trash icon (updated 2026-09-10). The patient moves to the top of recents only once the tomogram screen it opened has been popped. `DsEmptyState` with the existing illustration.
 
 **Tomogram** (`/app/tomogram/:opid`): app bar title = patient name, with a mono `DsChip` of the OP number beside it; back arrow; trailing `DsButton.ghost` "Upload" in `accentSolid` visible once a draft exists. Back with drafts present asks via `showDsDialog` ("Discard photos?") before clearing and popping; without drafts it pops directly. The separate patient bar and footer OP field are removed. Draft cards: `DsCard` with the image 16:10, radius 8, a mono "1 of 3" `DsChip` at the image corner, trash icon button, description `DsTextField` (3 lines, 200 char counter). `DsFab` bottom-right, 16 dp above the bottom bar. During upload: `DsProgressBar` under the app bar, FAB and Upload disabled. Success: success banner, pop. Failure: danger banner, drafts kept.
 

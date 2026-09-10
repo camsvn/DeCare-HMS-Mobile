@@ -19,12 +19,17 @@ class DsListRow extends StatelessWidget {
     this.trailingIcon,
     this.trailingTooltip,
     this.onTrailingTap,
+    this.trailing,
     this.onTap,
     this.destructive = false,
     this.selected = false,
   });
 
   static const double height = 56;
+
+  /// Footprint of the trailing slot: a compact [IconButton] (48 dp less the
+  /// 8 dp of `VisualDensity.compact`).
+  static const double _actionSize = 40;
 
   final String title;
   final IconData? leadingIcon;
@@ -35,6 +40,10 @@ class DsListRow extends StatelessWidget {
   /// Label for the trailing icon action; the icon alone carries no meaning.
   final String? trailingTooltip;
   final VoidCallback? onTrailingTap;
+
+  /// Takes the trailing action's place when set (a row-level progress ring, say);
+  /// it replaces [trailingIcon] rather than sitting beside it.
+  final Widget? trailing;
   final VoidCallback? onTap;
   final bool destructive;
 
@@ -94,7 +103,11 @@ class DsListRow extends StatelessWidget {
               ),
             ),
           ),
-          if (trailingIcon != null)
+          if (trailing != null)
+            // The same footprint the icon button would take, so swapping one
+            // for the other does not shift the title.
+            SizedBox(width: _actionSize, height: _actionSize, child: Center(child: trailing))
+          else if (trailingIcon != null)
             IconButton(
               icon: Icon(trailingIcon, size: 20, color: destructive ? ds.danger : ds.textSecondary),
               tooltip: trailingTooltip,

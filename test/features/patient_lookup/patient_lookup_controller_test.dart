@@ -26,14 +26,18 @@ void main() {
     addTearDown(container.dispose);
   });
 
-  test('search returns patient and records it in recents', () async {
+  // Recents belong to the screen, which records the patient only once the
+  // tomogram route it opened has been popped; the controller never touches them.
+  test('search returns the patient and leaves recents alone', () async {
     const jane = Patient(id: 1, opid: 42, name: 'Jane');
     when(() => api.getByOpId(42)).thenAnswer((_) async => jane);
     final sub = container.listen(patientLookupControllerProvider, (_, __) {});
+    final before = container.read(recentSearchesControllerProvider);
     final result = await container.read(patientLookupControllerProvider.notifier).search(42);
     expect(result, jane);
     expect(container.read(patientLookupControllerProvider).value, jane);
-    expect(container.read(recentSearchesControllerProvider), [jane]);
+    expect(container.read(recentSearchesControllerProvider), before);
+    expect(container.read(recentSearchesControllerProvider), isEmpty);
     sub.close();
   });
 

@@ -87,6 +87,25 @@ void main() {
     expect(tester.getSize(find.byType(InkWell)).height, tester.getSize(row).height);
   });
 
+  testWidgets("a trailing widget takes the trailing icon action's place", (tester) async {
+    var trailing = 0;
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: Scaffold(
+        body: DsListRow(
+          title: 'Jane',
+          trailingIcon: Icons.delete_outline,
+          onTrailingTap: () => trailing++,
+          trailing: const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+        ),
+      ),
+    ));
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
+    expect(trailing, 0);
+    expect(tester.getSize(find.byType(DsListRow)).height, DsListRow.height);
+  });
+
   testWidgets('announces the selected row as selected', (tester) async {
     final handle = tester.ensureSemantics();
     await tester.pumpWidget(MaterialApp(

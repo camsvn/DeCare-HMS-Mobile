@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hms_uploader/features/patient_lookup/application/recent_searches_controller.dart';
 import 'package:hms_uploader/features/patient_lookup/data/op_register_api.dart';
 import 'package:hms_uploader/features/patient_lookup/data/patient.dart';
 
-/// Looks a patient up by OP number. Successful lookups are pushed into recents.
+/// Looks a patient up by OP number. Recents are none of its business: the
+/// lookup screen records the patient once the screen it opened is done with it,
+/// so the list it is standing on does not reorder mid-tap.
 class PatientLookupController extends AutoDisposeAsyncNotifier<Patient?> {
   // Not async: an async build() completes via a scheduled microtask, which
   // can arrive after search() has already set an error/data state and
@@ -18,7 +19,6 @@ class PatientLookupController extends AutoDisposeAsyncNotifier<Patient?> {
     state = const AsyncLoading<Patient?>().copyWithPrevious(state);
     try {
       final patient = await ref.read(opRegisterApiProvider).getByOpId(opid);
-      ref.read(recentSearchesControllerProvider.notifier).add(patient);
       state = AsyncData(patient);
       return patient;
     } catch (e, st) {

@@ -18,6 +18,8 @@ GoRoute patientLookupRoute({List<RouteBase> children = const []}) => GoRoute(
       pageBuilder: (context, state) => FadeThroughPage(
         key: state.pageKey,
         child: PatientLookupScreen(
+          // push() completes when the tomogram route is popped, which is when
+          // the screen adds the patient to recents.
           onPatientSelected: (patient) => context.push(RoutePaths.tomogram(patient.opid), extra: patient),
         ),
       ),
