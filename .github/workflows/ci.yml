@@ -1,10 +1,21 @@
 name: CI
+
+# Runs once per change: on pushes to main and on pull requests into it.
+# Feature branches are checked through their PR, not on every push; run it by
+# hand on any branch from the Actions tab if needed. Documentation-only commits
+# skip it. Release builds live in release.yml.
 on:
   push:
-    branches: ['**']
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
   pull_request:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
+
 # One run per ref: a new push supersedes the run still going for the old tip.
 concurrency: { group: 'ci-${{ github.ref }}', cancel-in-progress: true }
+
 jobs:
   flutter:
     runs-on: ubuntu-latest
@@ -19,6 +30,6 @@ jobs:
       - run: flutter gen-l10n
       - run: flutter analyze
       - run: flutter test
+      # The tests cannot catch Gradle or manifest breakage (plugin bumps, the
+      # splash generator, an application-id change); only a real build does.
       - run: flutter build apk --debug
-      - uses: actions/upload-artifact@v4
-        with: { name: app-debug-apk, path: build/app/outputs/flutter-apk/app-debug.apk, retention-days: 7 }

@@ -76,8 +76,10 @@ Restore it afterwards, or the app will rotate out of portrait.
 ![CI](https://github.com/camsvn/DeCare-HMS-Mobile/actions/workflows/ci.yml/badge.svg)
 
 `.github/workflows/ci.yml` runs `flutter analyze`, `flutter test`, and `flutter build apk
---debug` on every push and pull request. It never has access to signing secrets, so it
-always builds the debug-signed APK described above — CI does not sign releases.
+--debug` on pushes to `main` and on pull requests into it; feature branches are checked
+through their PR, and it can be started by hand from the Actions tab (`workflow_dispatch`).
+Commits that only touch Markdown or `docs/` skip it. It never has access to signing secrets,
+so it builds the debug-signed APK — CI does not sign releases.
 
 ### Releasing to testers (Firebase App Distribution)
 
