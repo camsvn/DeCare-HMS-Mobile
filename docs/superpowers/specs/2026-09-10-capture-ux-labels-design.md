@@ -43,8 +43,12 @@ includes the label text. The session's current label is not persisted across ses
 
 ### 3.3 Suggestions instead of typing
 
-Whenever a description can be entered (label sheet, draft card) and the field is empty, a row of
-tap-to-fill chips shows up to eight suggestions:
+Whenever a description can be entered a row of tap-to-fill chips shows up to eight suggestions.
+The draft card shows them only while its field is blank (spaces included) — it already has a
+placeholder and a value to lose; the label sheet shows them whenever there are any, since picking a
+*different* suggestion for an existing label is the normal way to relabel. The suggestions come
+from `descriptionSuggestionsProvider`, which watches `tomogramHistoryProvider(opid)` and so fetches
+the patient's history if the screen has not loaded it yet. The eight are:
 1. This patient's previous narrations, from the already-loaded history (`tomogramHistoryProvider`),
    newest first, trimmed, distinct case-insensitively;
 2. then the last ten labels used on this device (any patient), most recent first, minus duplicates.
@@ -125,3 +129,9 @@ Reused: `captureRemove`, `captureRemoveTitle`, `captureRemoveBody`, `tomogramCou
 - Inheritance is implicit at upload; the visible placeholder is the mitigation. A blank first card
   stays blank, as today.
 - Suggestions depend on the history request; when it fails, only recent labels show.
+- **Privacy.** Recent labels are device-wide by design: they are body-site text ("Left forearm"),
+  reused across patients and across whoever is signed in, and they are not cleared on logout — that
+  is what makes them useful on a shared clinic phone. So they must stay body-site text: staff should
+  not type patient-identifying text into a label, since the next patient's suggestion row would
+  offer it back. Remembering is also best-effort — a device that cannot write its prefs still
+  uploads and queues normally.

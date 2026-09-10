@@ -111,6 +111,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets('the keyboard under the label sheet does not relayout the preview', (tester) async {
+    await open(tester);
+    // The label sheet autofocuses a field over this screen; a camera preview
+    // that resized to the keyboard would jump behind it.
+    final scaffolds = tester.widgetList<Scaffold>(find.byType(Scaffold));
+    expect(scaffolds.map((s) => s.resizeToAvoidBottomInset), contains(false));
+  });
+
   testWidgets('the shutter takes one photo and shows it in the strip', (tester) async {
     await open(tester);
     expect(find.byKey(const Key('fake-preview')), findsOneWidget);

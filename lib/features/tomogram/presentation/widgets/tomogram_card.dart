@@ -129,6 +129,9 @@ class _TomogramCardState extends State<TomogramCard> {
             controller: _controller,
             label: l10n.tomogramDescription,
             hint: inherited == null ? null : l10n.tomogramSameAsPrevious(inherited),
+            // An inherited description can be 200 characters; two lines of it
+            // is enough to recognise, and the rest ellipsises.
+            hintMaxLines: 2,
             maxLines: 3,
             maxLength: 200,
             showCounter: true,

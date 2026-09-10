@@ -11,6 +11,7 @@ class DsTextField extends StatelessWidget {
     this.controller,
     this.label,
     this.hint,
+    this.hintMaxLines,
     this.errorText,
     this.mono = false,
     this.obscureText = false,
@@ -31,6 +32,11 @@ class DsTextField extends StatelessWidget {
   final TextEditingController? controller;
   final String? label;
   final String? hint;
+
+  /// Caps the placeholder at this many lines, ellipsising the rest. A long
+  /// hint on a short field would otherwise be a single clipped line.
+  final int? hintMaxLines;
+
   final String? errorText;
   final bool mono;
   final bool obscureText;
@@ -79,6 +85,7 @@ class DsTextField extends StatelessWidget {
           cursorColor: ds.accentSolid,
           decoration: InputDecoration(
             hintText: hint,
+            hintMaxLines: hintMaxLines,
             hintStyle: style.withColor(ds.textSecondary),
             errorText: errorText,
             errorStyle: type.label.withColor(ds.danger),

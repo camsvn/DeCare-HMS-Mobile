@@ -271,6 +271,9 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
       },
       child: Scaffold(
         backgroundColor: ds.shell,
+        // The label sheet brings a keyboard up over this screen; the camera
+        // preview must not relayout under it.
+        resizeToAvoidBottomInset: false,
         body: SafeArea(
           child: Column(
             children: [

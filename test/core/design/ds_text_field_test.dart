@@ -18,6 +18,15 @@ void main() {
     expect(changed, 'abc');
   });
 
+  testWidgets('caps the hint at the given number of lines', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: const Scaffold(body: DsTextField(hint: 'a very long placeholder', hintMaxLines: 2)),
+    ));
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.decoration?.hintMaxLines, 2);
+  });
+
   testWidgets('mono variant uses tabular figures', (tester) async {
     await tester.pumpWidget(MaterialApp(theme: buildDsTheme(), home: const Scaffold(body: DsTextField(mono: true))));
     final field = tester.widget<TextField>(find.byType(TextField));

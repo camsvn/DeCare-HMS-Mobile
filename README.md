@@ -11,8 +11,10 @@ placeholder, "Same as previous photo: Left forearm", so it is visible and a tap
 to type over — and an empty field offers tap-to-fill chips built from this
 patient's earlier narrations and the last labels used on the device. The whole
 set uploads together (or is queued when the server is unreachable) with those
-inherited descriptions as its narrations. Flutter port of the React Native
-`HMSUploader` app.
+inherited descriptions as its narrations. Those recent labels are kept per
+device and offered across patients and sign-ins, so they are for body-site text
+("Left forearm") — not anything that identifies a patient. Flutter port of the
+React Native `HMSUploader` app.
 
 ## Requirements
 

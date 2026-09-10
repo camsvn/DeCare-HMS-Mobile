@@ -29,12 +29,13 @@ class _PendingUploads extends ConsumerWidget {
     final entries = queue.valueOrNull ?? const <PendingUpload>[];
     final notifier = ref.read(uploadQueueProvider.notifier);
 
-    // showModalBottomSheet caps a sheet like this one at 9/16 of the screen,
-    // and the sheet lays its children out with unbounded height, so the row
-    // list has to cap itself — an uncapped list pushes the retry footer off
-    // the screen as soon as the queue passes a few entries.
-    final rowsMaxHeight = (MediaQuery.sizeOf(context).height * 9 / 16 - _sheetChromeHeight)
-        .clamp(DsListRow.height, double.infinity);
+    // showDsSheet caps the sheet at [dsSheetMaxHeightFactor] of the screen and
+    // lays its children out with unbounded height, so the row list has to cap
+    // itself — an uncapped list pushes the retry footer off the screen as soon
+    // as the queue passes a few entries.
+    final rowsMaxHeight =
+        (MediaQuery.sizeOf(context).height * dsSheetMaxHeightFactor - _sheetChromeHeight)
+            .clamp(DsListRow.height, double.infinity);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
