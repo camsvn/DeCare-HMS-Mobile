@@ -106,14 +106,19 @@ class _DsButtonState extends State<DsButton> {
                 height: widget.height,
                 width: widget.expand ? double.infinity : null,
                 padding: const EdgeInsets.symmetric(horizontal: DsSpace.x4),
-                alignment: Alignment.center,
+                // A Container with an alignment grows to its constraints, which
+                // would stretch a non-expanding button across a bounded parent;
+                // only the expanding variant centres its label that way.
+                alignment: widget.expand ? Alignment.center : null,
                 decoration: BoxDecoration(
                   color: bg,
                   gradient: gradient,
                   border: border,
                   borderRadius: DsRadius.smallAll,
                 ),
-                child: child,
+                // Non-expanding: shrink-wrap the width but still centre the
+                // label vertically inside the fixed height.
+                child: widget.expand ? child : Center(widthFactor: 1, child: child),
               ),
             ),
           ),

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/design/design.dart';
 
 void main() {
+  _shrinkWrapTests();
   testWidgets('primary fires onPressed and disables while loading', (tester) async {
     var presses = 0;
     await tester.pumpWidget(MaterialApp(
@@ -121,5 +122,43 @@ void main() {
       expect(node.hasFlag(SemanticsFlag.isEnabled), isFalse, reason: '$label does not read disabled');
     }
     handle.dispose();
+  });
+}
+
+void _shrinkWrapTests() {
+  testWidgets('expand: false shrink-wraps even inside a bounded Align', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: Scaffold(
+        body: SizedBox(
+          width: 300,
+          child: Row(children: [
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: DsButton.primary(label: 'Done', onPressed: () {}, expand: false, height: 40),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    ));
+    final size = tester.getSize(find.byType(DsButton));
+    expect(size.height, 40);
+    // Label plus the horizontal padding: nowhere near the 300 dp column.
+    expect(size.width, lessThan(120));
+    expect(tester.getTopRight(find.byType(DsButton)).dx, 300);
+    // The label sits vertically centred inside the fixed height.
+    expect(tester.getCenter(find.text('Done')).dy, closeTo(tester.getCenter(find.byType(DsButton)).dy, 0.5));
+  });
+
+  testWidgets('expand: true still fills the available width', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: buildDsTheme(),
+      home: Scaffold(
+        body: SizedBox(width: 300, child: DsButton.primary(label: 'Done', onPressed: () {})),
+      ),
+    ));
+    expect(tester.getSize(find.byType(DsButton)).width, 300);
   });
 }
