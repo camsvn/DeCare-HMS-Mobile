@@ -1,0 +1,86 @@
+name: Release
+
+# Pushing a calendar-version tag (e.g. `2026.9.1`) builds the signed release APK,
+# checks it against the tag, and hands it to Firebase App Distribution testers.
+# Everyday pushes are covered by ci.yml, which never sees signing secrets.
+on:
+  push:
+    tags:
+      - '20[0-9][0-9].[0-9]*.[0-9]*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: subosito/flutter-action@v2
+        with: { flutter-version: '3.19.0', channel: stable, cache: true }
+
+      - name: Check the tag matches pubspec.yaml
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="$(sed -n 's/^version: *\([^+]*\)+.*/\1/p' pubspec.yaml)"
+          echo "tag=$tag pubspec=$version"
+          test "$tag" = "$version" || { echo "::error::Tag $tag does not match pubspec version $version"; exit 1; }
+
+      - run: flutter pub get
+      - run: flutter gen-l10n
+      - run: flutter analyze
+      - run: flutter test
+
+      - name: Restore signing material
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64" || { echo "::error::ANDROID_KEYSTORE_BASE64 secret is missing"; exit 1; }
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
+          {
+            echo "storeFile=upload-keystore.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > android/key.properties
+
+      - run: flutter build apk --release
+
+      - name: Verify the APK is signed with the upload key
+        run: |
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          "$apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | tee /tmp/certs.txt
+          grep -q "CN=DeCare HMS Upload" /tmp/certs.txt || { echo "::error::APK is not signed with the upload key"; exit 1; }
+
+      - name: Release notes from the tag message
+        run: |
+          git fetch --tags --force --quiet
+          git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" > /tmp/notes.txt
+          test -s /tmp/notes.txt || echo "DeCare HMS ${GITHUB_REF_NAME}" > /tmp/notes.txt
+          cat /tmp/notes.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-${{ github.ref_name }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: ${{ vars.FIREBASE_TESTER_GROUPS || 'testers' }}
+          file: build/app/outputs/flutter-apk/app-release.apk
+          releaseNotesFile: /tmp/notes.txt
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/upload-keystore.jks android/key.properties

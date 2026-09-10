@@ -79,6 +79,37 @@ Restore it afterwards, or the app will rotate out of portrait.
 --debug` on every push and pull request. It never has access to signing secrets, so it
 always builds the debug-signed APK described above — CI does not sign releases.
 
+### Releasing to testers (Firebase App Distribution)
+
+`.github/workflows/release.yml` runs when a calendar-version tag is pushed. It checks the tag
+against `pubspec.yaml`, runs analyze and tests, builds the release APK signed with the upload
+key, verifies the signature, and uploads the APK to Firebase App Distribution with the tag's
+message as release notes. The APK is also kept as a workflow artifact for 30 days.
+
+Release procedure:
+
+```bash
+# 1. bump `version:` in pubspec.yaml, e.g. 2026.9.1+3, commit and push to main
+# 2. tag it; the tag message becomes the testers' release notes
+git tag -a 2026.9.1 -m "Labels while shooting, gallery-style preview, offline queue fixes"
+git push origin 2026.9.1
+```
+
+Repository secrets the workflow needs (Settings → Secrets and variables → Actions):
+
+| secret | value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -w0 android/upload-keystore.jks` |
+| `ANDROID_KEY_ALIAS` | `upload` |
+| `ANDROID_STORE_PASSWORD` | `storePassword` from `android/key.properties` |
+| `ANDROID_KEY_PASSWORD` | `keyPassword` from `android/key.properties` |
+| `FIREBASE_APP_ID` | the Android app's ID in the Firebase console (`1:…:android:…`) |
+| `FIREBASE_SERVICE_ACCOUNT` | JSON key of a service account with the *Firebase App Distribution Admin* role |
+
+Optional repository variable `FIREBASE_TESTER_GROUPS` (comma-separated group aliases; default
+`testers`). The Flutter app keeps the React Native app's package name, so the existing Firebase
+Android app can be reused; testers keep their invitations.
+
 ## Structure
 
 ```

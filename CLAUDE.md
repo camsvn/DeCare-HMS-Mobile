@@ -53,7 +53,9 @@ the old one is uninstalled (which wipes app data: server URL, login, recent pati
   they are re-encoded upright in a background isolate before upload) or picked from the gallery
   (resized to 2000 px). Blank descriptions inherit the previous card's at upload.
 - Recent labels are stored device-wide across patients by design (body-site text only).
-- Versioning is calendar-based: `YYYY.M.N+build` (see README "Release").
+- Versioning is calendar-based: `YYYY.M.N+build` (see README "Release"). Pushing the matching tag
+  runs `.github/workflows/release.yml`, which signs from repository secrets and uploads to Firebase
+  App Distribution; `ci.yml` never signs.
 - Branding (icon, splash, wordmark) is documented in `docs/branding.md`;
   `dart run flutter_native_splash:create` strips the portrait lock from the manifest — restore it.
 
