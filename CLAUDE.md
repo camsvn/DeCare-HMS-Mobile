@@ -56,6 +56,9 @@ the old one is uninstalled (which wipes app data: server URL, login, recent pati
 - Versioning is calendar-based: `YYYY.M.N+build` (see README "Release"). Pushing the matching tag
   runs `.github/workflows/release.yml`, which signs from repository secrets and uploads to Firebase
   App Distribution; `ci.yml` never signs.
+- Android `applicationId` (and iOS bundle id) is `com.decare.hms`, matching the Firebase Android app
+  releases are distributed to. The React Native app was `com.decare.hmsuploader`, so the two install
+  side by side and testers remove the old one by hand.
 - Branding (icon, splash, wordmark) is documented in `docs/branding.md`;
   `dart run flutter_native_splash:create` strips the portrait lock from the manifest — restore it.
 

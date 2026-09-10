@@ -1,4 +1,4 @@
-package com.decare.hmsuploader
+package com.decare.hms
 
 import io.flutter.embedding.android.FlutterActivity
 
