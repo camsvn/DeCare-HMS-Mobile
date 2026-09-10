@@ -105,6 +105,32 @@ void main() {
     sub.close();
   });
 
+  test('inheritedDescriptionFor says what a blank photo would upload with', () async {
+    final files = [for (final n in ['a', 'b', 'c', 'd']) make('$n.jpg')];
+    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final ctrl = container.read(tomogramControllerProvider(42).notifier);
+    ctrl.addDrafts([
+      (path: files[0].path, description: ''),
+      (path: files[1].path, description: 'Left forearm'),
+      (path: files[2].path, description: '   '),
+      (path: files[3].path, description: 'Back'),
+    ]);
+
+    // Nothing before the first photo to inherit, and a run of blanks from it
+    // inherits nothing either.
+    expect(ctrl.inheritedDescriptionFor(0), isNull);
+    // Its own text, so there is nothing to inherit.
+    expect(ctrl.inheritedDescriptionFor(1), isNull);
+    // Whitespace is blank, and what it takes is the trimmed text.
+    expect(ctrl.inheritedDescriptionFor(2), 'Left forearm');
+    expect(ctrl.inheritedDescriptionFor(3), isNull);
+    // Out of range rather than a crash: the card and the viewer both index
+    // into a list that can shrink under them.
+    expect(ctrl.inheritedDescriptionFor(4), isNull);
+    expect(ctrl.inheritedDescriptionFor(-1), isNull);
+    sub.close();
+  });
+
   test('resolvedDrafts posts trimmed descriptions and inherits the trimmed text', () async {
     final a = make('a.jpg');
     final b = make('b.jpg');

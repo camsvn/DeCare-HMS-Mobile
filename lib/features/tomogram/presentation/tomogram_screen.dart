@@ -14,6 +14,7 @@ import 'package:hms_uploader/features/tomogram/application/recent_labels_control
 import 'package:hms_uploader/features/tomogram/application/tomogram_controller.dart';
 import 'package:hms_uploader/features/tomogram/application/upload_queue_controller.dart';
 import 'package:hms_uploader/features/tomogram/data/shot.dart';
+import 'package:hms_uploader/features/tomogram/presentation/draft_preview_screen.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/add_source_sheet.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/pending_line.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_card.dart';
@@ -42,6 +43,23 @@ const double _fabClearance = DsSpace.x8 + 56;
 
 class _TomogramScreenState extends ConsumerState<TomogramScreen> {
   int get _opid => widget.patient.opid;
+
+  /// Opens the draft at [index] full screen, the way the capture screen opens
+  /// a shot: a fade, because it is the same photo the card was showing.
+  void _openDraft(int index) {
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        opaque: true,
+        transitionDuration: DsMotion.of(context, DsMotion.base),
+        reverseTransitionDuration: DsMotion.of(context, DsMotion.base),
+        pageBuilder: (_, __, ___) => DraftPreviewScreen(opid: _opid, initialIndex: index),
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+      ),
+    );
+  }
 
   Future<void> _add() async {
     final source = await showAddSourceSheet(context);
@@ -182,18 +200,7 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
     final state = ref.watch(tomogramControllerProvider(_opid));
     final notifier = ref.read(tomogramControllerProvider(_opid).notifier);
     final drafts = state.drafts;
-    // Inherit-forward lives in the controller; the cards only display what it
-    // resolved, so what is shown and what is uploaded cannot drift apart.
-    final resolved = notifier.resolvedDrafts;
     final suggestions = ref.watch(descriptionSuggestionsProvider(_opid));
-
-    // The description card i would upload with if left blank, or null when it
-    // has text of its own or nothing to inherit (the first card).
-    String? inheritedFor(int i) {
-      if (drafts[i].description.trim().isNotEmpty) return null;
-      final inherited = resolved[i].description;
-      return inherited.isEmpty ? null : inherited;
-    }
 
     return PopScope(
       canPop: drafts.isEmpty,
@@ -244,7 +251,11 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
                         total: drafts.length,
                         onDelete: () => notifier.remove(drafts[i].id),
                         onDescriptionChanged: (text) => notifier.updateDescription(drafts[i].id, text),
-                        inheritedDescription: inheritedFor(i),
+                        onTapImage: () => _openDraft(i),
+                        // Inherit-forward lives in the controller; the card
+                        // only displays what it resolved, so what is shown and
+                        // what is uploaded cannot drift apart.
+                        inheritedDescription: notifier.inheritedDescriptionFor(i),
                         suggestions: suggestions,
                         onSuggestion: (text) => notifier.updateDescription(drafts[i].id, text),
                       ),

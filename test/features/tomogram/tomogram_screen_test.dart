@@ -648,6 +648,35 @@ void main() {
     expect(find.byType(SuggestionChips), findsNothing);
   });
 
+  testWidgets('tapping a card photo opens that draft full screen', (tester) async {
+    await pumpTwoDrafts(tester, label: 'Left forearm');
+
+    // The card crops to 16:10, which is enough to tell two photos apart and
+    // not enough to check one.
+    await tester.tap(find.descendant(
+      of: find.byType(TomogramCard).at(1),
+      matching: find.byType(Image),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DraftPreviewScreen), findsOneWidget);
+    expect(find.text('2 of 2'), findsOneWidget);
+    // The blank second photo says what it will upload with, in the viewer too.
+    expect(
+      find.descendant(
+        of: find.byKey(photoViewerCaptionKey),
+        matching: find.text('Same as previous photo: Left forearm'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DraftPreviewScreen), findsNothing);
+    expect(find.byType(TomogramCard), findsNWidgets(2));
+  });
+
   testWidgets('Apply to all is gone', (tester) async {
     await pumpTwoDrafts(tester, label: 'Left forearm');
 

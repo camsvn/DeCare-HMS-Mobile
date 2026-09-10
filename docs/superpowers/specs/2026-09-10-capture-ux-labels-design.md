@@ -115,6 +115,30 @@ with its overlay header, the one bottom bar, a swipe that still turns the page t
 a 120-character description over two lines, the prefilled sheet, relabelling only the shot on
 screen, Clear, cancel, and suggestions from a stubbed history).
 
+### 3.7 One viewer, both lists (2026-09-10)
+
+The gallery-style preview is a widget rather than a screen: `PhotoViewer({photos, initialIndex,
+onEditCaption, onRemove})` over `ViewerPhoto(path, caption, captionHint)`, in
+`presentation/widgets/photo_viewer.dart`, with no Riverpod inside it. It owns nothing but the page it
+is on: a caller hands it a list, and a shorter list on the next build is how a removal arrives — the
+viewer steps back onto the photo that took the slot, or pops itself when the last one goes. The
+layout is §3.6's: edge-to-edge `PageView`, overlay header, one bottom bar of caption plus bin, and
+the caption row keeps the button semantics under the key `photoViewerCaptionKey`.
+
+`ShotPreviewScreen` and the new `DraftPreviewScreen({opid, initialIndex})` are the two thin Riverpod
+wrappers over it. The draft list needed the same viewer for the same reason the capture screen did: a
+card crops its photo to 16:10, which is enough to tell two photos apart and not enough to check one.
+Tapping a card's image (`TomogramCard.onTapImage`, with `tomogramCounter` button semantics) pushes
+the viewer with the same fade the capture screen uses. Its caption is the draft's own description
+when it has one; blank, it shows "Same as previous photo: …" as the `captionHint`, because a blank
+description there is an inheritance rather than an absence — the same sentence the card's placeholder
+shows, from the same source: `TomogramController.inheritedDescriptionFor(index)`, which the card and
+the viewer now share so their promise cannot drift from `resolvedDrafts`. Editing opens the label
+sheet prefilled with the draft's own text (not the inherited placeholder: typing over an inheritance
+is a decision, not a correction) and writes through `updateDescription`; the sheet's Clear returns
+`''` and hands the photo back to inheriting. The bin calls `remove(id)` without asking, which is what
+the card's delete has always done.
+
 ## 4. Architecture
 
 All inside `lib/features/tomogram/`.

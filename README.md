@@ -9,7 +9,8 @@ under it and lands in the draft list as that photo's description. In the draft
 list a blank description inherits the previous photo's — shown as the field's
 placeholder, "Same as previous photo: Left forearm", so it is visible and a tap
 to type over — and an empty field offers tap-to-fill chips built from this
-patient's earlier narrations and the last labels used on the device. The whole
+patient's earlier narrations and the last labels used on the device. Tap a photo
+to view it full screen, where its description can be fixed and the photo dropped. The whole
 set uploads together (or is queued when the server is unreachable) with those
 inherited descriptions as its narrations. Those recent labels are kept per
 device and offered across patients and sign-ins, so they are for body-site text

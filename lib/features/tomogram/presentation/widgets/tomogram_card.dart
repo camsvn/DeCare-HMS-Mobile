@@ -18,6 +18,7 @@ class TomogramCard extends StatefulWidget {
     required this.total,
     required this.onDelete,
     required this.onDescriptionChanged,
+    this.onTapImage,
     this.inheritedDescription,
     this.suggestions = const [],
     this.onSuggestion,
@@ -28,6 +29,11 @@ class TomogramCard extends StatefulWidget {
   final int total;
   final VoidCallback onDelete;
   final ValueChanged<String> onDescriptionChanged;
+
+  /// Open this photo full screen. The card crops to 16:10, which is enough to
+  /// tell one photo from another and not enough to check one. Null leaves the
+  /// image inert rather than offering a reader a button that does nothing.
+  final VoidCallback? onTapImage;
 
   /// What this photo would upload with if left blank — the previous photo's
   /// effective description — shown as the field's placeholder so the
@@ -68,36 +74,53 @@ class _TomogramCardState extends State<TomogramCard> {
     super.dispose();
   }
 
+  /// The cropped preview, tappable when there is somewhere to go. The chip
+  /// and the delete button sit over it as siblings, so they keep their own
+  /// taps.
+  Widget _photo(VoidCallback? onTap) {
+    final ds = context.ds;
+    final l10n = context.l10n;
+    final image = ClipRRect(
+      borderRadius: DsRadius.smallAll,
+      child: AspectRatio(
+        aspectRatio: 16 / 10,
+        child: Image.file(
+          File(widget.draft.filePath),
+          fit: BoxFit.cover,
+          // Decode down: the preview is a few hundred px wide, the source is a
+          // full-resolution camera JPEG. Upload bytes are read from the file
+          // separately and stay untouched.
+          cacheWidth: 1080,
+          errorBuilder: (_, __, ___) => ColoredBox(
+            color: ds.canvas,
+            child: Center(child: Icon(Icons.broken_image_outlined, color: ds.textSecondary, size: 40)),
+          ),
+        ),
+      ),
+    );
+    if (onTap == null) return image;
+    return Semantics(
+      button: true,
+      label: l10n.tomogramCounter(widget.index + 1, widget.total),
+      onTap: onTap,
+      child: GestureDetector(onTap: onTap, child: image),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ds = context.ds;
     final l10n = context.l10n;
     final inherited = widget.inheritedDescription;
     final onSuggestion = widget.onSuggestion;
+    final onTapImage = widget.onTapImage;
     return DsCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Stack(
             children: [
-              ClipRRect(
-                borderRadius: DsRadius.smallAll,
-                child: AspectRatio(
-                  aspectRatio: 16 / 10,
-                  child: Image.file(
-                    File(widget.draft.filePath),
-                    fit: BoxFit.cover,
-                    // Decode down: the preview is a few hundred px wide, the
-                    // source is a full-resolution camera JPEG. Upload bytes are
-                    // read from the file separately and stay untouched.
-                    cacheWidth: 1080,
-                    errorBuilder: (_, __, ___) => ColoredBox(
-                      color: ds.canvas,
-                      child: Center(child: Icon(Icons.broken_image_outlined, color: ds.textSecondary, size: 40)),
-                    ),
-                  ),
-                ),
-              ),
+              _photo(onTapImage),
               Positioned(
                 left: DsSpace.x2,
                 top: DsSpace.x2,

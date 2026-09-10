@@ -111,7 +111,7 @@ void main() {
       find.descendant(of: find.byType(Dialog), matching: find.widgetWithText(DsButton, 'Remove'));
 
   /// The caption row under the photo: the label, and the way to change it.
-  Finder caption() => find.byKey(shotPreviewLabelKey);
+  Finder caption() => find.byKey(photoViewerCaptionKey);
 
   /// The bin in the bottom bar. The dialog's confirm is the labelled button,
   /// so the two are told apart by which is an icon.

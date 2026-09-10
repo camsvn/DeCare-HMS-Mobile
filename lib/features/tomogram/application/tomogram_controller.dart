@@ -65,6 +65,22 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
     return resolved;
   }
 
+  /// What the photo at [index] would upload with if its own field is left
+  /// blank: the previous photo's effective description. Null when it has text
+  /// of its own, when there is nothing to inherit (the first photo, or a run
+  /// of blanks from it) or when [index] is out of range.
+  ///
+  /// Both the card's placeholder and the viewer's caption ask this, so what
+  /// the two of them promise cannot drift apart — or from [resolvedDrafts],
+  /// which is what actually uploads.
+  String? inheritedDescriptionFor(int index) {
+    final drafts = state.drafts;
+    if (index < 0 || index >= drafts.length) return null;
+    if (drafts[index].description.trim().isNotEmpty) return null;
+    final inherited = resolvedDrafts[index].description;
+    return inherited.isEmpty ? null : inherited;
+  }
+
   Future<void> remove(String id) async {
     final target = state.drafts.where((d) => d.id == id).toList();
     state = state.copyWith(drafts: state.drafts.where((d) => d.id != id).toList());
