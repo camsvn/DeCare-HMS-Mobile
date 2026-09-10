@@ -73,7 +73,7 @@ Restore it afterwards, or the app will rotate out of portrait.
 
 ### CI
 
-<!-- ![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg) -->
+![CI](https://github.com/camsvn/DeCare-HMS-Mobile/actions/workflows/ci.yml/badge.svg)
 
 `.github/workflows/ci.yml` runs `flutter analyze`, `flutter test`, and `flutter build apk
 --debug` on every push and pull request. It never has access to signing secrets, so it
