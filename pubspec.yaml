@@ -72,10 +72,15 @@ flutter_native_splash:
   color: "#151D28"
   color_dark: "#0B1017"
   image: assets/images/splash_logo.png
+  # Wordmark along the bottom edge (the platform's branding slot, 200x80 dp):
+  #   magick -size 800x320 xc:none -font assets/fonts/Inter-SemiBold.ttf -pointsize 104   #     -fill white -gravity center -annotate +0+0 "DeCare HMS" splash_branding.png
+  branding: assets/images/splash_branding.png
+  branding_mode: bottom
   android_12:
     color: "#151D28"
     color_dark: "#0B1017"
     image: assets/images/splash_icon_a12.png
+    branding: assets/images/splash_branding.png
   android: true
   ios: true
   web: false
