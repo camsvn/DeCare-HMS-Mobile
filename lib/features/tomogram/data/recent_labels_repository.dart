@@ -26,7 +26,9 @@ class RecentLabelsRepository {
   /// needing a migration.
   List<String> read() => [
         for (final label in _prefs.getStringList(key) ?? const <String>[])
-          if (label.length <= suggestionMaxLength) label,
+          // Measured on the trimmed text, as `remember` measures it, so the
+          // two cannot disagree about what is too long.
+          if (label.trim().length <= suggestionMaxLength) label,
       ];
 
   /// Stops offering [label] on this device, matched the way the list dedupes:

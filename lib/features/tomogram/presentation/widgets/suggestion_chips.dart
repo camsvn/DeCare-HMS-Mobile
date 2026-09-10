@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
-import 'package:hms_uploader/features/tomogram/application/recent_labels_controller.dart';
 
-/// Asks whether to stop offering [suggestion] on this device, and forgets it
-/// when the answer is yes.
+/// Asks whether to stop offering [suggestion] on this device, and calls
+/// [forget] when the answer is yes.
 ///
 /// Shared by every place chips are shown, so the question is worded once and
-/// the answer means the same thing everywhere.
+/// the answer means the same thing everywhere. It takes the callback rather
+/// than the controller that owns it: this file draws chips, and what a
+/// forgotten suggestion is stored in is not its business.
 Future<void> confirmForgetSuggestion(
   BuildContext context,
-  RecentLabelsController labels,
+  Future<void> Function(String suggestion) forget,
   String suggestion,
 ) async {
   final l10n = context.l10n;
-  final forget = await showDsDialog(
+  final confirmed = await showDsDialog(
     context,
     title: l10n.suggestionForgetTitle,
     body: l10n.suggestionForgetBody,
     confirmLabel: l10n.suggestionForget,
     destructive: true,
   );
-  if (!forget) return;
-  await labels.forget(suggestion);
+  if (!confirmed) return;
+  await forget(suggestion);
 }
 
 /// The smallest a thumb should have to hit. A chip is drawn smaller than this;

@@ -35,6 +35,10 @@ class FakeCameraService implements CameraService {
   /// post-processing open and watch what the screen does about it.
   Completer<void>? flushGate;
 
+  /// When set, [setZoom] waits on it, so a test can hold one zoom call in
+  /// flight and ask for more while it is.
+  Completer<void>? zoomGate;
+
   /// The preview's *displayed* width / height once started, as
   /// [CameraService.previewAspectRatio] reports it — so a portrait preview of
   /// a 16:9 sensor is 9/16 here. Settable, so a test can put the screen's
@@ -119,7 +123,12 @@ class FakeCameraService implements CameraService {
   Future<void> setTorch(bool on) async => torchCalls.add(on);
 
   @override
-  Future<void> setZoom(double level) async => zoomCalls.add(level);
+  Future<void> setZoom(double level) async {
+    // Recorded before the gate, so a test can see the call that is in flight.
+    zoomCalls.add(level);
+    final held = zoomGate;
+    if (held != null) await held.future;
+  }
 
   @override
   Future<void> focusAt(Offset normalized) async => focusCalls.add(normalized);

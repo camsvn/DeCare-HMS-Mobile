@@ -73,6 +73,12 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   /// `PluginCameraService` and stop the one holding the device.
   late CameraService _camera;
 
+  /// The zoom a call still in flight has not sent yet, and whether there is
+  /// one. One slot on purpose: a pinch asks for levels faster than the
+  /// platform takes them, and every level but the newest is already stale.
+  double? _pendingZoom;
+  bool _zooming = false;
+
   @override
   CaptureState build() {
     _camera = ref.watch(cameraServiceProvider);
@@ -180,14 +186,34 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   /// is ready: there is nothing to zoom, and the state must not claim a level
   /// the device is not at.
   ///
-  /// Every call forwards, without comparing against the level already set: a
-  /// pinch is a stream of small changes, and dropping the ones that round to
-  /// the same double would make it stutter.
+  /// The state moves on every call, so the chip and the preview keep up with
+  /// the fingers; the camera is told as fast as it can listen. A call arriving
+  /// while one is in flight leaves its level in a one-slot latch and returns,
+  /// and the call that is running sends it on the way out — so a pinch is one
+  /// platform call per round trip rather than one per pointer move, and the
+  /// level that lands is always the last one asked for.
   Future<void> setZoom(double level) async {
     if (state.status != CaptureStatus.ready) return;
     final clamped = level.clamp(1.0, _camera.maxZoom);
     state = state.copyWith(zoom: clamped);
-    await _camera.setZoom(clamped);
+    if (_zooming) {
+      _pendingZoom = clamped;
+      return;
+    }
+    _zooming = true;
+    try {
+      var next = clamped;
+      while (true) {
+        await _camera.setZoom(next);
+        final pending = _pendingZoom;
+        if (pending == null) break;
+        _pendingZoom = null;
+        next = pending;
+      }
+    } finally {
+      _zooming = false;
+      _pendingZoom = null;
+    }
   }
 
   /// Ignored until the camera is ready: there is no device to light up, and

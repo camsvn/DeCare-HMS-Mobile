@@ -205,8 +205,11 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
     final drafts = state.drafts;
     final suggestions = ref.watch(descriptionSuggestionsProvider(_opid));
     // Only the device's own labels can be un-offered; the patient's uploaded
-    // narrations are the server's to say.
-    final recent = ref.watch(recentLabelsProvider);
+    // narrations are the server's to say. Lower-cased once here rather than
+    // per card: the list builder runs for every row on every rebuild.
+    final removable = {
+      for (final label in ref.watch(recentLabelsProvider)) label.toLowerCase(),
+    };
 
     return PopScope(
       canPop: drafts.isEmpty,
@@ -264,12 +267,10 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
                         inheritedDescription: notifier.inheritedDescriptionFor(i),
                         suggestions: suggestions,
                         onSuggestion: (text) => notifier.updateDescription(drafts[i].id, text),
-                        removableSuggestions: {
-                          for (final label in recent) label.toLowerCase(),
-                        },
+                        removableSuggestions: removable,
                         onSuggestionLongPress: (text) => unawaited(confirmForgetSuggestion(
                           context,
-                          ref.read(recentLabelsProvider.notifier),
+                          ref.read(recentLabelsProvider.notifier).forget,
                           text,
                         )),
                       ),

@@ -466,6 +466,38 @@ void main() {
     expect(fake.zoomCalls, [2.5, fake.maxZoom, 1]);
   });
 
+  test('a pinch is coalesced into one call per round trip', () async {
+    // A pinch asks for levels faster than the platform takes them. The state
+    // has to keep up with the fingers; the camera only has to end up where
+    // they stopped.
+    await capture().start();
+    fake.zoomGate = Completer<void>();
+
+    unawaited(capture().setZoom(1.5));
+    unawaited(capture().setZoom(2));
+    unawaited(capture().setZoom(3));
+    await pumpEventQueue();
+
+    // The first is in flight; the two behind it are one slot, newest wins.
+    expect(fake.zoomCalls, [1.5]);
+    expect(state().zoom, 3);
+
+    fake.zoomGate!.complete();
+    await pumpEventQueue();
+
+    expect(fake.zoomCalls, [1.5, 3]);
+    expect(state().zoom, 3);
+  });
+
+  test('a zoom asked for after the latch drained is sent on its own', () async {
+    await capture().start();
+
+    await capture().setZoom(2);
+    await capture().setZoom(3);
+
+    expect(fake.zoomCalls, [2, 3]);
+  });
+
   test('setZoom is ignored while the camera is not ready', () async {
     await capture().setZoom(3);
 

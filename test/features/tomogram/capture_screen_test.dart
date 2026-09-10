@@ -600,12 +600,24 @@ void main() {
   });
 
   testWidgets('the grid is off, goes on from the header and is remembered', (tester) async {
+    final handle = tester.ensureSemantics();
     await open(tester);
     expect(find.byKey(captureGridKey), findsNothing);
     expect(find.byTooltip('Show grid'), findsOneWidget);
 
+    // A switch, and announced as one: an icon that swaps is no help to a
+    // reader that cannot see which icon it is.
+    final off = tester.getSemantics(find.byTooltip('Show grid'));
+    expect(off.hasFlag(SemanticsFlag.hasToggledState), isTrue);
+    expect(off.hasFlag(SemanticsFlag.isToggled), isFalse);
+
     await tester.tap(find.byTooltip('Show grid'));
     await tester.pumpAndSettle();
+
+    final on = tester.getSemantics(find.byTooltip('Hide grid'));
+    expect(on.hasFlag(SemanticsFlag.hasToggledState), isTrue);
+    expect(on.hasFlag(SemanticsFlag.isToggled), isTrue);
+    handle.dispose();
 
     expect(find.byKey(captureGridKey), findsOneWidget);
     expect(find.byTooltip('Hide grid'), findsOneWidget);
@@ -633,11 +645,18 @@ void main() {
 
   testWidgets('the zoom chip and the grid are inert while Done hands the shots over',
       (tester) async {
+    final handle = tester.ensureSemantics();
     await open(tester);
     await shoot(tester);
     fake.flushGate = Completer<void>();
     await tester.tap(find.widgetWithText(DsButton, 'Done'));
     await tester.pump();
+
+    // Actually inert, not merely ignored: a reader is handed no action.
+    expect(tester.getSemantics(zoomChip()).getSemanticsData()
+        .hasAction(SemanticsAction.tap), isFalse);
+    expect(tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.grid_off)).onPressed,
+        isNull);
 
     await tester.tap(zoomChip(), warnIfMissed: false);
     await tester.tap(find.byTooltip('Show grid'), warnIfMissed: false);
@@ -648,6 +667,7 @@ void main() {
 
     fake.flushGate!.complete();
     await tester.pumpAndSettle();
+    handle.dispose();
   });
 
   testWidgets('holding a recent suggestion offers to stop offering it', (tester) async {

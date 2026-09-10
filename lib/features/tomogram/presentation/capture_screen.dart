@@ -61,6 +61,20 @@ const Key captureZoomChipKey = Key('capture-zoom-chip');
 /// the same pixel are still two taps.
 typedef _FocusTap = ({Offset at, int seq});
 
+/// What this screen draws from the session — everything except the zoom.
+///
+/// A record, so Riverpod compares it field by field: a pinch moves the zoom
+/// sixty times a second, and without this every one of those would rebuild the
+/// thumbnail strip and the whole bottom panel. The zoom chip watches the zoom
+/// on its own.
+typedef _CaptureView = ({
+  CaptureStatus status,
+  List<Shot> shots,
+  String label,
+  bool canShoot,
+  bool torch,
+});
+
 /// The tappable preview area. Keyed so a test can measure the box a focus tap
 /// is mapped against.
 @visibleForTesting
@@ -312,7 +326,13 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   Widget build(BuildContext context) {
     final ds = context.ds;
     final l10n = context.l10n;
-    final state = ref.watch(captureControllerProvider);
+    final view = ref.watch(captureControllerProvider.select((s) => (
+          status: s.status,
+          shots: s.shots,
+          label: s.label,
+          canShoot: s.canShoot,
+          torch: s.torch,
+        )));
     final grid = ref.watch(captureGridProvider);
     // Watched, not read on tap: the patient's history is a provider this
     // screen depends on for as long as it is up, and reading an autoDispose
@@ -327,7 +347,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     });
 
     return PopScope(
-      canPop: state.shots.isEmpty,
+      canPop: view.shots.isEmpty,
       onPopInvoked: (didPop) {
         if (!didPop) unawaited(_close());
       },
@@ -343,13 +363,13 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (state.status == CaptureStatus.failed) _failure() else _previewArea(grid),
-                    _topOverlay(state, grid),
-                    _zoomOverlay(state),
+                    if (view.status == CaptureStatus.failed) _failure() else _previewArea(grid),
+                    _topOverlay(view, grid),
+                    _zoomOverlay(),
                   ],
                 ),
               ),
-              _panel(state, suggestions),
+              _panel(view, suggestions),
             ],
           ),
         ),
@@ -394,41 +414,12 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
 
   /// The zoom, just above the panel and centred under the frame: the one place
   /// on the preview a thumb can reach without covering what it is aiming at.
-  ///
-  /// Absent on a camera that does not zoom — a chip that only ever says "1.0x"
-  /// is a control that does nothing.
-  Widget _zoomOverlay(CaptureState state) {
-    final l10n = context.l10n;
-    if (ref.read(cameraServiceProvider).maxZoom <= 1) return const SizedBox.shrink();
-    final text = l10n.captureZoomLevel(state.zoom.toStringAsFixed(1));
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: DsSpace.x3,
-      child: Center(
-        child: Semantics(
-          key: captureZoomChipKey,
-          container: true,
-          button: true,
-          label: text,
-          onTap: _cycleZoom,
-          excludeSemantics: true,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(DsRadius.full),
-            onTap: _cycleZoom,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: _zoomChipTapTarget),
-              child: Align(
-                widthFactor: 1,
-                heightFactor: 1,
-                child: DsChip(text: text, mono: true, onShell: true),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _zoomOverlay() => Positioned(
+        left: 0,
+        right: 0,
+        bottom: DsSpace.x3,
+        child: Center(child: _ZoomChip(onTap: _finishing ? null : _cycleZoom)),
+      );
 
   /// The camera would not open. On [DsColors.canvas] rather than the shell:
   /// the empty-state pattern is page text, and page text needs a page under it.
@@ -448,7 +439,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     );
   }
 
-  Widget _topOverlay(CaptureState state, bool grid) {
+  Widget _topOverlay(_CaptureView view, bool grid) {
     final ds = context.ds;
     final l10n = context.l10n;
     return Positioned(
@@ -467,20 +458,33 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
               onPressed: _finishing ? null : () => unawaited(_close()),
             ),
             const Spacer(),
-            IconButton(
-              icon: Icon(grid ? Icons.grid_3x3 : Icons.grid_off),
-              color: ds.textOnShell,
-              tooltip: grid ? l10n.captureGridOff : l10n.captureGridOn,
-              onPressed: _finishing ? null : () => unawaited(_toggleGrid()),
+            // A switch, and said to be one: `IconButton.isSelected` gives the
+            // M3 selected look and the icon swap, but its semantics flag is
+            // "selected", and a grid that is on is toggled on. One node, like
+            // the other controls here, so the two cannot disagree.
+            Semantics(
+              container: true,
+              toggled: grid,
+              label: grid ? l10n.captureGridOff : l10n.captureGridOn,
+              onTap: _finishing ? null : () => unawaited(_toggleGrid()),
+              excludeSemantics: true,
+              child: IconButton(
+                icon: const Icon(Icons.grid_off),
+                selectedIcon: const Icon(Icons.grid_3x3),
+                isSelected: grid,
+                color: ds.textOnShell,
+                tooltip: grid ? l10n.captureGridOff : l10n.captureGridOn,
+                onPressed: _finishing ? null : () => unawaited(_toggleGrid()),
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.flashlight_off_outlined),
               selectedIcon: const Icon(Icons.flashlight_on_outlined),
-              isSelected: state.torch,
+              isSelected: view.torch,
               color: ds.textOnShell,
-              tooltip: state.torch ? l10n.captureTorchOff : l10n.captureTorchOn,
+              tooltip: view.torch ? l10n.captureTorchOff : l10n.captureTorchOn,
               // Nothing to light up until the device is open.
-              onPressed: state.status == CaptureStatus.ready && !_finishing
+              onPressed: view.status == CaptureStatus.ready && !_finishing
                   ? () => unawaited(_toggleTorch())
                   : null,
             ),
@@ -490,9 +494,9 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     );
   }
 
-  Widget _panel(CaptureState state, List<String> suggestions) {
+  Widget _panel(_CaptureView view, List<String> suggestions) {
     final l10n = context.l10n;
-    final shots = state.shots;
+    final shots = view.shots;
     return Padding(
       padding: const EdgeInsets.all(DsSpace.x3),
       child: Column(
@@ -504,7 +508,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
           Align(
             alignment: Alignment.centerLeft,
             child: LabelPill(
-              label: state.label,
+              label: view.label,
               onTap: () => unawaited(_openLabelSheet(suggestions)),
               onClear: _clearLabel,
             ),
@@ -519,7 +523,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
                 ),
               ),
               ShutterButton(
-                onPressed: state.canShoot && !_finishing ? () => unawaited(_shoot()) : null,
+                onPressed: view.canShoot && !_finishing ? () => unawaited(_shoot()) : null,
                 tooltip: l10n.captureShutter,
               ),
               Expanded(
@@ -537,6 +541,49 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The zoom level, as a chip that also steps it.
+///
+/// Its own consumer, watching the zoom and nothing else, so the sixty state
+/// changes a pinch produces rebuild this and not the strip of thumbnails.
+/// Absent on a camera that does not zoom — a chip that could only ever say
+/// "1.0x" is a control that does nothing.
+class _ZoomChip extends ConsumerWidget {
+  const _ZoomChip({required this.onTap});
+
+  /// Null while Done is handing the shots over, like every other control on
+  /// this screen.
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Watched rather than read, so this is a legal dependency; the range
+    // itself is fixed once the camera is open.
+    if (ref.watch(cameraServiceProvider).maxZoom <= 1) return const SizedBox.shrink();
+    final zoom = ref.watch(captureControllerProvider.select((s) => s.zoom));
+    final text = context.l10n.captureZoomLevel(zoom.toStringAsFixed(1));
+    return Semantics(
+      key: captureZoomChipKey,
+      container: true,
+      button: true,
+      label: text,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(DsRadius.full),
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _zoomChipTapTarget),
+          child: Align(
+            widthFactor: 1,
+            heightFactor: 1,
+            child: DsChip(text: text, mono: true, onShell: true),
+          ),
+        ),
       ),
     );
   }

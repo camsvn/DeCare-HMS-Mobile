@@ -95,7 +95,7 @@ class _LabelSheetState extends ConsumerState<_LabelSheet> {
               removable: {for (final label in recent) label.toLowerCase()},
               onLongPress: (suggestion) => unawaited(confirmForgetSuggestion(
                 context,
-                ref.read(recentLabelsProvider.notifier),
+                ref.read(recentLabelsProvider.notifier).forget,
                 suggestion,
               )),
               wrap: true,
