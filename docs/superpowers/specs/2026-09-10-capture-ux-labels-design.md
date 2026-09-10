@@ -69,6 +69,37 @@ are what the upload and the offline queue send, and what "recent labels" remembe
 
 "Apply to all" (button, dialog, controller method, ARB keys) is removed; 3.1 and 3.4 replace it.
 
+### 3.6 Follow-up (2026-09-10)
+
+Setting the label before shooting works, but it did not read as part of taking photos, and a shot
+already taken could not be re-described without retyping the session label. Two changes:
+
+**The pill says what the label is for, and can be dropped in one tap.** Empty it reads "Label next
+photos" (`captureLabelNext`) rather than "Add a label" — the old copy left it to be guessed which
+photos a label would land on. Set, it reads "Next photos: Left forearm" (`captureNextPhotos`, one
+line, ellipsised), and a trailing × appears beside it: `Icons.close`, its own 44 dp target, its own
+button semantics, tooltip "Clear label" (`captureLabelClear`, reused from the sheet). The × calls
+`setLabel('')` straight away — clearing was three taps through the sheet, and "the next few are of
+nothing in particular" is one thought. The text half still opens the sheet. Both halves are inert
+while Done is handing the shots over, like everything else on that screen.
+
+**The preview relabels one shot.** The label line under the counter is now a chip-styled button
+(`shotPreviewLabelKey`), always present: this shot's description, or "Add a label"
+(`captureAddLabel`, kept for exactly this) with `Icons.label_outline` when it has none. It opens the
+same label sheet, prefilled with the shot's own label and offering the same suggestions
+(`descriptionSuggestionsProvider(opid)` — so `ShotPreviewScreen` now takes `opid`, passed from
+`CaptureScreen`). A result goes to `CaptureController.relabel(path, label)`, which trims and sets
+that one shot's label and nothing else: unknown paths are ignored, and `state.label` — what the
+*next* shot will be taken under — is left alone, because fixing a photo already on screen says
+nothing about the ones to come. The sheet's Clear returns `''` and takes the description off. The
+chip and the strip's tag dot both follow, since the screen watches the session.
+
+New ARB keys: `captureLabelNext`, `captureNextPhotos` (String `label`). Tests: `label_pill_test.dart`
+(copy, the × vs. the text, both targets, both semantics nodes), the capture screen (× clears in one
+tap and the next shot is unlabelled; × inert while finishing), the controller (`relabel` scope,
+trimming, unknown path, `state.label` untouched) and the preview (chip copy, prefilled sheet,
+relabels only the shot on screen, Clear, cancel, suggestions from a stubbed history).
+
 ## 4. Architecture
 
 All inside `lib/features/tomogram/`.

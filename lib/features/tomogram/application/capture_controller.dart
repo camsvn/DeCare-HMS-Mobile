@@ -113,6 +113,20 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   /// clears it. Shots already taken keep the label they were taken with.
   void setLabel(String label) => state = state.copyWith(label: label.trim());
 
+  /// Re-describes one shot that has already been taken, trimmed; `''` takes
+  /// its description off. A path the session does not hold is ignored.
+  ///
+  /// Only that shot changes. The session's own [CaptureState.label] is what
+  /// the *next* shot will be taken under, and fixing the description of a
+  /// photo already on screen is not a statement about the ones to come.
+  void relabel(String path, String label) {
+    final shots = List<Shot>.of(state.shots);
+    final index = shots.indexWhere((s) => s.path == path);
+    if (index < 0) return;
+    shots[index] = shots[index].copyWith(label: label.trim());
+    state = state.copyWith(shots: shots);
+  }
+
   /// Takes one photo. Returns false when the session cannot shoot (not ready,
   /// already shooting, at the limit) or the capture failed, in which case the
   /// shot list is untouched.

@@ -315,6 +315,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get captureAddLabel => 'Add a label';
 
   @override
+  String get captureLabelNext => 'Label next photos';
+
+  @override
+  String captureNextPhotos(String label) {
+    return 'Next photos: $label';
+  }
+
+  @override
   String get captureLabelTitle => 'Label these photos';
 
   @override

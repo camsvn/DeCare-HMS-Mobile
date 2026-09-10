@@ -114,6 +114,46 @@ void main() {
     expect(state().shots.map((s) => s.label), ['Left forearm', '']);
   });
 
+  // The preview is where a shot is looked at, so it is where a wrong or
+  // missing description gets fixed — one shot at a time.
+  test('relabel re-describes only the shot it names', () async {
+    await capture().start();
+    capture().setLabel('Left forearm');
+    await capture().shoot();
+    await capture().shoot();
+
+    capture().relabel(state().shots.last.path, 'Left forearm, lateral');
+
+    expect(state().shots.map((s) => s.label), ['Left forearm', 'Left forearm, lateral']);
+    // The session's own label is what the *next* shot takes; relabelling one
+    // already-taken photo must not move it.
+    expect(state().label, 'Left forearm');
+  });
+
+  test('relabel trims, and a blank label removes the description', () async {
+    await capture().start();
+    await capture().shoot();
+    final path = state().shots.single.path;
+
+    capture().relabel(path, '  Scalp  ');
+    expect(state().shots.single.label, 'Scalp');
+
+    capture().relabel(path, '   ');
+    expect(state().shots.single.label, '');
+  });
+
+  test('relabel of a path the session does not hold changes nothing', () async {
+    await capture().start();
+    await capture().shoot();
+    capture().setLabel('Left forearm');
+    final before = state().shots;
+
+    capture().relabel('${dir.path}/not_a_shot.jpg', 'Scalp');
+
+    expect(state().shots, before);
+    expect(state().label, 'Left forearm');
+  });
+
   test('shoot before start does nothing', () async {
     expect(await capture().shoot(), isFalse);
 

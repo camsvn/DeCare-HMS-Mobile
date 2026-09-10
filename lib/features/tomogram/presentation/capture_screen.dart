@@ -210,7 +210,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
         opaque: true,
         transitionDuration: DsMotion.of(context, DsMotion.base),
         reverseTransitionDuration: DsMotion.of(context, DsMotion.base),
-        pageBuilder: (_, __, ___) => ShotPreviewScreen(initialIndex: index),
+        pageBuilder: (_, __, ___) => ShotPreviewScreen(initialIndex: index, opid: widget.opid),
         // A fade, not a slide: the preview is the same photo the thumbnail
         // was showing, made big.
         transitionsBuilder: (_, animation, __, child) => FadeTransition(
@@ -233,6 +233,13 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     );
     if (label == null || !mounted) return;
     _capture.setLabel(label);
+  }
+
+  /// Drops the label without the sheet. "The next few are of nothing in
+  /// particular" was three taps through a sheet; it is one here.
+  void _clearLabel() {
+    if (_finishing) return;
+    _capture.setLabel('');
   }
 
   Future<void> _toggleTorch() async {
@@ -383,6 +390,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
             child: LabelPill(
               label: state.label,
               onTap: () => unawaited(_openLabelSheet(suggestions)),
+              onClear: _clearLabel,
             ),
           ),
           const SizedBox(height: DsSpace.x3),

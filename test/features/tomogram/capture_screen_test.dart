@@ -85,7 +85,7 @@ void main() {
   /// Opens the label sheet from the pill and types [type] into it, without
   /// committing: each test finishes the sheet its own way.
   Future<void> openLabelSheet(WidgetTester tester, {String? type}) async {
-    await tester.tap(find.byType(LabelPill));
+    await tester.tap(find.byKey(labelPillTextKey));
     await tester.pumpAndSettle();
     if (type != null) await tester.enterText(find.byType(TextField), type);
   }
@@ -215,7 +215,7 @@ void main() {
     await pumpDialogIn();
     expect(find.byType(ShotPreviewScreen), findsNothing);
 
-    await tester.tap(find.byType(LabelPill));
+    await tester.tap(find.byKey(labelPillTextKey));
     await pumpDialogIn();
     expect(find.text('Label these photos'), findsNothing);
 
@@ -277,15 +277,15 @@ void main() {
   testWidgets('a label set on the pill rides along with the shots taken after it', (tester) async {
     final handle = tester.ensureSemantics();
     await open(tester);
-    expect(find.text('Add a label'), findsOneWidget);
-    expect(find.bySemanticsLabel('Add a label'), findsOneWidget);
+    // The pill says what the label is *for*: the photos not taken yet.
+    expect(find.text('Label next photos'), findsOneWidget);
+    expect(find.bySemanticsLabel('Label next photos'), findsOneWidget);
 
     await setLabel(tester, 'Left forearm');
 
-    expect(find.text('Add a label'), findsNothing);
-    expect(find.text('Left forearm'), findsOneWidget);
-    // The pill shows the label; a reader is told it *is* the label.
-    expect(find.bySemanticsLabel('Labelled Left forearm'), findsOneWidget);
+    expect(find.text('Label next photos'), findsNothing);
+    expect(find.text('Next photos: Left forearm'), findsOneWidget);
+    expect(find.bySemanticsLabel('Next photos: Left forearm'), findsOneWidget);
 
     await shoot(tester, times: 2);
     await tester.tap(find.widgetWithText(DsButton, 'Done'));
@@ -318,7 +318,7 @@ void main() {
     final handle = tester.ensureSemantics();
     await open(tester);
 
-    final pill = tester.getSemantics(find.byType(LabelPill));
+    final pill = tester.getSemantics(find.byKey(labelPillTextKey));
     expect(pill.hasFlag(SemanticsFlag.isButton), isTrue);
     // The node replaces everything under it, so the tap action has to be on
     // the node itself: without it the reader is handed an inert button.
@@ -327,7 +327,7 @@ void main() {
     // Through the render tree's own pipeline owner: the binding's getter for
     // it is deprecated, and this is the same owner.
     tester
-        .renderObject(find.byType(LabelPill))
+        .renderObject(find.byKey(labelPillTextKey))
         .owner!
         .semanticsOwner!
         .performAction(pill.id, SemanticsAction.tap);
@@ -341,11 +341,12 @@ void main() {
   testWidgets('the label pill is a full-size tap target however small it draws', (tester) async {
     await open(tester);
 
-    final pill = find.descendant(of: find.byType(LabelPill), matching: find.byType(InkWell));
+    final pill = find.byKey(labelPillTextKey);
     expect(tester.getSize(pill).height, greaterThanOrEqualTo(44));
-    // The pill itself still draws at its own size inside that target.
-    expect(tester.getSize(find.descendant(of: find.byType(LabelPill), matching: find.byType(Row)))
-        .height, lessThan(44));
+    // The pill itself still draws at its own size inside that target: the
+    // row inside the text half is the pill's own content.
+    final drawn = find.descendant(of: pill, matching: find.byType(Row));
+    expect(tester.getSize(drawn).height, lessThan(44));
   });
 
   testWidgets('a suggestion chip is a full-size tap target', (tester) async {
@@ -377,7 +378,50 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(stateOf(tester).label, isEmpty);
-    expect(find.text('Add a label'), findsOneWidget);
+    expect(find.text('Label next photos'), findsOneWidget);
+  });
+
+  testWidgets('the pill\'s × clears the label in one tap', (tester) async {
+    await open(tester);
+    // Nothing to clear before a label is set, so nothing is offered.
+    expect(find.byKey(labelPillClearKey), findsNothing);
+
+    await setLabel(tester, 'Left forearm');
+    expect(find.byKey(labelPillClearKey), findsOneWidget);
+
+    await tester.tap(find.byKey(labelPillClearKey));
+    await tester.pumpAndSettle();
+
+    // Straight out, without the sheet standing in the way.
+    expect(find.text('Label these photos'), findsNothing);
+    expect(stateOf(tester).label, isEmpty);
+    expect(find.text('Label next photos'), findsOneWidget);
+    expect(find.byKey(labelPillClearKey), findsNothing);
+
+    await shoot(tester);
+
+    expect(shotsOf(tester).single.label, isEmpty);
+  });
+
+  testWidgets('the pill\'s × does nothing while Done hands the shots over', (tester) async {
+    await open(tester);
+    await setLabel(tester, 'Left forearm');
+    await shoot(tester);
+    fake.flushGate = Completer<void>();
+
+    await tester.tap(find.widgetWithText(DsButton, 'Done'));
+    await tester.pump();
+
+    await tester.tap(find.byKey(labelPillClearKey), warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // The pop is already on its way; the session must not be edited under it.
+    expect(stateOf(tester).label, 'Left forearm');
+
+    fake.flushGate!.complete();
+    await tester.pumpAndSettle();
+
+    expect(results.single!.single.label, 'Left forearm');
   });
 
   testWidgets('the patient\'s own descriptions are offered as suggestions', (tester) async {

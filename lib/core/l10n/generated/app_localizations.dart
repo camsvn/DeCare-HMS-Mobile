@@ -589,6 +589,18 @@ abstract class AppLocalizations {
   /// **'Add a label'**
   String get captureAddLabel;
 
+  /// No description provided for @captureLabelNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Label next photos'**
+  String get captureLabelNext;
+
+  /// No description provided for @captureNextPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Next photos: {label}'**
+  String captureNextPhotos(String label);
+
   /// No description provided for @captureLabelTitle.
   ///
   /// In en, this message translates to:
