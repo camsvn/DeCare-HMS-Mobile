@@ -136,14 +136,20 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
           showDsBanner(context, l10n.tomogramUploadError(e.describe(l10n)), kind: DsBannerKind.danger);
           return;
         }
-        // Queued counts as used: these descriptions lead the suggestions on
-        // the next patient without waiting for the queue to drain.
-        await labels.remember(resolved.map((d) => d.description));
         // The queue owns its own copies now, so this only drops the originals.
         await notifier.clearAll();
-        if (!mounted) return;
-        showDsBanner(context, l10n.tomogramQueued, kind: DsBannerKind.warning);
-        _pop();
+        if (mounted) {
+          showDsBanner(context, l10n.tomogramQueued, kind: DsBannerKind.warning);
+          _pop();
+        }
+        // Last, and best-effort: queued counts as used, so these descriptions
+        // lead the suggestions on the next patient without waiting for the
+        // queue to drain — but the photos are safe either way, and a prefs
+        // failure must not read as a failed queueing. Runs unmounted too: the
+        // labels notifier was read up front for exactly that.
+        try {
+          await labels.remember(resolved.map((d) => d.description));
+        } catch (_) {}
         return;
       }
       showDsBanner(context, l10n.tomogramUploadError(e.describe(l10n)), kind: DsBannerKind.danger);

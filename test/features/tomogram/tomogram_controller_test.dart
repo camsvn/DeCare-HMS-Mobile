@@ -10,6 +10,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class MockTomogramApi extends Mock implements TomogramApi {}
 
+class MockTomogramHistoryApi extends Mock implements TomogramHistoryApi {}
+
+/// A device that cannot write its prefs: reading works, remembering does not.
+class ThrowingLabels extends Mock implements RecentLabelsRepository {}
+
 void main() {
   late Directory dir;
   late MockTomogramApi api;
@@ -164,6 +169,41 @@ void main() {
     expect(container.read(recentLabelsProvider), ['Left forearm', 'Back']);
     expect(prefs.getStringList(RecentLabelsRepository.key), ['Left forearm', 'Back']);
     sub.close();
+  });
+
+  test('a prefs failure cannot fail an upload that succeeded', () async {
+    final a = make('a.jpg');
+    final labels = ThrowingLabels();
+    final historyApi = MockTomogramHistoryApi();
+    when(() => labels.read()).thenReturn(const []);
+    when(() => labels.remember(any())).thenThrow(Exception('prefs are full'));
+    when(() => historyApi.list(42)).thenAnswer((_) async => const []);
+    when(() => api.upload(42, any())).thenAnswer((_) async => const []);
+    final local = ProviderContainer(overrides: [
+      tomogramApiProvider.overrideWithValue(api),
+      tomogramHistoryApiProvider.overrideWithValue(historyApi),
+      recentLabelsRepositoryProvider.overrideWithValue(labels),
+      uuidProvider.overrideWithValue(() => 'id1'),
+    ]);
+    addTearDown(local.dispose);
+    final historySub = local.listen(tomogramHistoryProvider(42), (_, __) {});
+    final sub = local.listen(tomogramControllerProvider(42), (_, __) {});
+    await local.read(tomogramHistoryProvider(42).future);
+    final ctrl = local.read(tomogramControllerProvider(42).notifier);
+    ctrl.addDrafts([(path: a.path, description: 'Left forearm')]);
+
+    // The photos are on the server: everything the upload owes the user still
+    // happens, and the suggestion row is the only thing that misses out.
+    await ctrl.upload();
+
+    expect(local.read(tomogramControllerProvider(42)).drafts, isEmpty);
+    expect(local.read(tomogramControllerProvider(42)).uploading, isFalse);
+    expect(a.existsSync(), isFalse);
+    await local.read(tomogramHistoryProvider(42).future);
+    verify(() => historyApi.list(42)).called(2);
+    verify(() => labels.remember(any())).called(1);
+    sub.close();
+    historySub.close();
   });
 
   test('upload failure keeps drafts and files and rethrows', () async {

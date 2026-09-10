@@ -24,6 +24,9 @@ class MockMediaPickerService extends Mock implements MediaPickerService {}
 
 class MockTomogramHistoryApi extends Mock implements TomogramHistoryApi {}
 
+/// A device that cannot write its prefs: reading works, remembering does not.
+class ThrowingLabels extends Mock implements RecentLabelsRepository {}
+
 /// A queue whose staging never finishes until [gate] does, so a test can leave
 /// the screen mid-enqueue.
 class GatedQueue extends UploadQueueController {
@@ -96,6 +99,7 @@ void main() {
     Future<List<Shot>?> Function(BuildContext context)? onCapture,
     String Function()? uuid,
     UploadQueueController Function()? queue,
+    RecentLabelsRepository? labels,
     GlobalKey<HostState>? host,
   }) {
     final screen =
@@ -114,6 +118,7 @@ void main() {
           // The queue only runs for a signed-in user.
           accessTokenProvider.overrideWithValue('test-token'),
           if (queue != null) uploadQueueProvider.overrideWith(queue),
+          if (labels != null) recentLabelsRepositoryProvider.overrideWithValue(labels),
         ],
       );
   }
@@ -705,5 +710,33 @@ void main() {
     // The staging finished, so the label is remembered even though the screen
     // that started it is gone.
     expect(prefs.getStringList(RecentLabelsRepository.key), ['Left forearm']);
+  });
+
+  testWidgets('a prefs failure cannot fail a queueing that worked', (tester) async {
+    final labels = ThrowingLabels();
+    when(() => labels.read()).thenReturn(const []);
+    when(() => labels.remember(any())).thenThrow(Exception('prefs are full'));
+    when(() => api.upload(any(), any())).thenThrow(const CannotConnectFailure());
+    tallSurface(tester);
+    final shots = [Shot(path: jpeg('a.jpg').path, label: 'Left forearm')];
+    await pump(tester, uuid: ids(), labels: labels, onCapture: (_) async => shots);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take Photo'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Upload'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // The photos are in the queue, so the screen reports what happened and
+    // clears; only the suggestion row misses out.
+    expect(tester.takeException(), isNull);
+    expect(find.text('Saved offline. It will upload when the server is reachable.'), findsOneWidget);
+    expect(find.text('There is no tomogram added.'), findsOneWidget);
+    expect(queueOf(tester).single.files.map((f) => f.description), ['Left forearm']);
+    verify(() => labels.remember(any())).called(1);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
   });
 }

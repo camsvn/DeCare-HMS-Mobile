@@ -98,14 +98,17 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
       throw ApiFailure.from(e);
     }
     state = const TomogramState();
-    // These are the descriptions this device just used, so they lead the
-    // suggestions on the next patient. The repository trims, drops the blanks
-    // and dedupes.
-    await ref.read(recentLabelsProvider.notifier).remember(drafts.map((d) => d.description));
     // The patient now has one more uploaded set; drop the cached history so the
     // screen's history card reflects the upload.
     ref.invalidate(tomogramHistoryProvider(arg));
     await deleteFiles(drafts.map((d) => d.filePath));
+    // Last, and best-effort: these descriptions lead the suggestions on the
+    // next patient (the repository trims, drops the blanks and dedupes), but a
+    // device that cannot write its prefs must not turn a finished upload into a
+    // failure the user is asked to retry.
+    try {
+      await ref.read(recentLabelsProvider.notifier).remember(drafts.map((d) => d.description));
+    } catch (_) {}
   }
 }
 
