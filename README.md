@@ -18,6 +18,8 @@ labels are kept per device and offered across patients and sign-ins, so they are
 for body-site text ("Left forearm") — not anything that identifies a patient.
 Flutter port of the React Native `HMSUploader` app.
 
+Branding assets (launcher icon, splash, wordmark) and how to regenerate them: `docs/branding.md`.
+
 ## Requirements
 
 - Flutter 3.19.x (Dart 3.3). Run `flutter --version` to confirm.
@@ -47,7 +49,11 @@ Restore it afterwards, or the app will rotate out of portrait.
 
 ## Release
 
-1. Bump `version` in `pubspec.yaml` (`x.y.z+buildNumber`) before every release build.
+1. Bump `version` in `pubspec.yaml` before every release build. Versions are calendar-based:
+   `YYYY.M.N+build`, where `YYYY.M` is the release month, `N` counts releases within that
+   month starting at 1 (so the first September 2026 release is `2026.9.1`, a hotfix in the
+   same month `2026.9.2`), and `+build` is the Android version code, which only ever goes up
+   by one per release regardless of the date. The version name shows in Settings.
 2. Build the signed artifacts:
 
    ```bash
