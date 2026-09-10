@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/tomogram/application/description_suggestions.dart';
 import 'package:hms_uploader/features/tomogram/application/tomogram_controller.dart';
@@ -44,6 +45,22 @@ class _DraftPreviewScreenState extends ConsumerState<DraftPreviewScreen> {
     _drafts.updateDescription(draft.id, text);
   }
 
+  /// Asks before dropping a photo. The card's own delete never did, but there
+  /// it is a 28 dp icon in the corner of a thumbnail; here it is one of two
+  /// controls under a photo filling the screen, and the file goes with it.
+  Future<void> _remove(TomogramDraft draft) async {
+    final l10n = context.l10n;
+    final remove = await showDsDialog(
+      context,
+      title: l10n.captureRemoveTitle,
+      body: l10n.tomogramRemovePhotoBody,
+      confirmLabel: l10n.captureRemove,
+      destructive: true,
+    );
+    if (!remove || !mounted) return;
+    await _drafts.remove(draft.id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -73,9 +90,7 @@ class _DraftPreviewScreenState extends ConsumerState<DraftPreviewScreen> {
       ],
       initialIndex: widget.initialIndex,
       onEditCaption: (index) => _describe(drafts[index], suggestions),
-      // No question asked, as on the card: a draft is a photo the list is
-      // still assembling, and its delete has never confirmed.
-      onRemove: (index) => notifier.remove(drafts[index].id),
+      onRemove: (index) => _remove(drafts[index]),
     );
   }
 }

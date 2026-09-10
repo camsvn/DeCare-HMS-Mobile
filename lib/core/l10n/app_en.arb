@@ -60,6 +60,7 @@
   "tomogramChooseGallery": "Choose from Gallery",
   "tomogramTakePhoto": "Take Photo",
   "tomogramDescription": "Description",
+  "tomogramRemovePhotoBody": "It will be removed from this upload.",
   "tomogramSameAsPrevious": "Same as previous photo: {text}",
   "@tomogramSameAsPrevious": {"placeholders": {"text": {"type": "String"}}},
   "tomogramEmptyTitle": "There is no tomogram added.",

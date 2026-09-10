@@ -385,6 +385,12 @@ abstract class AppLocalizations {
   /// **'Description'**
   String get tomogramDescription;
 
+  /// No description provided for @tomogramRemovePhotoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will be removed from this upload.'**
+  String get tomogramRemovePhotoBody;
+
   /// No description provided for @tomogramSameAsPrevious.
   ///
   /// In en, this message translates to:

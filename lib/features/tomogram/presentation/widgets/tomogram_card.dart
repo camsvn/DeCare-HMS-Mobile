@@ -103,7 +103,11 @@ class _TomogramCardState extends State<TomogramCard> {
       button: true,
       label: l10n.tomogramCounter(widget.index + 1, widget.total),
       onTap: onTap,
-      child: GestureDetector(onTap: onTap, child: image),
+      child: InkWell(
+        borderRadius: DsRadius.smallAll,
+        onTap: onTap,
+        child: image,
+      ),
     );
   }
 
@@ -124,7 +128,14 @@ class _TomogramCardState extends State<TomogramCard> {
               Positioned(
                 left: DsSpace.x2,
                 top: DsSpace.x2,
-                child: DsChip(text: l10n.tomogramCounter(widget.index + 1, widget.total), mono: true),
+                // Seen, not heard: the photo it sits on is a button that
+                // already announces which of the set this is.
+                child: ExcludeSemantics(
+                  child: DsChip(
+                    text: l10n.tomogramCounter(widget.index + 1, widget.total),
+                    mono: true,
+                  ),
+                ),
               ),
               Positioned(
                 right: DsSpace.x2,

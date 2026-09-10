@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -196,6 +197,97 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(removed, [0]);
+    expect(find.byType(PhotoViewer), findsNothing);
+    expect(find.text('host'), findsOneWidget);
+  });
+
+  testWidgets('a list that was already empty takes the viewer straight back out', (tester) async {
+    // An owner whose last photo went while the route was still in flight: the
+    // viewer has no page to show and must not sit there showing nothing.
+    await open(tester, const []);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(PhotoViewer), findsNothing);
+    expect(find.text('host'), findsOneWidget);
+  });
+
+  testWidgets('an owner that pops the viewer first keeps the page underneath', (tester) async {
+    // Three routes deep, the way the real stack is (app shell, the list, the
+    // viewer): with only two, `canPop` is false while the viewer is leaving
+    // and a pop that trusted it would do no harm by luck.
+    list = ValueNotifier([photo('a.jpg')]);
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await pumpApp(
+      tester,
+      Builder(
+        builder: (root) => Center(
+          child: TextButton(
+            onPressed: () => Navigator.of(root).push(
+              MaterialPageRoute<void>(
+                builder: (owner) => Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(owner).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ValueListenableBuilder<List<ViewerPhoto>>(
+                          valueListenable: list,
+                          builder: (_, value, __) => PhotoViewer(
+                            photos: value,
+                            initialIndex: 0,
+                            onEditCaption: (_) async {},
+                            onRemove: (_) async {},
+                          ),
+                        ),
+                      ),
+                    ),
+                    child: const Text('owner'),
+                  ),
+                ),
+              ),
+            ),
+            child: const Text('root'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('root'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('owner'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PhotoViewer), findsOneWidget);
+
+    // The owner leaves first (an upload finished, say) and only then empties
+    // the list. A deferred pop that trusted `canPop` would take the owner's
+    // own page with it.
+    Navigator.of(tester.element(find.byType(PhotoViewer))).pop();
+    list.value = const [];
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PhotoViewer), findsNothing);
+    expect(find.text('owner'), findsOneWidget);
+  });
+
+  testWidgets('an empty list waits for what is above the viewer before popping', (tester) async {
+    await open(tester, [photo('a.jpg')], removeShortens: false);
+    // A confirm dialog is exactly what an owner puts up before removing.
+    unawaited(showDialog<void>(
+      context: tester.element(find.byType(PhotoViewer)),
+      builder: (_) => const AlertDialog(content: Text('sure?')),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('sure?'), findsOneWidget);
+
+    list.value = const [];
+    await tester.pumpAndSettle();
+
+    // Popping now would take the dialog and strand the viewer on a blank
+    // frame with no way out of it.
+    expect(find.text('sure?'), findsOneWidget);
+    expect(find.byType(PhotoViewer), findsOneWidget);
+
+    Navigator.of(tester.element(find.text('sure?'))).pop();
+    await tester.pumpAndSettle();
+
     expect(find.byType(PhotoViewer), findsNothing);
     expect(find.text('host'), findsOneWidget);
   });

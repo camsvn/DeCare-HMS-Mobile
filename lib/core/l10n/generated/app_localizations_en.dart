@@ -168,6 +168,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramDescription => 'Description';
 
   @override
+  String get tomogramRemovePhotoBody => 'It will be removed from this upload.';
+
+  @override
   String tomogramSameAsPrevious(String text) {
     return 'Same as previous photo: $text';
   }

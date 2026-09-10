@@ -98,6 +98,20 @@ class _PhotoViewerState extends State<PhotoViewer> {
   /// counter and the caption can be built without waiting for a scroll frame.
   late int _page = widget.initialIndex;
 
+  /// Whether the pop for an emptied list has already been asked for, so a
+  /// retry that has been waiting for the route to come back to the top does
+  /// not ask twice.
+  bool _popRequested = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // A list that was already empty when the viewer was pushed — an owner
+    // whose last photo went while the route was in flight. Checked after the
+    // frame, because there is no route to pop until there is one.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _popIfEmpty());
+  }
+
   @override
   void didUpdateWidget(PhotoViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -106,11 +120,7 @@ class _PhotoViewerState extends State<PhotoViewer> {
     if (count == 0) {
       // After the frame: a pop in the middle of the owner's build would be a
       // route change inside a layout pass.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        final navigator = Navigator.of(context);
-        if (navigator.canPop()) navigator.pop();
-      });
+      WidgetsBinding.instance.addPostFrameCallback((_) => _popIfEmpty());
       return;
     }
     if (_page < count) return;
@@ -131,9 +141,33 @@ class _PhotoViewerState extends State<PhotoViewer> {
     super.dispose();
   }
 
+  /// Leaves when there is nothing left to look at.
+  ///
+  /// Pops *this* route and only this one. `mounted` stays true all through an
+  /// exit transition, and `canPop` says nothing about what is on top, so a
+  /// deferred pop that trusted either would take the page underneath when the
+  /// owner had already popped the viewer itself — or land on the sheet or
+  /// dialog that is above it when the list empties. So: nothing unless this
+  /// route is the current one, and when it is not, ask again next frame. The
+  /// retry ends when the route reaches the top or the widget goes away with
+  /// it; an idle app schedules no frames, so it costs nothing while it waits.
+  void _popIfEmpty() {
+    if (_popRequested || !mounted || widget.photos.isNotEmpty) return;
+    final route = ModalRoute.of(context);
+    if (route == null) return;
+    if (!route.isCurrent) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _popIfEmpty());
+      return;
+    }
+    _popRequested = true;
+    Navigator.of(context).pop();
+  }
+
   /// The page to show. Clamped, because the rebuild that follows a removal can
-  /// arrive before the callback that steps the page back.
-  int get _index => _page.clamp(0, widget.photos.length - 1);
+  /// arrive before the callback that steps the page back — and zero for an
+  /// empty list, which is on its way out and has no page at all.
+  int get _index =>
+      widget.photos.isEmpty ? 0 : _page.clamp(0, widget.photos.length - 1);
 
   @override
   Widget build(BuildContext context) {

@@ -158,24 +158,53 @@ void main() {
     expect(drafts().single.description, 'Left forearm');
   });
 
-  testWidgets('the bin deletes the draft and moves on to the next', (tester) async {
+  testWidgets('the bin asks first, then deletes the draft and moves on', (tester) async {
     await open(tester, ['Left forearm', 'Right cheek', 'Scalp'], index: 1);
     final path = drafts()[1].filePath;
 
     await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
 
-    // No question, as on the card: a draft's delete has never asked.
+    // Full screen, the bin is one of two controls under the photo, and the
+    // file goes with the draft — so it asks.
+    expect(find.text('Remove this photo?'), findsOneWidget);
+    expect(find.text('It will be removed from this upload.'), findsOneWidget);
+    expect(drafts(), hasLength(3));
+
+    await tester.tap(find.descendant(
+      of: find.byType(Dialog),
+      matching: find.widgetWithText(DsButton, 'Remove'),
+    ));
+    await tester.pumpAndSettle();
+
     expect(drafts().map((d) => d.description), ['Left forearm', 'Scalp']);
     expect(File(path).existsSync(), isFalse);
     expect(find.text('2 of 2'), findsOneWidget);
     expect(captionText('Scalp'), findsOneWidget);
   });
 
+  testWidgets('declining the question leaves the draft alone', (tester) async {
+    await open(tester, ['Left forearm', 'Right cheek']);
+
+    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(DsButton, 'Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(drafts(), hasLength(2));
+    expect(drafts().every((d) => File(d.filePath).existsSync()), isTrue);
+    expect(find.text('1 of 2'), findsOneWidget);
+  });
+
   testWidgets('deleting the only draft leaves the viewer', (tester) async {
     await open(tester, ['Left forearm']);
 
     await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+      of: find.byType(Dialog),
+      matching: find.widgetWithText(DsButton, 'Remove'),
+    ));
     await tester.pumpAndSettle();
 
     expect(drafts(), isEmpty);
