@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 
+/// The smallest a thumb should have to hit. A chip is drawn smaller than this;
+/// its tap target is not.
+const double _chipTapTarget = 44;
+
 /// Descriptions worth offering, newest first, as a row of chips that fill a
 /// field when picked.
 ///
@@ -60,7 +64,16 @@ class SuggestionChips extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(DsRadius.full),
           onTap: () => onPick(suggestion),
-          child: DsChip(text: suggestion, onShell: onShell),
+          // A chip is a small thing to draw and a normal thing to hit: the
+          // target grows to 44 dp with the chip centred inside it.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _chipTapTarget),
+            child: Align(
+              widthFactor: 1,
+              heightFactor: 1,
+              child: DsChip(text: suggestion, onShell: onShell),
+            ),
+          ),
         ),
       );
 }

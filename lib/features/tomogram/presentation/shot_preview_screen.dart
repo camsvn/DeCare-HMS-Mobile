@@ -153,6 +153,11 @@ class _ShotPreviewScreenState extends ConsumerState<ShotPreviewScreen> {
 
   Widget _pages(List<Shot> shots) {
     final l10n = context.l10n;
+    // Decoded to the screen, not to the sensor: a 12 MP capture would put a
+    // 48 MB bitmap in the image cache per page, and the page is 1080-odd
+    // pixels wide.
+    final cacheWidth =
+        (MediaQuery.sizeOf(context).width * MediaQuery.devicePixelRatioOf(context)).round();
     return PageView.builder(
       controller: _controller,
       itemCount: shots.length,
@@ -169,6 +174,7 @@ class _ShotPreviewScreenState extends ConsumerState<ShotPreviewScreen> {
           // rather than re-decoding them into the wrong slots.
           key: ValueKey(shots[i].path),
           fit: BoxFit.contain,
+          cacheWidth: cacheWidth,
           // A file the camera wrote badly, or one the OS cleared: show the
           // gap, do not throw on the frame that is meant to reassure.
           errorBuilder: (context, _, __) => Center(

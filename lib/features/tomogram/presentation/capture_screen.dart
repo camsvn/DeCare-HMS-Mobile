@@ -221,14 +221,15 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     );
   }
 
-  /// Asks what the next shots are of. Cancelled, it leaves the session's
-  /// label as it was — which is not the same as clearing it.
-  Future<void> _openLabelSheet() async {
+  /// Asks what the next shots are of, offering [suggestions]. Cancelled, it
+  /// leaves the session's label as it was — which is not the same as clearing
+  /// it.
+  Future<void> _openLabelSheet(List<String> suggestions) async {
     if (_finishing) return;
     final label = await showLabelSheet(
       context,
       initial: ref.read(captureControllerProvider).label,
-      suggestions: ref.read(descriptionSuggestionsProvider(widget.opid)),
+      suggestions: suggestions,
     );
     if (label == null || !mounted) return;
     _capture.setLabel(label);
@@ -251,6 +252,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     final ds = context.ds;
     final l10n = context.l10n;
     final state = ref.watch(captureControllerProvider);
+    // Watched, not read on tap: the patient's history is a provider this
+    // screen depends on for as long as it is up, and reading an autoDispose
+    // provider nothing listens to schedules its disposal on the spot.
+    final suggestions = ref.watch(descriptionSuggestionsProvider(widget.opid));
 
     // Once, on the way into the cap: the shutter's disabled look says the rest.
     ref.listen(captureControllerProvider, (previous, next) {
@@ -278,7 +283,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
                   ],
                 ),
               ),
-              _panel(state),
+              _panel(state, suggestions),
             ],
           ),
         ),
@@ -359,7 +364,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     );
   }
 
-  Widget _panel(CaptureState state) {
+  Widget _panel(CaptureState state, List<String> suggestions) {
     final l10n = context.l10n;
     final shots = state.shots;
     return Padding(
@@ -372,7 +377,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
           // the way to the button that uses it.
           Align(
             alignment: Alignment.centerLeft,
-            child: LabelPill(label: state.label, onTap: () => unawaited(_openLabelSheet())),
+            child: LabelPill(
+              label: state.label,
+              onTap: () => unawaited(_openLabelSheet(suggestions)),
+            ),
           ),
           const SizedBox(height: DsSpace.x3),
           Row(

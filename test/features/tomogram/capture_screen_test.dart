@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -303,6 +304,52 @@ void main() {
     expect(find.bySemanticsLabel('2 of 2, Labelled Left forearm'), findsOneWidget);
 
     handle.dispose();
+  });
+
+  testWidgets('the label pill is a button a screen reader can actually press', (tester) async {
+    final handle = tester.ensureSemantics();
+    await open(tester);
+
+    final pill = tester.getSemantics(find.byType(LabelPill));
+    expect(pill.hasFlag(SemanticsFlag.isButton), isTrue);
+    // The node replaces everything under it, so the tap action has to be on
+    // the node itself: without it the reader is handed an inert button.
+    expect(pill.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+
+    // Through the render tree's own pipeline owner: the binding's getter for
+    // it is deprecated, and this is the same owner.
+    tester
+        .renderObject(find.byType(LabelPill))
+        .owner!
+        .semanticsOwner!
+        .performAction(pill.id, SemanticsAction.tap);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Label these photos'), findsOneWidget);
+
+    handle.dispose();
+  });
+
+  testWidgets('the label pill is a full-size tap target however small it draws', (tester) async {
+    await open(tester);
+
+    final pill = find.descendant(of: find.byType(LabelPill), matching: find.byType(InkWell));
+    expect(tester.getSize(pill).height, greaterThanOrEqualTo(44));
+    // The pill itself still draws at its own size inside that target.
+    expect(tester.getSize(find.descendant(of: find.byType(LabelPill), matching: find.byType(Row)))
+        .height, lessThan(44));
+  });
+
+  testWidgets('a suggestion chip is a full-size tap target', (tester) async {
+    suggestions = ['Scalp'];
+    await open(tester);
+    await openLabelSheet(tester);
+
+    final inChips = find.descendant(of: find.byType(SuggestionChips), matching: find.byType(InkWell));
+    expect(tester.getSize(inChips).height, greaterThanOrEqualTo(44));
+    // The chip is still drawn chip-sized inside that target.
+    final chip = find.descendant(of: find.byType(SuggestionChips), matching: find.byType(DsChip));
+    expect(tester.getSize(chip).height, lessThan(44));
   });
 
   testWidgets('Clear label is offered only once a label is set, and clears it', (tester) async {

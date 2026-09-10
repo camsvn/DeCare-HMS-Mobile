@@ -78,6 +78,52 @@ void main() {
     expect(scrim.value, DsColors.light.scrim.withOpacity(0.45).value);
   });
 
+  testWidgets('lifts its content clear of the soft keyboard', (tester) async {
+    // A sheet used to sit *behind* the keyboard: anything with a field in it
+    // put the field, and often the buttons, under the glass.
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.reset);
+    await pumpOpener(tester, (_) {});
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    // The last item's bottom clears the keyboard's top edge.
+    expect(tester.getRect(find.text('gallery')).bottom, lessThanOrEqualTo(500));
+    expect(tester.getRect(find.text('camera')).top, greaterThanOrEqualTo(0));
+  });
+
+  testWidgets('a sheet taller than its cap scrolls instead of overflowing', (tester) async {
+    // The view, not `setSurfaceSize`: the cap is read off `MediaQuery`, which
+    // reports the view's own size rather than the test surface's.
+    tester.view.physicalSize = const Size(400, 400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await pumpApp(
+      tester,
+      Builder(
+        builder: (context) => TextButton(
+          onPressed: () => showDsSheet<void>(
+            context,
+            builder: (_) => [for (var i = 0; i < 20; i++) ListTile(title: Text('row $i'))],
+          ),
+          child: const Text('open'),
+        ),
+      ),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    // Capped at 9/16 of the screen, with the rest reachable by scrolling.
+    final sheet = tester.getRect(find.byType(BottomSheet));
+    expect(sheet.height, lessThanOrEqualTo(400 * dsSheetMaxHeightFactor + 1));
+    final scrollable = find.descendant(of: find.byType(BottomSheet), matching: find.byType(Scrollable));
+    expect(tester.state<ScrollableState>(scrollable.first).position.maxScrollExtent, greaterThan(0));
+  });
+
   testWidgets('dims — never hazes — the screen behind it on the dark palette', (tester) async {
     await pumpOpener(tester, (_) {}, themeMode: ThemeMode.dark);
     await tester.tap(find.text('open'));

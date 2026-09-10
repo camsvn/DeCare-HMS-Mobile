@@ -123,6 +123,22 @@ void main() {
     expect(results, ['Scalp']);
   });
 
+  testWidgets('the field stays above the soft keyboard it opens', (tester) async {
+    // The sheet is autofocused, so the keyboard is up on its first frame:
+    // a field behind the glass would make the whole sheet useless.
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    addTearDown(tester.view.reset);
+    await open(tester, suggestions: const ['Scalp']);
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(tester.getRect(find.byType(TextField)).bottom, lessThanOrEqualTo(500));
+    // And so does the button that closes it.
+    expect(tester.getRect(find.widgetWithText(DsButton, 'Use label')).bottom, lessThanOrEqualTo(500));
+  });
+
   testWidgets('no suggestions, no suggestion row', (tester) async {
     await open(tester);
 
