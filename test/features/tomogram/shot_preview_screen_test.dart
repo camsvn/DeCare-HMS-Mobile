@@ -110,6 +110,11 @@ void main() {
   Finder dialogRemove() =>
       find.descendant(of: find.byType(Dialog), matching: find.widgetWithText(DsButton, 'Remove'));
 
+  /// The caption row under the photo: the label, and the way to change it.
+  Finder caption() => find.byKey(shotPreviewLabelKey);
+
+  Finder removeButton() => find.widgetWithText(DsButton, 'Remove');
+
   testWidgets('opens on the shot it was asked for and swipes through the set', (tester) async {
     await open(tester, index: 1);
 
@@ -127,18 +132,62 @@ void main() {
     expect(find.text('2 of 3'), findsOneWidget);
   });
 
-  testWidgets('the label the shot was taken under is shown under the counter', (tester) async {
+  testWidgets('the label the shot was taken under captions the photo', (tester) async {
     final handle = tester.ensureSemantics();
     await open(tester, count: 1, label: 'Left forearm');
 
     expect(find.text('1 of 1'), findsOneWidget);
-    expect(find.byKey(shotPreviewLabelKey), findsOneWidget);
+    expect(caption(), findsOneWidget);
     expect(find.text('Left forearm'), findsOneWidget);
+    expect(find.descendant(of: caption(), matching: find.text('Left forearm')), findsOneWidget);
     // The photo itself says which one it is, for a reader that never reaches
-    // the chip above it.
+    // the caption below it.
     expect(find.bySemanticsLabel('1 of 1, Labelled Left forearm'), findsOneWidget);
 
     handle.dispose();
+  });
+
+  testWidgets('the caption is a full-width row under the image, above Remove', (tester) async {
+    await open(tester, count: 1, label: 'Left forearm');
+
+    // Read as a caption, not as metadata beside the counter: the whole width
+    // of the screen, directly under the photo.
+    expect(tester.getSize(caption()).width, 400);
+    expect(tester.getTopLeft(caption()).dx, 0);
+    expect(tester.getBottomLeft(find.byType(PageView)).dy, tester.getTopLeft(caption()).dy);
+    // Remove sits below it, at the right-hand end.
+    expect(tester.getTopLeft(removeButton()).dy, greaterThan(tester.getBottomLeft(caption()).dy));
+    expect(tester.getTopRight(removeButton()).dx, closeTo(400 - DsSpace.gutter, 0.5));
+  });
+
+  testWidgets('the header carries the close button and the counter, nothing else', (tester) async {
+    await open(tester, count: 1, label: 'Left forearm');
+
+    final header = find.ancestor(
+      of: find.byTooltip('Close'),
+      matching: find.byType(Row),
+    );
+    expect(find.descendant(of: header.first, matching: find.text('1 of 1')), findsOneWidget);
+    // The label used to sit up here, cramped under the counter.
+    expect(find.descendant(of: header.first, matching: find.text('Left forearm')), findsNothing);
+    expect(find.descendant(of: header.first, matching: caption()), findsNothing);
+  });
+
+  testWidgets('a description too long for one line wraps to two rather than overflowing',
+      (tester) async {
+    final long = 'Left forearm, lateral aspect, ${'x' * 90}';
+    expect(long.length, greaterThanOrEqualTo(120));
+    await open(tester, count: 1, label: long);
+
+    expect(tester.takeException(), isNull);
+    final text = tester.widget<Text>(find.descendant(of: caption(), matching: find.byType(Text)));
+    expect(text.maxLines, 2);
+    expect(text.overflow, TextOverflow.ellipsis);
+    // Two lines of body text and its padding, and no more: the caption grows,
+    // the photo above it gives up the room.
+    final height = tester.getSize(caption()).height;
+    expect(height, greaterThan(44));
+    expect(height, lessThan(100));
   });
 
   testWidgets('an unlabelled shot offers to be labelled', (tester) async {
@@ -146,25 +195,26 @@ void main() {
     await open(tester, count: 1);
 
     expect(find.text('1 of 1'), findsOneWidget);
-    // The line does not disappear when there is no label: it is the offer to
-    // add one, which is half of what the preview is for.
-    expect(find.byKey(shotPreviewLabelKey), findsOneWidget);
-    expect(find.text('Add a label'), findsOneWidget);
+    // The caption does not disappear when there is no label: it is the offer
+    // to add one, which is half of what the preview is for.
+    expect(caption(), findsOneWidget);
+    expect(find.descendant(of: caption(), matching: find.text('Add a label')), findsOneWidget);
 
-    final chip = tester.getSemantics(find.byKey(shotPreviewLabelKey));
-    expect(chip.hasFlag(SemanticsFlag.isButton), isTrue);
-    expect(chip.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
-    // Small as it draws, it is still a thumb-sized target.
-    expect(tester.getSize(find.byKey(shotPreviewLabelKey)).height, greaterThanOrEqualTo(44));
+    final row = tester.getSemantics(caption());
+    expect(row.label, 'Add a label');
+    expect(row.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(row.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+    // Whatever it draws, the whole row is a thumb-sized target.
+    expect(tester.getSize(caption()).height, greaterThanOrEqualTo(44));
 
     handle.dispose();
   });
 
-  testWidgets('the label chip relabels only the shot on screen', (tester) async {
+  testWidgets('the caption relabels only the shot on screen', (tester) async {
     await open(tester, index: 1, label: 'Left forearm');
     final paths = shots().map((s) => s.path).toList();
 
-    await tester.tap(find.byKey(shotPreviewLabelKey));
+    await tester.tap(caption());
     await tester.pumpAndSettle();
 
     // Prefilled with what this shot already says, so a correction is a few
@@ -185,10 +235,10 @@ void main() {
     expect(container.read(captureControllerProvider).label, 'Left forearm');
   });
 
-  testWidgets('the label chip adds a label to a shot taken without one', (tester) async {
+  testWidgets('the caption adds a label to a shot taken without one', (tester) async {
     await open(tester, count: 2);
 
-    await tester.tap(find.byKey(shotPreviewLabelKey));
+    await tester.tap(caption());
     await tester.pumpAndSettle();
 
     expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, isEmpty);
@@ -205,7 +255,7 @@ void main() {
   testWidgets('Clear takes the label off the shot', (tester) async {
     await open(tester, count: 1, label: 'Left forearm');
 
-    await tester.tap(find.byKey(shotPreviewLabelKey));
+    await tester.tap(caption());
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(DsButton, 'Clear label'));
     await tester.pumpAndSettle();
@@ -217,7 +267,7 @@ void main() {
   testWidgets('cancelling the sheet leaves the label as it was', (tester) async {
     await open(tester, count: 1, label: 'Left forearm');
 
-    await tester.tap(find.byKey(shotPreviewLabelKey));
+    await tester.tap(caption());
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), 'Scalp');
     await tester.tap(find.widgetWithText(DsButton, 'Cancel'));
@@ -229,7 +279,7 @@ void main() {
   testWidgets("the patient's own narrations are offered in the sheet", (tester) async {
     await open(tester, count: 1, narrations: ['Right cheek']);
 
-    await tester.tap(find.byKey(shotPreviewLabelKey));
+    await tester.tap(caption());
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(DsChip, 'Right cheek'), findsOneWidget);

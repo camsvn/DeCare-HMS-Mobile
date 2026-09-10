@@ -10,15 +10,14 @@ import 'package:hms_uploader/features/tomogram/application/description_suggestio
 import 'package:hms_uploader/features/tomogram/data/shot.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/label_sheet.dart';
 
-/// The label chip under the counter: this shot's description, or the offer to
-/// give it one. Keyed so a test can tap it and tell it from the counter.
+/// The caption under the photo: this shot's description, or the offer to give
+/// it one. Keyed so a test can tap it and tell it from the counter.
 @visibleForTesting
 const Key shotPreviewLabelKey = Key('shot-preview-label');
 
-/// The chip's icon side, and the thumb-sized box it sits in. Same bargain as
-/// the capture screen's pill: drawn small, hit big.
-const double _chipIconSize = 16;
-const double _chipTapTarget = 44;
+/// The caption's icon side, and the thumb-sized row it sits in.
+const double _captionIconSize = 18;
+const double _captionTapTarget = 44;
 
 /// One capture session's shots, full screen, swipeable.
 ///
@@ -116,14 +115,20 @@ class _ShotPreviewScreenState extends ConsumerState<ShotPreviewScreen> {
           : SafeArea(
               child: Column(
                 children: [
-                  _header(shots, suggestions),
+                  _header(shots),
+                  // The photo gives up the room: a two-line caption is worth
+                  // more than the last few pixels of a letterboxed frame.
                   Expanded(child: _pages(shots)),
+                  _caption(shots[_index(shots)], suggestions),
                   Padding(
-                    padding: const EdgeInsets.all(DsSpace.x4),
-                    child: DsButton.destructive(
-                      label: l10n.captureRemove,
-                      expand: false,
-                      onPressed: () => unawaited(_remove(shots[_index(shots)].path)),
+                    padding: const EdgeInsets.all(DsSpace.gutter),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: DsButton.destructive(
+                        label: l10n.captureRemove,
+                        expand: false,
+                        onPressed: () => unawaited(_remove(shots[_index(shots)].path)),
+                      ),
                     ),
                   ),
                 ],
@@ -136,10 +141,12 @@ class _ShotPreviewScreenState extends ConsumerState<ShotPreviewScreen> {
   /// arrive before the listener that steps the page back.
   int _index(List<Shot> shots) => _page.clamp(0, shots.length - 1);
 
-  Widget _header(List<Shot> shots, List<String> suggestions) {
+  /// Close on the left, which page this is on the right. Nothing else: the
+  /// label used to sit in here too, where it read as metadata about the photo
+  /// rather than as the caption it is.
+  Widget _header(List<Shot> shots) {
     final ds = context.ds;
     final l10n = context.l10n;
-    final shot = shots[_index(shots)];
     return Padding(
       padding: const EdgeInsets.all(DsSpace.x2),
       child: Row(
@@ -151,16 +158,13 @@ class _ShotPreviewScreenState extends ConsumerState<ShotPreviewScreen> {
             onPressed: () => Navigator.of(context).pop(),
           ),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DsChip(
-                  text: l10n.tomogramCounter(_index(shots) + 1, shots.length),
-                  mono: true,
-                  onShell: true,
-                ),
-                _labelChip(shot, suggestions),
-              ],
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: DsChip(
+                text: l10n.tomogramCounter(_index(shots) + 1, shots.length),
+                mono: true,
+                onShell: true,
+              ),
             ),
           ),
         ],
@@ -168,10 +172,13 @@ class _ShotPreviewScreenState extends ConsumerState<ShotPreviewScreen> {
     );
   }
 
-  /// This shot's description, as a chip that opens the sheet: the preview is
-  /// where a photo is looked at, so it is where a wrong or missing label gets
-  /// fixed — for this shot only, not for the session.
-  Widget _labelChip(Shot shot, List<String> suggestions) {
+  /// This shot's description, as a caption across the foot of the photo: the
+  /// preview is where a photo is looked at, so it is where a wrong or missing
+  /// label gets fixed — for this shot only, not for the session.
+  ///
+  /// Full width and two lines deep, because a description is a phrase and the
+  /// chip this used to be truncated most of them.
+  Widget _caption(Shot shot, List<String> suggestions) {
     final ds = context.ds;
     final type = context.dsType;
     final l10n = context.l10n;
@@ -184,37 +191,34 @@ class _ShotPreviewScreenState extends ConsumerState<ShotPreviewScreen> {
       label: text,
       onTap: () => unawaited(_relabel(shot, suggestions)),
       excludeSemantics: true,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(DsRadius.full),
-        onTap: () => unawaited(_relabel(shot, suggestions)),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: _chipTapTarget),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            widthFactor: 1,
-            heightFactor: 1,
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: DsSpace.x1),
-              padding: const EdgeInsets.symmetric(horizontal: DsSpace.x2, vertical: DsSpace.x1),
-              decoration: BoxDecoration(
-                color: ds.shellRaised,
-                borderRadius: BorderRadius.circular(DsRadius.full),
+      child: ColoredBox(
+        color: ds.shell,
+        child: InkWell(
+          onTap: () => unawaited(_relabel(shot, suggestions)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: _captionTapTarget),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DsSpace.gutter,
+                vertical: DsSpace.x3,
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
+                // The mark stays on the caption's first line rather than
+                // floating to the middle of a two-line description.
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     empty ? Icons.label_outline : Icons.edit_outlined,
-                    size: _chipIconSize,
-                    color: empty ? ds.textOnShellMuted : ds.accentSolid,
+                    size: _captionIconSize,
+                    color: ds.textOnShellMuted,
                   ),
-                  const SizedBox(width: DsSpace.x2),
-                  Flexible(
+                  const SizedBox(width: DsSpace.x3),
+                  Expanded(
                     child: Text(
                       text,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: type.label.withColor(empty ? ds.textOnShellMuted : ds.textOnShell),
+                      style: type.body.withColor(empty ? ds.textOnShellMuted : ds.textOnShell),
                     ),
                   ),
                 ],

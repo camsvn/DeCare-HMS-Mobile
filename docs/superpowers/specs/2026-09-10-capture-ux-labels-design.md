@@ -83,9 +83,14 @@ button semantics, tooltip "Clear label" (`captureLabelClear`, reused from the sh
 nothing in particular" is one thought. The text half still opens the sheet. Both halves are inert
 while Done is handing the shots over, like everything else on that screen.
 
-**The preview relabels one shot.** The label line under the counter is now a chip-styled button
-(`shotPreviewLabelKey`), always present: this shot's description, or "Add a label"
-(`captureAddLabel`, kept for exactly this) with `Icons.label_outline` when it has none. It opens the
+**The preview relabels one shot.** The label is a full-width caption row directly under the photo
+(`shotPreviewLabelKey`), always present: this shot's description in `type.body`, or "Add a label"
+(`captureAddLabel`, kept for exactly this) muted, with a leading `Icons.edit_outlined` when it has
+one and `Icons.label_outline` when it does not. The whole row is the button, two lines deep and
+ellipsised, and the image area is `Expanded` above it so the photo gives up the room a long
+description needs — as a chip beside the counter it read as metadata about the photo rather than as
+its caption, and truncated most real descriptions. The header keeps only the close button and the
+mono counter, and Remove stays a compact destructive button, right-aligned under the caption. It opens the
 same label sheet, prefilled with the shot's own label and offering the same suggestions
 (`descriptionSuggestionsProvider(opid)` — so `ShotPreviewScreen` now takes `opid`, passed from
 `CaptureScreen`). A result goes to `CaptureController.relabel(path, label)`, which trims and sets
