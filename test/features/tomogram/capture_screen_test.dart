@@ -11,6 +11,10 @@ import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import '../../helpers/fake_camera_service.dart';
 import '../../helpers/pump_app.dart';
 
+/// The OP number the screen is opened for: the label sheet's suggestions are
+/// this patient's.
+const int _opid = 581;
+
 void main() {
   late Directory dir;
   late FakeCameraService fake;
@@ -18,10 +22,15 @@ void main() {
   /// What the pushed screen popped with, one entry per completed push.
   late List<List<Shot>?> results;
 
+  /// What `descriptionSuggestionsProvider` offers for [_opid]. Set before
+  /// [open], which is where the override is installed.
+  late List<String> suggestions;
+
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('capture_screen');
     fake = FakeCameraService(dir: dir);
     results = [];
+    suggestions = [];
   });
 
   tearDown(() async {
@@ -40,14 +49,19 @@ void main() {
           child: TextButton(
             onPressed: () async => results.add(
               await Navigator.of(context).push<List<Shot>>(
-                MaterialPageRoute(builder: (_) => const CaptureScreen()),
+                MaterialPageRoute(builder: (_) => const CaptureScreen(opid: _opid)),
               ),
             ),
             child: const Text('open'),
           ),
         ),
       ),
-      overrides: [cameraServiceProvider.overrideWithValue(fake)],
+      overrides: [
+        cameraServiceProvider.overrideWithValue(fake),
+        // The real one reaches for the patient's upload history over the
+        // network; what the sheet does with the list is what is under test.
+        descriptionSuggestionsProvider(_opid).overrideWithValue(suggestions),
+      ],
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
@@ -66,6 +80,20 @@ void main() {
   List<Shot> shotsOf(WidgetTester tester) => stateOf(tester).shots;
 
   Finder thumbnails() => find.descendant(of: find.byType(ShotStrip), matching: find.byType(Image));
+
+  /// Opens the label sheet from the pill and types [type] into it, without
+  /// committing: each test finishes the sheet its own way.
+  Future<void> openLabelSheet(WidgetTester tester, {String? type}) async {
+    await tester.tap(find.byType(LabelPill));
+    await tester.pumpAndSettle();
+    if (type != null) await tester.enterText(find.byType(TextField), type);
+  }
+
+  Future<void> setLabel(WidgetTester tester, String label) async {
+    await openLabelSheet(tester, type: label);
+    await tester.tap(find.widgetWithText(DsButton, 'Use label'));
+    await tester.pumpAndSettle();
+  }
 
   List<String> filesOnDisk() => dir.listSync().whereType<File>().map((f) => f.path).toList()..sort();
 
@@ -176,7 +204,11 @@ void main() {
 
     await tester.tap(thumbnails());
     await pumpDialogIn();
-    expect(find.text('Remove this photo?'), findsNothing);
+    expect(find.byType(ShotPreviewScreen), findsNothing);
+
+    await tester.tap(find.byType(LabelPill));
+    await pumpDialogIn();
+    expect(find.text('Label these photos'), findsNothing);
 
     expect(find.byType(CaptureScreen), findsOneWidget);
 
@@ -188,23 +220,124 @@ void main() {
     expect(shots.every((s) => File(s.path).existsSync()), isTrue);
   });
 
-  testWidgets('tapping a thumbnail asks, then removes it and deletes the file', (tester) async {
+  testWidgets('tapping a thumbnail previews that shot rather than offering to remove it', (tester) async {
+    await open(tester);
+    await shoot(tester, times: 3);
+    // Read before the push: the preview is opaque, so the capture screen
+    // under it is off stage and its container out of reach.
+    final shots = shotsOf(tester);
+
+    await tester.tap(thumbnails().at(1));
+    await tester.pumpAndSettle();
+
+    // A tap on a photo used to ask whether to delete it, which is not what a
+    // thumbnail looks like it does. It opens the photo.
+    expect(find.byType(ShotPreviewScreen), findsOneWidget);
+    expect(find.text('2 of 3'), findsOneWidget);
+    expect(find.text('Remove this photo?'), findsNothing);
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ShotPreviewScreen), findsNothing);
+    expect(find.byType(CaptureScreen), findsOneWidget);
+    expect(shotsOf(tester), shots);
+    expect(results, isEmpty);
+  });
+
+  testWidgets('Done is a compact pill, disabled until there is something to hand over', (tester) async {
+    await open(tester);
+    final done = find.widgetWithText(DsButton, 'Done');
+
+    // It used to fill half the row, which read as the screen's main action
+    // when the shutter is.
+    expect(tester.widget<DsButton>(done).expand, isFalse);
+    expect(tester.getSize(done).width, lessThan(200));
+    expect(tester.getSize(done).height, 40);
+    expect(tester.widget<DsButton>(done).onPressed, isNull);
+    // Done sits at the right end of the row, the label pill on the left edge
+    // of the panel above it.
+    expect(tester.getTopRight(done).dx, closeTo(400 - DsSpace.x3, 0.5));
+    expect(tester.getTopLeft(find.byType(LabelPill)).dx, closeTo(DsSpace.x3, 0.5));
+
+    await shoot(tester);
+
+    expect(tester.widget<DsButton>(done).onPressed, isNotNull);
+  });
+
+  testWidgets('a label set on the pill rides along with the shots taken after it', (tester) async {
+    final handle = tester.ensureSemantics();
+    await open(tester);
+    expect(find.text('Add a label'), findsOneWidget);
+    expect(find.bySemanticsLabel('Add a label'), findsOneWidget);
+
+    await setLabel(tester, 'Left forearm');
+
+    expect(find.text('Add a label'), findsNothing);
+    expect(find.text('Left forearm'), findsOneWidget);
+    // The pill shows the label; a reader is told it *is* the label.
+    expect(find.bySemanticsLabel('Labelled Left forearm'), findsOneWidget);
+
+    await shoot(tester, times: 2);
+    await tester.tap(find.widgetWithText(DsButton, 'Done'));
+    await tester.pumpAndSettle();
+
+    expect(results.single, hasLength(2));
+    expect(results.single!.every((s) => s.label == 'Left forearm'), isTrue);
+
+    handle.dispose();
+  });
+
+  testWidgets('a labelled shot is tagged in the strip and says so', (tester) async {
+    final handle = tester.ensureSemantics();
     await open(tester);
     await shoot(tester);
-    final path = shotsOf(tester).single.path;
+    expect(find.byKey(shotTagDotKey), findsNothing);
 
-    await tester.tap(thumbnails());
+    await setLabel(tester, 'Left forearm');
+    await shoot(tester);
+
+    // Only the second shot was taken under the label, so only it is tagged.
+    expect(find.byKey(shotTagDotKey), findsOneWidget);
+    expect(find.bySemanticsLabel('1 of 2'), findsOneWidget);
+    expect(find.bySemanticsLabel('2 of 2, Labelled Left forearm'), findsOneWidget);
+
+    handle.dispose();
+  });
+
+  testWidgets('Clear label is offered only once a label is set, and clears it', (tester) async {
+    await open(tester);
+
+    await openLabelSheet(tester);
+    expect(find.text('Clear label'), findsNothing);
+    await tester.tap(find.widgetWithText(DsButton, 'Cancel'));
     await tester.pumpAndSettle();
-    expect(find.text('Remove this photo?'), findsOneWidget);
-    expect(find.text('It has not been added yet and will be deleted.'), findsOneWidget);
+    expect(stateOf(tester).label, isEmpty);
 
-    await tester.tap(find.widgetWithText(DsButton, 'Remove'));
+    await setLabel(tester, 'Left forearm');
+    await openLabelSheet(tester);
+
+    expect(find.text('Clear label'), findsOneWidget);
+    await tester.tap(find.widgetWithText(DsButton, 'Clear label'));
     await tester.pumpAndSettle();
 
-    expect(thumbnails(), findsNothing);
-    expect(find.text('No photos yet'), findsOneWidget);
-    expect(File(path).existsSync(), isFalse);
-    expect(results, isEmpty);
+    expect(stateOf(tester).label, isEmpty);
+    expect(find.text('Add a label'), findsOneWidget);
+  });
+
+  testWidgets('the patient\'s own descriptions are offered as suggestions', (tester) async {
+    suggestions = ['Left forearm', 'Scalp'];
+    await open(tester);
+
+    await openLabelSheet(tester);
+    expect(find.widgetWithText(DsChip, 'Left forearm'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(DsChip, 'Scalp'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(DsButton, 'Use label'));
+    await tester.pumpAndSettle();
+
+    expect(stateOf(tester).label, 'Scalp');
   });
 
   testWidgets('closing with shots asks to discard, deletes the files and pops with null', (tester) async {

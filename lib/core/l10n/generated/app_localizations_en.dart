@@ -249,6 +249,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramHistoryNoNarration => 'No description';
 
   @override
+  String get tomogramSuggestions => 'Suggestions';
+
+  @override
   String get tomogramQueued => 'Saved offline. It will upload when the server is reachable.';
 
   @override
@@ -310,6 +313,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String captureLimit(int limit) {
     return 'Up to $limit photos per session';
+  }
+
+  @override
+  String get captureAddLabel => 'Add a label';
+
+  @override
+  String get captureLabelTitle => 'Label these photos';
+
+  @override
+  String get captureLabelHint => 'e.g. Left forearm';
+
+  @override
+  String get captureLabelUse => 'Use label';
+
+  @override
+  String get captureLabelClear => 'Clear label';
+
+  @override
+  String captureLabelled(String label) {
+    return 'Labelled $label';
   }
 
   @override

@@ -34,12 +34,16 @@ export 'data/tomogram_set.dart';
 export 'data/upload_result.dart';
 export 'presentation/capture_screen.dart';
 export 'presentation/permission_screen.dart';
+export 'presentation/shot_preview_screen.dart';
 export 'presentation/tomogram_screen.dart';
+export 'presentation/widgets/label_pill.dart';
+export 'presentation/widgets/label_sheet.dart';
 export 'presentation/widgets/pending_line.dart';
 export 'presentation/widgets/pending_uploads_sheet.dart';
 export 'presentation/widgets/recent_count_badge.dart';
 export 'presentation/widgets/shot_strip.dart';
 export 'presentation/widgets/shutter_button.dart';
+export 'presentation/widgets/suggestion_chips.dart';
 export 'presentation/widgets/tomogram_history_card.dart';
 
 /// `/app/tomogram/:opid/capture`, nested under the tomogram screen it hands
@@ -48,7 +52,10 @@ export 'presentation/widgets/tomogram_history_card.dart';
 final GoRoute captureRoute = GoRoute(
   path: RoutePaths.capturePattern,
   parentNavigatorKey: rootNavigatorKey,
-  pageBuilder: (context, state) => FadeThroughPage(key: state.pageKey, child: const CaptureScreen()),
+  pageBuilder: (context, state) {
+    final opid = int.tryParse(state.pathParameters['opid'] ?? '') ?? 0;
+    return FadeThroughPage(key: state.pageKey, child: CaptureScreen(opid: opid));
+  },
 );
 
 /// `/app/tomogram/:opid`, nested under the module entry route.

@@ -499,6 +499,12 @@ abstract class AppLocalizations {
   /// **'No description'**
   String get tomogramHistoryNoNarration;
 
+  /// No description provided for @tomogramSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggestions'**
+  String get tomogramSuggestions;
+
   /// No description provided for @tomogramQueued.
   ///
   /// In en, this message translates to:
@@ -588,6 +594,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Up to {limit} photos per session'**
   String captureLimit(int limit);
+
+  /// No description provided for @captureAddLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a label'**
+  String get captureAddLabel;
+
+  /// No description provided for @captureLabelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Label these photos'**
+  String get captureLabelTitle;
+
+  /// No description provided for @captureLabelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Left forearm'**
+  String get captureLabelHint;
+
+  /// No description provided for @captureLabelUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use label'**
+  String get captureLabelUse;
+
+  /// No description provided for @captureLabelClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear label'**
+  String get captureLabelClear;
+
+  /// No description provided for @captureLabelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Labelled {label}'**
+  String captureLabelled(String label);
 
   /// No description provided for @queueTitle.
   ///

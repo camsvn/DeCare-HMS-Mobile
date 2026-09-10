@@ -9,7 +9,11 @@ import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/tomogram/application/camera_service.dart';
 import 'package:hms_uploader/features/tomogram/application/capture_controller.dart';
+import 'package:hms_uploader/features/tomogram/application/description_suggestions.dart';
 import 'package:hms_uploader/features/tomogram/data/shot.dart';
+import 'package:hms_uploader/features/tomogram/presentation/shot_preview_screen.dart';
+import 'package:hms_uploader/features/tomogram/presentation/widgets/label_pill.dart';
+import 'package:hms_uploader/features/tomogram/presentation/widgets/label_sheet.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/shot_strip.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/shutter_button.dart';
 
@@ -24,6 +28,11 @@ const double _flashPeak = 0.8;
 /// The preview is scaled to cover, so only its ratio matters; this is the
 /// height of the box the ratio is applied to.
 const double _previewBox = 1000;
+
+/// Done's height. Below the button scale's 44 on purpose: it is the row's
+/// second control, and at full size beside the shutter it read as the
+/// screen's main action.
+const double _doneHeight = 40;
 
 /// One focus tap: where it landed and which tap it was, so that two taps on
 /// the same pixel are still two taps.
@@ -63,7 +72,11 @@ Offset coverTapToFrame(Offset local, Size area, double aspectRatio) {
 /// Pops with the captured shots in capture order, or with `null` when the
 /// session is abandoned (close or back, after confirming the discard).
 class CaptureScreen extends ConsumerStatefulWidget {
-  const CaptureScreen({super.key});
+  const CaptureScreen({super.key, required this.opid});
+
+  /// Whose photos these are. Only the label sheet needs it, for the
+  /// descriptions this patient's own uploads have used before.
+  final int opid;
 
   @override
   ConsumerState<CaptureScreen> createState() => _CaptureScreenState();
@@ -188,18 +201,37 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     if (mounted) _pop(null);
   }
 
-  Future<void> _confirmRemove(String path) async {
+  /// Opens the shot at [index] full screen. A photo is something to look at
+  /// before deciding about it; removing it lives in there.
+  void _openPreview(int index) {
     if (_finishing) return;
-    final l10n = context.l10n;
-    final remove = await showDsDialog(
-      context,
-      title: l10n.captureRemoveTitle,
-      body: l10n.captureRemoveBody,
-      confirmLabel: l10n.captureRemove,
-      destructive: true,
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        opaque: true,
+        transitionDuration: DsMotion.of(context, DsMotion.base),
+        reverseTransitionDuration: DsMotion.of(context, DsMotion.base),
+        pageBuilder: (_, __, ___) => ShotPreviewScreen(initialIndex: index),
+        // A fade, not a slide: the preview is the same photo the thumbnail
+        // was showing, made big.
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+      ),
     );
-    if (!remove || !mounted) return;
-    await _capture.remove(path);
+  }
+
+  /// Asks what the next shots are of. Cancelled, it leaves the session's
+  /// label as it was — which is not the same as clearing it.
+  Future<void> _openLabelSheet() async {
+    if (_finishing) return;
+    final label = await showLabelSheet(
+      context,
+      initial: ref.read(captureControllerProvider).label,
+      suggestions: ref.read(descriptionSuggestionsProvider(widget.opid)),
+    );
+    if (label == null || !mounted) return;
+    _capture.setLabel(label);
   }
 
   Future<void> _toggleTorch() async {
@@ -334,11 +366,15 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
       padding: const EdgeInsets.all(DsSpace.x3),
       child: Column(
         children: [
-          ShotStrip(
-            paths: [for (final shot in shots) shot.path],
-            onTap: (path) => unawaited(_confirmRemove(path)),
-          ),
+          ShotStrip(shots: shots, onTap: _openPreview),
           if (shots.isNotEmpty) const SizedBox(height: DsSpace.x3),
+          // Above the shutter row and left-aligned, so the label is read on
+          // the way to the button that uses it.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: LabelPill(label: state.label, onTap: () => unawaited(_openLabelSheet())),
+          ),
+          const SizedBox(height: DsSpace.x3),
           Row(
             children: [
               Expanded(
@@ -357,8 +393,9 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
                   child: DsButton.primary(
                     label: l10n.captureDone,
                     expand: false,
+                    height: _doneHeight,
                     loading: _finishing,
-                    onPressed: shots.isEmpty ? null : () => unawaited(_done()),
+                    onPressed: shots.isEmpty || _finishing ? null : () => unawaited(_done()),
                   ),
                 ),
               ),

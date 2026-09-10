@@ -105,6 +105,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(CaptureScreen), findsOneWidget);
+    // The OP number comes off the path: the label sheet's suggestions are
+    // this patient's, and the screen has to know whose they are.
+    expect(tester.widget<CaptureScreen>(find.byType(CaptureScreen)).opid, 581);
     expect(fake.startCount, 1);
     // On the root navigator, so it covers the tab bar rather than sitting in it.
     expect(find.byType(DsBottomBar), findsNothing);
