@@ -442,6 +442,11 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   Widget _topOverlay(_CaptureView view, bool grid) {
     final ds = context.ds;
     final l10n = context.l10n;
+    final torchLabel = view.torch ? l10n.captureTorchOff : l10n.captureTorchOn;
+    // Nothing to light up until the device is open.
+    final torch = view.status == CaptureStatus.ready && !_finishing
+        ? () => unawaited(_toggleTorch())
+        : null;
     return Positioned(
       top: 0,
       left: 0,
@@ -477,16 +482,23 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
                 onPressed: _finishing ? null : () => unawaited(_toggleGrid()),
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.flashlight_off_outlined),
-              selectedIcon: const Icon(Icons.flashlight_on_outlined),
-              isSelected: view.torch,
-              color: ds.textOnShell,
-              tooltip: view.torch ? l10n.captureTorchOff : l10n.captureTorchOn,
-              // Nothing to light up until the device is open.
-              onPressed: view.status == CaptureStatus.ready && !_finishing
-                  ? () => unawaited(_toggleTorch())
-                  : null,
+            // A switch, and said to be one, for the same reason as the grid
+            // beside it: `isSelected` gives the look but reports "selected",
+            // and a torch that is on is toggled on.
+            Semantics(
+              container: true,
+              toggled: view.torch,
+              label: torchLabel,
+              onTap: torch,
+              excludeSemantics: true,
+              child: IconButton(
+                icon: const Icon(Icons.flashlight_off_outlined),
+                selectedIcon: const Icon(Icons.flashlight_on_outlined),
+                isSelected: view.torch,
+                color: ds.textOnShell,
+                tooltip: torchLabel,
+                onPressed: torch,
+              ),
             ),
           ],
         ),

@@ -729,8 +729,15 @@ void main() {
   });
 
   testWidgets('the torch toggle flips its tooltip and forwards to the camera', (tester) async {
+    final handle = tester.ensureSemantics();
     await open(tester);
     expect(find.byTooltip('Turn torch on'), findsOneWidget);
+
+    // A switch, and announced as one: an icon that swaps is no help to a
+    // reader that cannot see which icon it is.
+    final off = tester.getSemantics(find.byTooltip('Turn torch on'));
+    expect(off.hasFlag(SemanticsFlag.hasToggledState), isTrue);
+    expect(off.hasFlag(SemanticsFlag.isToggled), isFalse);
 
     await tester.tap(find.byTooltip('Turn torch on'));
     await tester.pumpAndSettle();
@@ -738,6 +745,11 @@ void main() {
     expect(find.byTooltip('Turn torch off'), findsOneWidget);
     expect(find.byTooltip('Turn torch on'), findsNothing);
     expect(fake.torchCalls, [true]);
+
+    final on = tester.getSemantics(find.byTooltip('Turn torch off'));
+    expect(on.hasFlag(SemanticsFlag.hasToggledState), isTrue);
+    expect(on.hasFlag(SemanticsFlag.isToggled), isTrue);
+    handle.dispose();
   });
 
   testWidgets('the camera is released in the background and re-opened on resume, keeping the shots', (tester) async {
