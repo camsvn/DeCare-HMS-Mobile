@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hms_uploader/app/app.dart';
 import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
+import 'package:hms_uploader/core/utils/stale_cache_sweep.dart';
 import 'package:hms_uploader/features/auth/auth.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
@@ -38,6 +39,12 @@ Future<void> main() async {
   // Drain whatever the last run could not upload, and keep watching the
   // network. Not awaited: the first frame must not wait on an upload.
   unawaited(container.read(uploadQueueProvider.notifier).start());
+  // Photos a previous run left in the cache because the process died before
+  // the screen owning them could clean up. Not awaited either.
+  unawaited(getTemporaryDirectory().then(sweepStaleCache).catchError((Object e) {
+    debugPrint('sweepStaleCache failed: $e');
+    return 0;
+  }));
 
   // Keep framework errors visible and stop an unhandled async error from
   // taking the isolate down in release.

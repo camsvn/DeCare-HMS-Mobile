@@ -51,7 +51,10 @@ the old one is uninstalled (which wipes app data: server URL, login, recent pati
   multipart bodies are not retried (the offline queue re-sends later).
 - Photos: captured in-app (CameraX writes sensor-oriented JPEGs with an EXIF orientation tag, so
   they are re-encoded upright in a background isolate before upload) or picked from the gallery
-  (resized to 2000 px). Blank descriptions inherit the previous card's at upload.
+  (resized to 2000 px). Blank descriptions inherit the previous card's at upload. Screens delete
+  their photos when done; `sweepStaleCache` (run from `main.dart`, not awaited) removes photo files
+  older than 24 h that a killed process left in the cache directory. The offline queue's staged
+  copies live in the documents directory and are outside that sweep.
 - Recent labels are stored device-wide across patients by design (body-site text only).
 - Versioning is calendar-based: `YYYY.M.N+build` (see README "Release"). Pushing the matching tag
   runs `.github/workflows/release.yml`, which signs from repository secrets and uploads to Firebase
