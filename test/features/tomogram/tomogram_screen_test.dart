@@ -24,6 +24,37 @@ class MockMediaPickerService extends Mock implements MediaPickerService {}
 
 class MockTomogramHistoryApi extends Mock implements TomogramHistoryApi {}
 
+/// A queue whose staging never finishes until [gate] does, so a test can leave
+/// the screen mid-enqueue.
+class GatedQueue extends UploadQueueController {
+  GatedQueue(this.gate);
+
+  final Completer<void> gate;
+
+  @override
+  Future<void> enqueue(int opid, String patientName, List<TomogramDraft> drafts) => gate.future;
+}
+
+/// Drops the screen out of the tree without tearing the [ProviderScope] down
+/// with it — a route change, not the app exiting.
+class Host extends StatefulWidget {
+  const Host({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<Host> createState() => HostState();
+}
+
+class HostState extends State<Host> {
+  var _visible = true;
+
+  void hide() => setState(() => _visible = false);
+
+  @override
+  Widget build(BuildContext context) => _visible ? widget.child : const SizedBox.shrink();
+}
+
 const jane = Patient(id: 1, opid: 42, name: 'Jane Doe');
 
 /// What the capture screen pops for [paths]: unlabelled shots, which is what
@@ -64,10 +95,14 @@ void main() {
     void Function(List<Permission> denied)? onPermissionsDenied,
     Future<List<Shot>?> Function(BuildContext context)? onCapture,
     String Function()? uuid,
-  }) =>
-      pumpApp(
+    UploadQueueController Function()? queue,
+    GlobalKey<HostState>? host,
+  }) {
+    final screen =
+        TomogramScreen(patient: jane, onPermissionsDenied: onPermissionsDenied, onCapture: onCapture);
+    return pumpApp(
         tester,
-        TomogramScreen(patient: jane, onPermissionsDenied: onPermissionsDenied, onCapture: onCapture),
+        host == null ? screen : Host(key: host, child: screen),
         overrides: [
           tomogramApiProvider.overrideWithValue(api),
           mediaPickerServiceProvider.overrideWithValue(picker),
@@ -78,8 +113,10 @@ void main() {
           uuidProvider.overrideWithValue(uuid ?? () => 'id'),
           // The queue only runs for a signed-in user.
           accessTokenProvider.overrideWithValue('test-token'),
+          if (queue != null) uploadQueueProvider.overrideWith(queue),
         ],
       );
+  }
 
   ProviderContainer containerOf(WidgetTester tester) =>
       ProviderScope.containerOf(tester.element(find.byType(TomogramScreen)));
@@ -627,5 +664,46 @@ void main() {
     expect(prefs.getStringList(RecentLabelsRepository.key), ['Left forearm']);
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('a whitespace-only description still counts as empty', (tester) async {
+    await prefs.setStringList(RecentLabelsRepository.key, ['Neck']);
+    await pumpTwoDrafts(tester);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), '   ');
+    await tester.pumpAndSettle();
+
+    // Spaces are not a description: the card still offers what it would upload
+    // with, exactly as resolvedDrafts treats it.
+    expect(chipsOn(0), findsOneWidget);
+  });
+
+  testWidgets('leaving the screen mid-enqueue does not throw', (tester) async {
+    final gate = Completer<void>();
+    final host = GlobalKey<HostState>();
+    when(() => api.upload(any(), any())).thenThrow(const CannotConnectFailure());
+    tallSurface(tester);
+    final shots = [Shot(path: jpeg('a.jpg').path, label: 'Left forearm')];
+    await pump(tester, uuid: ids(), host: host, queue: () => GatedQueue(gate), onCapture: (_) async => shots);
+    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Take Photo'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Upload'));
+    await tester.pump();
+
+    // A route change while the queue is still copying the files aside.
+    host.currentState!.hide();
+    await tester.pump();
+    gate.complete();
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    // The staging finished, so the label is remembered even though the screen
+    // that started it is gone.
+    expect(prefs.getStringList(RecentLabelsRepository.key), ['Left forearm']);
   });
 }

@@ -36,7 +36,8 @@ class TomogramCard extends StatefulWidget {
   final String? inheritedDescription;
 
   /// Descriptions worth offering, newest first. Shown under the field only
-  /// while it is empty: a field with text in it has nothing left to suggest.
+  /// while it is blank — spaces included, the way `resolvedDrafts` reads it:
+  /// a field with text in it has nothing left to suggest.
   final List<String> suggestions;
 
   /// A suggestion was tapped. Null leaves the chips out entirely.
@@ -134,7 +135,9 @@ class _TomogramCardState extends State<TomogramCard> {
             keyboardType: TextInputType.multiline,
             onChanged: widget.onDescriptionChanged,
           ),
-          if (onSuggestion != null && widget.draft.description.isEmpty && widget.suggestions.isNotEmpty) ...[
+          if (onSuggestion != null &&
+              widget.draft.description.trim().isEmpty &&
+              widget.suggestions.isNotEmpty) ...[
             const SizedBox(height: DsSpace.x2),
             SuggestionChips(suggestions: widget.suggestions, onPick: onSuggestion),
           ],

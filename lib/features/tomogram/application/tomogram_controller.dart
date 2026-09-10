@@ -46,17 +46,19 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
   void addFiles(List<String> paths) =>
       addDrafts([for (final p in paths) (path: p, description: '')]);
 
-  /// The drafts as they will be sent: a blank description inherits the
-  /// previous photo's effective one, since a burst of one site is shot under a
-  /// single label and typing it again per card is the part staff skip. The
-  /// first photo has no previous, so blank stays blank. Ids and paths are
-  /// untouched, and [state] keeps the blanks the user can still type over —
-  /// the card shows the inherited text as its placeholder instead.
+  /// The drafts as they will be sent: descriptions trimmed, and a blank one
+  /// inheriting the previous photo's effective description — a burst of one
+  /// site is shot under a single label, and typing it again per card is the
+  /// part staff skip. The first photo has no previous, so blank stays blank.
+  /// Ids and paths are untouched, and [state] keeps the raw text the user is
+  /// still typing in; the card shows the inherited text as its placeholder
+  /// instead.
   List<TomogramDraft> get resolvedDrafts {
     final resolved = <TomogramDraft>[];
     var previous = '';
     for (final d in state.drafts) {
-      final effective = d.description.trim().isEmpty ? previous : d.description;
+      final trimmed = d.description.trim();
+      final effective = trimmed.isEmpty ? previous : trimmed;
       resolved.add(effective == d.description ? d : d.copyWith(description: effective));
       previous = effective;
     }

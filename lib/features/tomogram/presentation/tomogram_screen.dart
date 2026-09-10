@@ -108,6 +108,9 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
     FocusScope.of(context).unfocus();
     final l10n = context.l10n;
     final notifier = ref.read(tomogramControllerProvider(_opid).notifier);
+    // Read before the first await: this screen can be gone by the time the
+    // queue has staged its files, and `ref` cannot be used after that.
+    final labels = ref.read(recentLabelsProvider.notifier);
     try {
       await notifier.upload();
       if (!mounted) return;
@@ -135,7 +138,7 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
         }
         // Queued counts as used: these descriptions lead the suggestions on
         // the next patient without waiting for the queue to drain.
-        await ref.read(recentLabelsProvider.notifier).remember(resolved.map((d) => d.description));
+        await labels.remember(resolved.map((d) => d.description));
         // The queue owns its own copies now, so this only drops the originals.
         await notifier.clearAll();
         if (!mounted) return;

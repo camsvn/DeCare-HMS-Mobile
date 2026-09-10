@@ -100,6 +100,19 @@ void main() {
     sub.close();
   });
 
+  test('resolvedDrafts posts trimmed descriptions and inherits the trimmed text', () async {
+    final a = make('a.jpg');
+    final b = make('b.jpg');
+    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final ctrl = container.read(tomogramControllerProvider(42).notifier);
+    ctrl.addDrafts([(path: a.path, description: 'Left forearm '), (path: b.path, description: '')]);
+
+    expect(ctrl.resolvedDrafts.map((d) => d.description), ['Left forearm', 'Left forearm']);
+    // The raw text stays in the field the user is still typing in.
+    expect(container.read(tomogramControllerProvider(42)).drafts.first.description, 'Left forearm ');
+    sub.close();
+  });
+
   test('resolvedDrafts leaves a blank first photo blank', () async {
     final a = make('a.jpg');
     final b = make('b.jpg');
