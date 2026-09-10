@@ -472,7 +472,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutPhone => '+91 80863 58930';
 
   @override
-  String get aboutWebsite => 'website (decare.team)';
+  String get aboutWebsite => 'decare.team';
+
+  @override
+  String aboutCallSemantics(String number) {
+    return 'Call $number';
+  }
+
+  @override
+  String get aboutOpenWebsite => 'Open website';
 
   @override
   String aboutCopyright(int year) {
@@ -480,7 +488,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aboutLicense => 'DecareHMS is licensed to Cutis Hospital as a part of the DeCare\'s Hospital ERP software, and its support is tied to the support license for the ERP. Support for DeCareHMS app is available only as long as the ERP\'s support license is active.';
+  String get aboutLicense => 'DecareHMS is licensed to the hospital as part of DeCare\'s Hospital ERP software, and its support is tied to the ERP\'s support licence. Support for the DecareHMS app is available only as long as the ERP\'s support licence is active.';
 
   @override
   String get aboutParaIntro => 'Decare Software Solution is a company that specializes in developing innovative and user-friendly software solutions for the health care sector. We have a team of experienced and qualified software engineers, designers, and testers who are passionate about creating products that can improve the quality and efficiency of health care services.';

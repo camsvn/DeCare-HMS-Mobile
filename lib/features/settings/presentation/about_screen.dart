@@ -71,31 +71,45 @@ class AboutScreen extends StatelessWidget {
             ),
             const SizedBox(height: DsSpace.x3),
             DsCard(
+              // Zero padding so the link rows run edge to edge like every other
+              // row in a card; the prose keeps the usual card inset.
+              padding: EdgeInsets.zero,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.aboutContact, style: type.heading),
-                  const SizedBox(height: DsSpace.x2),
-                  Text(l10n.aboutParaFinale, style: type.body),
-                  const SizedBox(height: DsSpace.x3),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DsButton.ghost(
-                          label: l10n.aboutPhone,
-                          onPressed: () => _open(_phone),
-                          expand: true,
-                        ),
-                      ),
-                      const SizedBox(width: DsSpace.x2),
-                      Expanded(
-                        child: DsButton.ghost(
-                          label: l10n.aboutWebsite,
-                          onPressed: () => _open(_site),
-                          expand: true,
-                        ),
-                      ),
-                    ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        DsSpace.cardPadding, DsSpace.cardPadding, DsSpace.cardPadding, DsSpace.x2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.aboutContact, style: type.heading),
+                        const SizedBox(height: DsSpace.x2),
+                        Text(l10n.aboutParaFinale, style: type.body),
+                      ],
+                    ),
+                  ),
+                  Semantics(
+                    label: l10n.aboutCallSemantics(l10n.aboutPhone),
+                    excludeSemantics: true,
+                    button: true,
+                    child: DsListRow(
+                      leadingIcon: Icons.phone_outlined,
+                      title: l10n.aboutPhone,
+                      trailing: _OpenIndicator(),
+                      onTap: () => _open(_phone),
+                    ),
+                  ),
+                  Semantics(
+                    label: l10n.aboutOpenWebsite,
+                    excludeSemantics: true,
+                    button: true,
+                    child: DsListRow(
+                      leadingIcon: Icons.language_outlined,
+                      title: l10n.aboutWebsite,
+                      trailing: _OpenIndicator(),
+                      onTap: () => _open(_site),
+                    ),
                   ),
                 ],
               ),
@@ -105,4 +119,10 @@ class AboutScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Marks a row as leaving the app; the row itself carries the tap.
+class _OpenIndicator extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Icon(Icons.open_in_new, size: 18, color: context.ds.textSecondary);
 }

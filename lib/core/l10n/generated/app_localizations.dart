@@ -886,8 +886,20 @@ abstract class AppLocalizations {
   /// No description provided for @aboutWebsite.
   ///
   /// In en, this message translates to:
-  /// **'website (decare.team)'**
+  /// **'decare.team'**
   String get aboutWebsite;
+
+  /// No description provided for @aboutCallSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Call {number}'**
+  String aboutCallSemantics(String number);
+
+  /// No description provided for @aboutOpenWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'Open website'**
+  String get aboutOpenWebsite;
 
   /// No description provided for @aboutCopyright.
   ///
@@ -898,7 +910,7 @@ abstract class AppLocalizations {
   /// No description provided for @aboutLicense.
   ///
   /// In en, this message translates to:
-  /// **'DecareHMS is licensed to Cutis Hospital as a part of the DeCare\'s Hospital ERP software, and its support is tied to the support license for the ERP. Support for DeCareHMS app is available only as long as the ERP\'s support license is active.'**
+  /// **'DecareHMS is licensed to the hospital as part of DeCare\'s Hospital ERP software, and its support is tied to the ERP\'s support licence. Support for the DecareHMS app is available only as long as the ERP\'s support licence is active.'**
   String get aboutLicense;
 
   /// No description provided for @aboutParaIntro.
