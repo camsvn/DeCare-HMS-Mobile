@@ -98,7 +98,7 @@ Everything else lives in one bottom bar on `ds.shell` under `SafeArea`, at least
 caption takes the width, and the only other control is a trash `IconButton` (`Icons.delete_outline`
 in `ds.danger`, 48 dp target, tooltip and semantics label `captureRemove`) on the same row, asking
 the same "Remove this photo?" as before. The standalone Remove button, the side margins and the dead
-band between them are gone. It opens the
+band between them are gone. Tapping the caption opens the
 same label sheet, prefilled with the shot's own label and offering the same suggestions
 (`descriptionSuggestionsProvider(opid)` — so `ShotPreviewScreen` now takes `opid`, passed from
 `CaptureScreen`). A result goes to `CaptureController.relabel(path, label)`, which trims and sets
