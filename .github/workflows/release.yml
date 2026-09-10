@@ -62,12 +62,14 @@ jobs:
           "$apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | tee /tmp/certs.txt
           grep -q "CN=DeCare HMS Upload" /tmp/certs.txt || { echo "::error::APK is not signed with the upload key"; exit 1; }
 
+      # The Firebase action runs in a container that only sees the workspace,
+      # so the notes file must live inside the repository checkout, not /tmp.
       - name: Release notes from the tag message
         run: |
           git fetch --tags --force --quiet
-          git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" > /tmp/notes.txt
-          test -s /tmp/notes.txt || echo "DeCare HMS ${GITHUB_REF_NAME}" > /tmp/notes.txt
-          cat /tmp/notes.txt
+          git tag -l --format='%(contents)' "${GITHUB_REF_NAME}" > build/release-notes.txt
+          test -s build/release-notes.txt || echo "DeCare HMS ${GITHUB_REF_NAME}" > build/release-notes.txt
+          cat build/release-notes.txt
 
       - uses: actions/upload-artifact@v4
         with:
@@ -82,7 +84,7 @@ jobs:
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           groups: ${{ vars.FIREBASE_TESTER_GROUPS || 'testers' }}
           file: build/app/outputs/flutter-apk/app-release.apk
-          releaseNotesFile: /tmp/notes.txt
+          releaseNotesFile: build/release-notes.txt
 
       - name: Remove signing material
         if: always()
