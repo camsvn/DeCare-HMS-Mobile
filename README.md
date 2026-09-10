@@ -95,7 +95,8 @@ git tag -a 2026.9.1 -m "Labels while shooting, gallery-style preview, offline qu
 git push origin 2026.9.1
 ```
 
-Repository secrets the workflow needs (Settings → Secrets and variables → Actions):
+The job runs in the `flutter` environment. Create it under Settings → Environments and add these
+as **environment secrets** (Settings → Environments → flutter → Environment secrets):
 
 | secret | value |
 | --- | --- |
@@ -106,7 +107,9 @@ Repository secrets the workflow needs (Settings → Secrets and variables → Ac
 | `FIREBASE_APP_ID` | the Android app's ID in the Firebase console (`1:…:android:…`) |
 | `FIREBASE_SERVICE_ACCOUNT` | JSON key of a service account with the *Firebase App Distribution Admin* role |
 
-Optional repository variable `FIREBASE_TESTER_GROUPS` (comma-separated group aliases; default
+`FIREBASE_APP_ID` may stay a repository secret (it is shared with the React Native `rn`
+environment; environment secrets take precedence when both exist). Optional environment
+variable `FIREBASE_TESTER_GROUPS` (comma-separated group aliases; default
 `testers`). The Flutter app keeps the React Native app's package name, so the existing Firebase
 Android app can be reused; testers keep their invitations.
 

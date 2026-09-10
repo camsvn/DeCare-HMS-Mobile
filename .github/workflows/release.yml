@@ -15,6 +15,9 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Signing and Firebase credentials live as environment secrets on `flutter`
+    # (the React Native era keeps its own `rn` environment).
+    environment: flutter
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
