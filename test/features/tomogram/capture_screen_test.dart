@@ -7,7 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/design/design.dart';
+import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/fake_camera_service.dart';
 import '../../helpers/pump_app.dart';
@@ -15,6 +17,13 @@ import '../../helpers/pump_app.dart';
 /// The OP number the screen is opened for: the label sheet's suggestions are
 /// this patient's.
 const int _opid = 581;
+
+/// A patient with no uploads, so the real suggestions provider offers the
+/// device's recent labels and nothing else.
+class _EmptyHistoryApi implements TomogramHistoryApi {
+  @override
+  Future<List<TomogramSet>> list(int opid) async => const [];
+}
 
 void main() {
   late Directory dir;
@@ -27,11 +36,17 @@ void main() {
   /// [open], which is where the override is installed.
   late List<String> suggestions;
 
+  /// The device's stored preferences: the grid toggle lives in here, and the
+  /// label sheet reads the recent labels out of it.
+  late SharedPreferences prefs;
+
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('capture_screen');
     fake = FakeCameraService(dir: dir);
     results = [];
     suggestions = [];
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
   });
 
   tearDown(() async {
@@ -40,7 +55,10 @@ void main() {
 
   /// Pushes [CaptureScreen] from a host button so that its pop result can be
   /// read, the way the tomogram screen will read it.
-  Future<void> open(WidgetTester tester) async {
+  /// [realSuggestions] runs the real `descriptionSuggestionsProvider` off the
+  /// stored recent labels instead of the fixed list, for the tests that are
+  /// about the chips changing rather than about what they say.
+  Future<void> open(WidgetTester tester, {bool realSuggestions = false}) async {
     await tester.binding.setSurfaceSize(const Size(400, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await pumpApp(
@@ -61,7 +79,9 @@ void main() {
         cameraServiceProvider.overrideWithValue(fake),
         // The real one reaches for the patient's upload history over the
         // network; what the sheet does with the list is what is under test.
-        descriptionSuggestionsProvider(_opid).overrideWithValue(suggestions),
+        if (!realSuggestions) descriptionSuggestionsProvider(_opid).overrideWithValue(suggestions),
+        tomogramHistoryApiProvider.overrideWithValue(_EmptyHistoryApi()),
+        sharedPreferencesProvider.overrideWithValue(prefs),
       ],
     );
     await tester.tap(find.text('open'));
@@ -494,6 +514,198 @@ void main() {
     expect(find.byKey(const Key('fake-preview')), findsOneWidget);
     expect(find.text('Camera unavailable'), findsNothing);
     expect(fake.startCount, 2);
+  });
+
+  /// Two fingers apart by [by] on the preview, which is the only gesture on
+  /// this screen that means anything but "focus here".
+  Future<void> pinch(WidgetTester tester, double by) async {
+    final centre = tester.getCenter(find.byKey(capturePreviewAreaKey));
+    final left = await tester.startGesture(centre - const Offset(20, 0));
+    final right = await tester.startGesture(centre + const Offset(20, 0));
+    await tester.pump();
+    await left.moveBy(Offset(-by / 2, 0));
+    await right.moveBy(Offset(by / 2, 0));
+    await tester.pump();
+    await left.up();
+    await right.up();
+    await tester.pumpAndSettle();
+  }
+
+  Finder zoomChip() => find.byKey(captureZoomChipKey);
+
+  testWidgets('a pinch zooms the preview and the chip says how far', (tester) async {
+    await open(tester);
+    expect(find.text('1.0×'), findsOneWidget);
+
+    await pinch(tester, 120);
+
+    // Not an exact factor: the recogniser measures from where it accepted the
+    // gesture, not from where the fingers landed. What matters is that the
+    // spread zoomed in, reached the camera, and is what the chip reads.
+    final zoom = stateOf(tester).zoom;
+    expect(zoom, greaterThan(1));
+    expect(fake.zoomCalls, isNotEmpty);
+    expect(fake.zoomCalls.last, zoom);
+    expect(find.text('${zoom.toStringAsFixed(1)}×'), findsOneWidget);
+    expect(find.text('1.0×'), findsNothing);
+
+    // A second spread carries on from where the first left off rather than
+    // starting over. (Where it stops is the controller's clamp, tested there.)
+    await pinch(tester, 600);
+
+    expect(stateOf(tester).zoom, greaterThan(zoom));
+    expect(
+      find.text('${stateOf(tester).zoom.toStringAsFixed(1)}×'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the zoom chip steps to 2x and back', (tester) async {
+    await open(tester);
+
+    await tester.tap(zoomChip());
+    await tester.pumpAndSettle();
+
+    expect(stateOf(tester).zoom, 2);
+    expect(find.text('2.0×'), findsOneWidget);
+
+    await tester.tap(zoomChip());
+    await tester.pumpAndSettle();
+
+    expect(stateOf(tester).zoom, 1);
+    expect(find.text('1.0×'), findsOneWidget);
+    expect(fake.zoomCalls, [2, 1]);
+  });
+
+  testWidgets('a camera that cannot zoom is offered no zoom', (tester) async {
+    fake.maxZoom = 1;
+    await open(tester);
+
+    // A chip that could only ever say "1.0x" is a control that does nothing.
+    expect(zoomChip(), findsNothing);
+    expect(find.text('1.0×'), findsNothing);
+  });
+
+  testWidgets('a tap still focuses now that the preview also pinches', (tester) async {
+    await open(tester);
+
+    await tester.tapAt(tester.getCenter(find.byKey(capturePreviewAreaKey)));
+    await tester.pumpAndSettle();
+
+    // The scale recogniser shares the arena with the tap; a press that does
+    // not move is still a press.
+    expect(fake.focusCalls, hasLength(1));
+    expect(fake.zoomCalls, isEmpty);
+    expect(stateOf(tester).zoom, 1);
+  });
+
+  testWidgets('the grid is off, goes on from the header and is remembered', (tester) async {
+    await open(tester);
+    expect(find.byKey(captureGridKey), findsNothing);
+    expect(find.byTooltip('Show grid'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Show grid'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(captureGridKey), findsOneWidget);
+    expect(find.byTooltip('Hide grid'), findsOneWidget);
+    expect(prefs.getBool('capture_grid'), isTrue);
+    // Over the preview only: it is a framing aid for the picture, not a
+    // decoration for the screen.
+    final grid = tester.getRect(find.byKey(captureGridKey));
+    expect(grid, tester.getRect(find.byKey(capturePreviewAreaKey)));
+
+    await tester.tap(find.byTooltip('Hide grid'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(captureGridKey), findsNothing);
+    expect(prefs.getBool('capture_grid'), isFalse);
+  });
+
+  testWidgets('a device that left the grid on gets it back', (tester) async {
+    SharedPreferences.setMockInitialValues({'capture_grid': true});
+    prefs = await SharedPreferences.getInstance();
+    await open(tester);
+
+    expect(find.byKey(captureGridKey), findsOneWidget);
+    expect(find.byTooltip('Hide grid'), findsOneWidget);
+  });
+
+  testWidgets('the zoom chip and the grid are inert while Done hands the shots over',
+      (tester) async {
+    await open(tester);
+    await shoot(tester);
+    fake.flushGate = Completer<void>();
+    await tester.tap(find.widgetWithText(DsButton, 'Done'));
+    await tester.pump();
+
+    await tester.tap(zoomChip(), warnIfMissed: false);
+    await tester.tap(find.byTooltip('Show grid'), warnIfMissed: false);
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(stateOf(tester).zoom, 1);
+    expect(find.byKey(captureGridKey), findsNothing);
+
+    fake.flushGate!.complete();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('holding a recent suggestion offers to stop offering it', (tester) async {
+    await RecentLabelsRepository(prefs).remember(['Scalp']);
+    await open(tester, realSuggestions: true);
+    await openLabelSheet(tester);
+
+    await tester.longPress(find.widgetWithText(DsChip, 'Scalp'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Forget this suggestion?'), findsOneWidget);
+    expect(find.text('It will no longer be offered on this device.'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(DsButton, 'Forget'));
+    await tester.pumpAndSettle();
+
+    expect(RecentLabelsRepository(prefs).read(), isEmpty);
+
+    // The open sheet was handed its list when it opened, so the chip goes on
+    // the next one — which is the sheet the user will see it in.
+    await tester.tap(find.widgetWithText(DsButton, 'Cancel'));
+    await tester.pumpAndSettle();
+    await openLabelSheet(tester);
+
+    expect(find.widgetWithText(DsChip, 'Scalp'), findsNothing);
+    expect(find.byType(SuggestionChips), findsNothing);
+  });
+
+  testWidgets('a suggestion from the patient history cannot be forgotten', (tester) async {
+    // It is what the server says this patient's photos were called, and
+    // nothing on this device can unsay it.
+    suggestions = ['Left forearm'];
+    await open(tester);
+    await openLabelSheet(tester);
+
+    await tester.longPress(find.widgetWithText(DsChip, 'Left forearm'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Forget this suggestion?'), findsNothing);
+    expect(find.widgetWithText(DsChip, 'Left forearm'), findsOneWidget);
+  });
+
+  testWidgets('declining leaves the suggestion where it was', (tester) async {
+    await RecentLabelsRepository(prefs).remember(['Scalp']);
+    await open(tester, realSuggestions: true);
+    await openLabelSheet(tester);
+
+    await tester.longPress(find.widgetWithText(DsChip, 'Scalp'));
+    await tester.pumpAndSettle();
+    // The dialog's Cancel, not the sheet's underneath it.
+    await tester.tap(find.descendant(
+      of: find.byType(Dialog),
+      matching: find.widgetWithText(DsButton, 'Cancel'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(RecentLabelsRepository(prefs).read(), ['Scalp']);
+    expect(find.widgetWithText(DsChip, 'Scalp'), findsOneWidget);
   });
 
   testWidgets('the torch toggle flips its tooltip and forwards to the camera', (tester) async {

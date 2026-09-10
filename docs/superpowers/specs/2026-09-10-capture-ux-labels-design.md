@@ -139,6 +139,49 @@ is a decision, not a correction) and writes through `updateDescription`; the she
 `''` and hands the photo back to inheriting. The bin calls `remove(id)` without asking, which is what
 the card's delete has always done.
 
+### 3.8 Zoom, grid, suggestion hygiene (2026-09-10)
+
+**Zoom.** `CameraService` gains `maxZoom` (1 until the camera is ready, so a screen built before
+initialisation offers no zoom rather than a range it cannot honour) and `setZoom(level)`;
+`PluginCameraService` reads `getMinZoomLevel`/`getMaxZoomLevel` through `_tryOptional` after
+`initialize` and clamps into that range, so a camera that will not say keeps 1..1 and every call is a
+no-op. `CaptureState.zoom` is the level the preview is at, clamped to `[1, maxZoom]` by
+`CaptureController.setZoom` and ignored until the camera is ready. `start()` asks for a non-1 zoom
+again — CameraX rebinds the session on open and comes back at 1× — and re-clamps it, because the
+camera that came back may not reach as far; `stop()` keeps the value, since the shot being framed is
+the same one. Every `setZoom` forwards without comparing against the level already set: a pinch is a
+stream of small changes and dropping the ones that round the same would make it stutter.
+
+On the screen, the preview's `GestureDetector` carries `onScaleStart`/`onScaleUpdate` alongside
+`onTapUp`; the arena resolves them, so a press that does not move is still a tap-to-focus, and a
+one-pointer scale update is ignored (a drag is not a pinch). A mono chip on the shell, centred just
+above the bottom panel, reads `captureZoomLevel` ("1.0×") and steps 1× → 2× → 1× on tap for a thumb
+that does not want to pinch; it is absent when `maxZoom <= 1`, and inert while Done is handing the
+shots over, like everything else on that screen.
+
+**Grid.** `captureGridProvider` is a device preference in `capture_grid` (default off): framing with
+thirds is a habit, not a per-session choice. A third header button (`Icons.grid_3x3` /
+`Icons.grid_off`, `captureGridOn` / `captureGridOff`) toggles an `IgnorePointer` `CustomPaint` of two
+lines each way in `textOnShell` at 35% over the preview area only — never over the bottom panel,
+because it is a framing aid for the picture. It draws over whatever box it is given, so the cover
+crop needs no arithmetic: the grid is on the screen, which is what the eye lines the subject up
+against.
+
+**Suggestion hygiene.** `suggestionMaxLength` (40) is the longest a description may be and still be
+offered: narrations run to 200 characters, and a sentence as a chip wraps over two lines and pushes
+the row off the screen. `mergeSuggestions` drops anything past it, and `RecentLabelsRepository`
+filters on read as well as on write, so a device that stored a sentence before the cap existed stops
+offering it with no migration. `RecentLabelsController.forget(label)` removes one case-insensitively
+and persists — a wrong guess that keeps coming back is worse than no guess. `SuggestionChips` takes
+`removable` (lower-cased) and `onLongPress`, and a long press on one of the device's own labels asks
+`suggestionForgetTitle` / `suggestionForgetBody` / `suggestionForget` through the shared
+`confirmForgetSuggestion`. The patient's uploaded narrations are not removable: they are what the
+server says, and nothing on the device can unsay it. An open label sheet keeps the list it was handed
+— the forgotten chip is gone from the next one, which is the sheet the user sees it in.
+
+New ARB keys: `captureZoomLevel` (String `level`), `captureGridOn`, `captureGridOff`,
+`suggestionForgetTitle`, `suggestionForgetBody`, `suggestionForget`.
+
 ## 4. Architecture
 
 All inside `lib/features/tomogram/`.

@@ -338,9 +338,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get captureLabelClear => 'Clear label';
 
   @override
+  String captureZoomLevel(String level) {
+    return '$level×';
+  }
+
+  @override
+  String get captureGridOn => 'Show grid';
+
+  @override
+  String get captureGridOff => 'Hide grid';
+
+  @override
   String captureLabelled(String label) {
     return 'Labelled $label';
   }
+
+  @override
+  String get suggestionForgetTitle => 'Forget this suggestion?';
+
+  @override
+  String get suggestionForgetBody => 'It will no longer be offered on this device.';
+
+  @override
+  String get suggestionForget => 'Forget';
 
   @override
   String get queueTitle => 'Pending uploads';

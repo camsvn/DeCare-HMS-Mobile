@@ -631,11 +631,47 @@ abstract class AppLocalizations {
   /// **'Clear label'**
   String get captureLabelClear;
 
+  /// No description provided for @captureZoomLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'{level}×'**
+  String captureZoomLevel(String level);
+
+  /// No description provided for @captureGridOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Show grid'**
+  String get captureGridOn;
+
+  /// No description provided for @captureGridOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide grid'**
+  String get captureGridOff;
+
   /// No description provided for @captureLabelled.
   ///
   /// In en, this message translates to:
   /// **'Labelled {label}'**
   String captureLabelled(String label);
+
+  /// No description provided for @suggestionForgetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forget this suggestion?'**
+  String get suggestionForgetTitle;
+
+  /// No description provided for @suggestionForgetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will no longer be offered on this device.'**
+  String get suggestionForgetBody;
+
+  /// No description provided for @suggestionForget.
+  ///
+  /// In en, this message translates to:
+  /// **'Forget'**
+  String get suggestionForget;
 
   /// No description provided for @queueTitle.
   ///

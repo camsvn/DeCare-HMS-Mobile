@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/design/design.dart';
+import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -9,13 +11,21 @@ void main() {
   /// What the sheet resolved to, one entry per completed open.
   late List<String?> results;
 
+  /// The device's stored preferences: the sheet reads the recent labels out of
+  /// them to know which chips it could stop offering.
+  late SharedPreferences prefs;
+
   /// Opens the sheet from a host button, the way the capture screen does.
   Future<void> open(
     WidgetTester tester, {
     String initial = '',
     List<String> suggestions = const [],
+    List<String> recent = const [],
   }) async {
     results = [];
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+    if (recent.isNotEmpty) await RecentLabelsRepository(prefs).remember(recent);
     await tester.binding.setSurfaceSize(const Size(400, 800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await pumpApp(
@@ -30,6 +40,7 @@ void main() {
           ),
         ),
       ),
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();

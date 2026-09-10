@@ -2,8 +2,9 @@
 
 Companion uploader for a self-hosted DeCare HMS installation. Staff configure the
 server URL, log in and look up a patient by OP number, then attach tomograms: a
-burst of photos taken in the in-app capture screen, or up to two JPEGs picked
-from the gallery. Descriptions are set while shooting rather than typed
+burst of photos taken in the in-app capture screen — pinch or tap the chip to
+zoom, and a thirds grid can be left on — or up to two JPEGs picked from the
+gallery. Descriptions are set while shooting rather than typed
 afterwards: a label on the capture screen rides along with every shot taken
 under it and lands in the draft list as that photo's description. In the draft
 list a blank description inherits the previous photo's — shown as the field's

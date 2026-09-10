@@ -19,6 +19,11 @@ abstract class CameraService {
   /// gets a usable number.
   double get previewAspectRatio;
 
+  /// The largest zoom the open camera will take. 1 until it is ready, so a
+  /// screen built before initialisation offers no zoom rather than a range it
+  /// cannot honour.
+  double get maxZoom;
+
   /// Opens the back camera. Throws when there is no usable camera.
   Future<void> start();
 
@@ -40,6 +45,10 @@ abstract class CameraService {
   Future<void> flush();
 
   Future<void> setTorch(bool on);
+
+  /// Zooms to [level], clamped to what this camera supports. A no-op on
+  /// devices that cannot zoom.
+  Future<void> setZoom(double level);
 
   /// Focuses (and meters exposure) at [normalized], 0..1 in preview
   /// coordinates. A no-op on devices without tap-to-focus.
@@ -77,6 +86,11 @@ class PluginCameraService implements CameraService {
   /// `_controller` before `start` ever assigns it.
   int _generation = 0;
 
+  /// The open camera's zoom range, read once after `initialize`. Both default
+  /// to 1 — a camera that will not say is a camera that does not zoom.
+  double _minZoom = 1;
+  double _maxZoom = 1;
+
   /// The orientation bakes, chained one behind another rather than run at
   /// once: a burst would otherwise put several 1080p decode-and-encodes on the
   /// CPU together, next to a live preview. Each link swallows its own failure,
@@ -85,6 +99,9 @@ class PluginCameraService implements CameraService {
 
   @override
   bool get isReady => _controller?.value.isInitialized ?? false;
+
+  @override
+  double get maxZoom => isReady ? _maxZoom : 1;
 
   @override
   double get previewAspectRatio {
@@ -129,6 +146,14 @@ class PluginCameraService implements CameraService {
       return;
     }
     await _tryOptional(() => controller.lockCaptureOrientation(DeviceOrientation.portraitUp));
+    // Read before publishing, so `maxZoom` is right the first time the screen
+    // asks. A camera that cannot say keeps the 1..1 default.
+    _minZoom = 1;
+    _maxZoom = 1;
+    await _tryOptional(() async {
+      _minZoom = await controller.getMinZoomLevel();
+      _maxZoom = await controller.getMaxZoomLevel();
+    });
     if (gen != _generation) {
       await controller.dispose();
       return;
@@ -182,6 +207,15 @@ class PluginCameraService implements CameraService {
     final controller = _controller;
     if (controller == null) return;
     await _tryOptional(() => controller.setFlashMode(on ? FlashMode.torch : FlashMode.off));
+  }
+
+  @override
+  Future<void> setZoom(double level) async {
+    final controller = _controller;
+    if (controller == null) return;
+    // Outside the device's own range the plugin throws, so clamp rather than
+    // trust the pinch arithmetic — the same bargain as `focusAt`.
+    await _tryOptional(() => controller.setZoomLevel(level.clamp(_minZoom, _maxZoom)));
   }
 
   @override

@@ -18,6 +18,7 @@ class CaptureState {
     this.label = '',
     this.busy = false,
     this.torch = false,
+    this.zoom = 1,
   });
 
   final CaptureStatus status;
@@ -34,6 +35,11 @@ class CaptureState {
 
   final bool torch;
 
+  /// The zoom the preview is at, 1 for none. Kept across a background round
+  /// trip: the device is handed back and re-opened, but the shot the user was
+  /// framing is the same one.
+  final double zoom;
+
   bool get atLimit => shots.length >= captureLimit;
 
   bool get canShoot => status == CaptureStatus.ready && !busy && !atLimit;
@@ -44,6 +50,7 @@ class CaptureState {
     String? label,
     bool? busy,
     bool? torch,
+    double? zoom,
   }) =>
       CaptureState(
         status: status ?? this.status,
@@ -51,6 +58,7 @@ class CaptureState {
         label: label ?? this.label,
         busy: busy ?? this.busy,
         torch: torch ?? this.torch,
+        zoom: zoom ?? this.zoom,
       );
 }
 
@@ -91,6 +99,14 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
       state = state.copyWith(
         status: _camera.isReady ? CaptureStatus.ready : CaptureStatus.starting,
       );
+      // CameraX rebinds the session on open and comes back at 1x, so a zoom
+      // the user set before the app went away has to be asked for again. Also
+      // re-clamped: the camera that came back may not reach as far.
+      if (_camera.isReady && state.zoom != 1) {
+        final clamped = state.zoom.clamp(1.0, _camera.maxZoom);
+        if (clamped != state.zoom) state = state.copyWith(zoom: clamped);
+        await _camera.setZoom(clamped);
+      }
     } catch (_) {
       state = state.copyWith(status: CaptureStatus.failed);
     }
@@ -158,6 +174,20 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
     // a rename would either bring it back or leave the `.tmp` sibling behind.
     await _flush();
     await deleteFiles(_withTempSiblings([path]));
+  }
+
+  /// Zooms the preview, clamped to what the camera supports. Ignored until it
+  /// is ready: there is nothing to zoom, and the state must not claim a level
+  /// the device is not at.
+  ///
+  /// Every call forwards, without comparing against the level already set: a
+  /// pinch is a stream of small changes, and dropping the ones that round to
+  /// the same double would make it stutter.
+  Future<void> setZoom(double level) async {
+    if (state.status != CaptureStatus.ready) return;
+    final clamped = level.clamp(1.0, _camera.maxZoom);
+    state = state.copyWith(zoom: clamped);
+    await _camera.setZoom(clamped);
   }
 
   /// Ignored until the camera is ready: there is no device to light up, and

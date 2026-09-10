@@ -449,6 +449,65 @@ void main() {
     expect(disposed, 1);
   });
 
+  test('setZoom clamps to what the camera reaches and forwards every step', () async {
+    await capture().start();
+    expect(state().zoom, 1);
+
+    await capture().setZoom(2.5);
+    expect(state().zoom, 2.5);
+
+    // Past the device's range in both directions: the state must never claim
+    // a level the camera is not at.
+    await capture().setZoom(99);
+    expect(state().zoom, fake.maxZoom);
+    await capture().setZoom(0.1);
+    expect(state().zoom, 1);
+
+    expect(fake.zoomCalls, [2.5, fake.maxZoom, 1]);
+  });
+
+  test('setZoom is ignored while the camera is not ready', () async {
+    await capture().setZoom(3);
+
+    expect(state().zoom, 1);
+    expect(fake.zoomCalls, isEmpty);
+  });
+
+  test('the zoom is kept across a background round trip and asked for again', () async {
+    // CameraX rebinds the session on open and comes back at 1x, so a zoom set
+    // before the app went away has to be re-applied: the shot the user was
+    // framing is the same one.
+    await capture().start();
+    await capture().setZoom(3);
+    fake.zoomCalls.clear();
+
+    await capture().stop();
+    expect(state().zoom, 3);
+    await capture().start();
+
+    expect(state().zoom, 3);
+    expect(fake.zoomCalls, [3]);
+  });
+
+  test('a camera that comes back shallower re-clamps the zoom it kept', () async {
+    await capture().start();
+    await capture().setZoom(4);
+    fake.zoomCalls.clear();
+
+    await capture().stop();
+    fake.maxZoom = 2;
+    await capture().start();
+
+    expect(state().zoom, 2);
+    expect(fake.zoomCalls, [2]);
+  });
+
+  test('a start at 1x asks the camera for nothing', () async {
+    await capture().start();
+
+    expect(fake.zoomCalls, isEmpty);
+  });
+
   test('toggleTorch flips the torch and forwards it', () async {
     await capture().start();
 

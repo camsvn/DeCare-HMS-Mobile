@@ -641,6 +641,40 @@ void main() {
     expect(chipsOn(1), findsOneWidget);
   });
 
+  testWidgets("holding a card's own recent suggestion offers to forget it", (tester) async {
+    historyWith('Back');
+    await prefs.setStringList(RecentLabelsRepository.key, ['Neck']);
+    await pumpTwoDrafts(tester);
+    await tester.pumpAndSettle();
+
+    await tester.longPress(textOn(0, 'Neck'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Forget this suggestion?'), findsOneWidget);
+    expect(find.text('It will no longer be offered on this device.'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(DsButton, 'Forget'));
+    await tester.pumpAndSettle();
+
+    // Off the device, and off the cards that were offering it.
+    expect(RecentLabelsRepository(prefs).read(), isEmpty);
+    expect(textOn(0, 'Neck'), findsNothing);
+    // The patient's own narration is the server's to say, and stays.
+    expect(textOn(0, 'Back'), findsOneWidget);
+  });
+
+  testWidgets("holding the patient's own narration does nothing", (tester) async {
+    historyWith('Back');
+    await pumpTwoDrafts(tester);
+    await tester.pumpAndSettle();
+
+    await tester.longPress(textOn(0, 'Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Forget this suggestion?'), findsNothing);
+    expect(textOn(0, 'Back'), findsOneWidget);
+  });
+
   testWidgets('no chips when there is nothing to suggest', (tester) async {
     await pumpTwoDrafts(tester);
     await tester.pumpAndSettle();

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -17,6 +19,7 @@ import 'package:hms_uploader/features/tomogram/data/shot.dart';
 import 'package:hms_uploader/features/tomogram/presentation/draft_preview_screen.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/add_source_sheet.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/pending_line.dart';
+import 'package:hms_uploader/features/tomogram/presentation/widgets/suggestion_chips.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_card.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_history_card.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -201,6 +204,9 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
     final notifier = ref.read(tomogramControllerProvider(_opid).notifier);
     final drafts = state.drafts;
     final suggestions = ref.watch(descriptionSuggestionsProvider(_opid));
+    // Only the device's own labels can be un-offered; the patient's uploaded
+    // narrations are the server's to say.
+    final recent = ref.watch(recentLabelsProvider);
 
     return PopScope(
       canPop: drafts.isEmpty,
@@ -258,6 +264,14 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
                         inheritedDescription: notifier.inheritedDescriptionFor(i),
                         suggestions: suggestions,
                         onSuggestion: (text) => notifier.updateDescription(drafts[i].id, text),
+                        removableSuggestions: {
+                          for (final label in recent) label.toLowerCase(),
+                        },
+                        onSuggestionLongPress: (text) => unawaited(confirmForgetSuggestion(
+                          context,
+                          ref.read(recentLabelsProvider.notifier),
+                          text,
+                        )),
                       ),
                     ),
             ),

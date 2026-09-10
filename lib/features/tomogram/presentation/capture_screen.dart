@@ -9,6 +9,7 @@ import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/tomogram/application/camera_service.dart';
 import 'package:hms_uploader/features/tomogram/application/capture_controller.dart';
+import 'package:hms_uploader/features/tomogram/application/capture_grid_controller.dart';
 import 'package:hms_uploader/features/tomogram/application/description_suggestions.dart';
 import 'package:hms_uploader/features/tomogram/data/shot.dart';
 import 'package:hms_uploader/features/tomogram/presentation/shot_preview_screen.dart';
@@ -33,6 +34,28 @@ const double _previewBox = 1000;
 /// second control, and at full size beside the shutter it read as the
 /// screen's main action.
 const double _doneHeight = 40;
+
+/// The zoom the chip steps up to. One useful step rather than a slider: the
+/// pinch is there for anything in between.
+const double _zoomStep = 2;
+
+/// The composition grid's lines: faint enough to leave the photo alone, solid
+/// enough to line a limb up against.
+const double _gridOpacity = 0.35;
+const double _gridStroke = 1;
+
+/// The zoom chip's target. Drawn chip-sized, hit thumb-sized, as everywhere
+/// else on this screen.
+const double _zoomChipTapTarget = 44;
+
+/// The grid overlay, keyed so a test can tell it is on the preview.
+@visibleForTesting
+const Key captureGridKey = Key('capture-grid');
+
+/// The zoom chip, keyed for the same reason — its text is the level, so a
+/// finder for the text would be a finder for a moving target.
+@visibleForTesting
+const Key captureZoomChipKey = Key('capture-zoom-chip');
 
 /// One focus tap: where it landed and which tap it was, so that two taps on
 /// the same pixel are still two taps.
@@ -99,6 +122,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
   /// `Route<bool>`. A shot taken now would also arrive after the flush that
   /// was meant to cover it.
   bool _finishing = false;
+
+  /// The zoom a pinch started from, so the gesture scales that rather than
+  /// compounding on itself frame by frame.
+  double _zoomBase = 1;
 
   /// Whether the camera was handed back because the app left the foreground.
   /// One real pause arrives as three states (inactive, hidden, paused), and
@@ -247,6 +274,33 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     await _capture.toggleTorch();
   }
 
+  Future<void> _toggleGrid() async {
+    if (_finishing) return;
+    await ref.read(captureGridProvider.notifier).toggle();
+  }
+
+  /// A pinch starts from where the zoom already is. Recorded here rather than
+  /// read per update, so the gesture is one movement and not a stack of them.
+  void _onScaleStart(ScaleStartDetails details) {
+    _zoomBase = ref.read(captureControllerProvider).zoom;
+  }
+
+  void _onScaleUpdate(ScaleUpdateDetails details) {
+    // One finger is a drag, not a pinch — and the tap-to-focus gesture is
+    // what a single pointer on the preview means.
+    if (details.pointerCount < 2 || _finishing) return;
+    unawaited(_capture.setZoom(_zoomBase * details.scale));
+  }
+
+  /// 1x to [_zoomStep] and back, for a thumb that does not want to pinch.
+  /// Clamped by the controller, so a camera that stops short of the step lands
+  /// on as much as it has.
+  void _cycleZoom() {
+    if (_finishing) return;
+    final zoom = ref.read(captureControllerProvider).zoom;
+    unawaited(_capture.setZoom(zoom < _zoomStep ? _zoomStep : 1));
+  }
+
   void _focusAt(Offset local, Size area) {
     if (area.isEmpty) return;
     final aspectRatio = ref.read(cameraServiceProvider).previewAspectRatio;
@@ -259,6 +313,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     final ds = context.ds;
     final l10n = context.l10n;
     final state = ref.watch(captureControllerProvider);
+    final grid = ref.watch(captureGridProvider);
     // Watched, not read on tap: the patient's history is a provider this
     // screen depends on for as long as it is up, and reading an autoDispose
     // provider nothing listens to schedules its disposal on the spot.
@@ -288,8 +343,9 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (state.status == CaptureStatus.failed) _failure() else _previewArea(),
-                    _topOverlay(state),
+                    if (state.status == CaptureStatus.failed) _failure() else _previewArea(grid),
+                    _topOverlay(state, grid),
+                    _zoomOverlay(state),
                   ],
                 ),
               ),
@@ -301,11 +357,16 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     );
   }
 
-  Widget _previewArea() => LayoutBuilder(
+  /// The preview, and every gesture that lands on the picture itself: one
+  /// finger to focus, two to zoom. Both on the same detector, which resolves
+  /// them the way the arena does — a tap that does not move stays a tap.
+  Widget _previewArea(bool grid) => LayoutBuilder(
         builder: (context, constraints) => GestureDetector(
           key: capturePreviewAreaKey,
           behavior: HitTestBehavior.opaque,
           onTapUp: (details) => _focusAt(details.localPosition, constraints.biggest),
+          onScaleStart: _onScaleStart,
+          onScaleUpdate: _onScaleUpdate,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -313,12 +374,61 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
               // the live camera texture, which must not go down and up again
               // every time a shot lands in the strip.
               const _CameraLayer(),
+              // Over the preview only, and never over the bottom panel: it is
+              // a framing aid for the picture, not a decoration for the screen.
+              if (grid)
+                IgnorePointer(
+                  child: CustomPaint(
+                    key: captureGridKey,
+                    painter: _GridPainter(
+                      color: context.ds.textOnShell.withOpacity(_gridOpacity),
+                    ),
+                  ),
+                ),
               _FlashOverlay(flash: _flash),
               _FocusRing(tap: _focusTap),
             ],
           ),
         ),
       );
+
+  /// The zoom, just above the panel and centred under the frame: the one place
+  /// on the preview a thumb can reach without covering what it is aiming at.
+  ///
+  /// Absent on a camera that does not zoom — a chip that only ever says "1.0x"
+  /// is a control that does nothing.
+  Widget _zoomOverlay(CaptureState state) {
+    final l10n = context.l10n;
+    if (ref.read(cameraServiceProvider).maxZoom <= 1) return const SizedBox.shrink();
+    final text = l10n.captureZoomLevel(state.zoom.toStringAsFixed(1));
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: DsSpace.x3,
+      child: Center(
+        child: Semantics(
+          key: captureZoomChipKey,
+          container: true,
+          button: true,
+          label: text,
+          onTap: _cycleZoom,
+          excludeSemantics: true,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(DsRadius.full),
+            onTap: _cycleZoom,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: _zoomChipTapTarget),
+              child: Align(
+                widthFactor: 1,
+                heightFactor: 1,
+                child: DsChip(text: text, mono: true, onShell: true),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   /// The camera would not open. On [DsColors.canvas] rather than the shell:
   /// the empty-state pattern is page text, and page text needs a page under it.
@@ -338,7 +448,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
     );
   }
 
-  Widget _topOverlay(CaptureState state) {
+  Widget _topOverlay(CaptureState state, bool grid) {
     final ds = context.ds;
     final l10n = context.l10n;
     return Positioned(
@@ -348,7 +458,6 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
       child: Padding(
         padding: const EdgeInsets.all(DsSpace.x2),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             IconButton(
               icon: const Icon(Icons.close),
@@ -356,6 +465,13 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
               tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
               // Nothing to leave to: the pop is already on its way.
               onPressed: _finishing ? null : () => unawaited(_close()),
+            ),
+            const Spacer(),
+            IconButton(
+              icon: Icon(grid ? Icons.grid_3x3 : Icons.grid_off),
+              color: ds.textOnShell,
+              tooltip: grid ? l10n.captureGridOff : l10n.captureGridOn,
+              onPressed: _finishing ? null : () => unawaited(_toggleGrid()),
             ),
             IconButton(
               icon: const Icon(Icons.flashlight_off_outlined),
@@ -424,6 +540,32 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
       ),
     );
   }
+}
+
+/// Two lines each way over the preview: the thirds a photographer frames
+/// against. It draws over whatever box it is given, so the cover crop needs no
+/// arithmetic here — the grid is on the screen, which is what the eye lines
+/// the subject up against.
+class _GridPainter extends CustomPainter {
+  const _GridPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = _gridStroke;
+    for (var i = 1; i < 3; i++) {
+      final x = size.width * i / 3;
+      final y = size.height * i / 3;
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GridPainter oldDelegate) => oldDelegate.color != color;
 }
 
 /// The live preview, scaled to cover its area.

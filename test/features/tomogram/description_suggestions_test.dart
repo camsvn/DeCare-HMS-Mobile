@@ -20,6 +20,19 @@ void main() {
       expect(merged, ['Left forearm', 'BACK', 'Neck']);
     });
 
+    test('drops anything too long to be a body site', () {
+      // Some narrations are a sentence, or a paste of somebody's notes. As a
+      // chip that would wrap over two lines and push the row off the screen,
+      // and nobody would pick it: dropped rather than truncated, which would
+      // offer text that is not what it says.
+      final long = 'x' * (suggestionMaxLength + 1);
+      final atCap = 'y' * suggestionMaxLength;
+
+      expect(mergeSuggestions([long, 'Back'], [atCap]), ['Back', atCap]);
+      // Measured after trimming, so trailing spaces do not disqualify one.
+      expect(mergeSuggestions(['  $atCap  '], const []), [atCap]);
+    });
+
     test('drops blanks', () {
       expect(mergeSuggestions(['', '  ', 'Back'], ['   ', 'Neck']), ['Back', 'Neck']);
     });

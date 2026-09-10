@@ -113,8 +113,16 @@
   "captureLabelHint": "e.g. Left forearm",
   "captureLabelUse": "Use label",
   "captureLabelClear": "Clear label",
+  "captureZoomLevel": "{level}×",
+  "@captureZoomLevel": {"placeholders": {"level": {"type": "String"}}},
+  "captureGridOn": "Show grid",
+  "captureGridOff": "Hide grid",
   "captureLabelled": "Labelled {label}",
   "@captureLabelled": {"placeholders": {"label": {"type": "String"}}},
+
+  "suggestionForgetTitle": "Forget this suggestion?",
+  "suggestionForgetBody": "It will no longer be offered on this device.",
+  "suggestionForget": "Forget",
 
   "queueTitle": "Pending uploads",
   "queueRetry": "Retry now",

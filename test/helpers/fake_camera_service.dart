@@ -41,6 +41,13 @@ class FakeCameraService implements CameraService {
   /// cover-crop arithmetic under a known frame shape.
   double aspectRatio = 3 / 4;
 
+  /// How far this camera zooms — a plain field, so a test can put the screen
+  /// in front of a device that does not zoom at all. Unlike the plugin's, it
+  /// does not drop to 1 before `start`: nothing reads it that early except
+  /// the zoom chip's own visibility.
+  @override
+  double maxZoom = 4;
+
   int startCount = 0;
   int stopCount = 0;
   int flushCount = 0;
@@ -49,6 +56,7 @@ class FakeCameraService implements CameraService {
   /// that a shot does not rebuild the camera texture.
   int previewBuilds = 0;
   final List<bool> torchCalls = [];
+  final List<double> zoomCalls = [];
   final List<Offset> focusCalls = [];
 
   bool _ready = false;
@@ -109,6 +117,9 @@ class FakeCameraService implements CameraService {
 
   @override
   Future<void> setTorch(bool on) async => torchCalls.add(on);
+
+  @override
+  Future<void> setZoom(double level) async => zoomCalls.add(level);
 
   @override
   Future<void> focusAt(Offset normalized) async => focusCalls.add(normalized);

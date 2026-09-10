@@ -22,6 +22,8 @@ class TomogramCard extends StatefulWidget {
     this.inheritedDescription,
     this.suggestions = const [],
     this.onSuggestion,
+    this.onSuggestionLongPress,
+    this.removableSuggestions = const {},
   });
 
   final TomogramDraft draft;
@@ -48,6 +50,12 @@ class TomogramCard extends StatefulWidget {
 
   /// A suggestion was tapped. Null leaves the chips out entirely.
   final ValueChanged<String>? onSuggestion;
+
+  /// A suggestion was held down — the offer to stop offering it.
+  final ValueChanged<String>? onSuggestionLongPress;
+
+  /// Which suggestions this device could stop offering, lower-cased.
+  final Set<String> removableSuggestions;
 
   @override
   State<TomogramCard> createState() => _TomogramCardState();
@@ -176,7 +184,12 @@ class _TomogramCardState extends State<TomogramCard> {
               widget.draft.description.trim().isEmpty &&
               widget.suggestions.isNotEmpty) ...[
             const SizedBox(height: DsSpace.x2),
-            SuggestionChips(suggestions: widget.suggestions, onPick: onSuggestion),
+            SuggestionChips(
+              suggestions: widget.suggestions,
+              onPick: onSuggestion,
+              removable: widget.removableSuggestions,
+              onLongPress: widget.onSuggestionLongPress,
+            ),
           ],
         ],
       ),

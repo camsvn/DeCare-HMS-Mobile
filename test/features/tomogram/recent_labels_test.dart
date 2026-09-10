@@ -36,6 +36,37 @@ void main() {
       expect(repo.read(), ['Left forearm', 'Back']);
     });
 
+    test('never stores a label too long to offer', () async {
+      final repo = RecentLabelsRepository(prefs);
+      final long = 'x' * (suggestionMaxLength + 1);
+
+      await repo.remember([long, 'Back']);
+
+      expect(repo.read(), ['Back']);
+    });
+
+    test('stops offering a long label a previous version stored', () async {
+      // Filtered on the way out as well as in, so a device that remembered a
+      // sentence before the cap existed stops offering it with no migration.
+      final long = 'x' * (suggestionMaxLength + 1);
+      await prefs.setStringList(RecentLabelsRepository.key, [long, 'Back']);
+
+      expect(RecentLabelsRepository(prefs).read(), ['Back']);
+    });
+
+    test('forget drops a label case-insensitively and persists', () async {
+      final repo = RecentLabelsRepository(prefs);
+      await repo.remember(['Left forearm', 'BACK', 'Neck']);
+
+      await repo.forget('  back  ');
+
+      expect(repo.read(), ['Left forearm', 'Neck']);
+      expect(prefs.getStringList(RecentLabelsRepository.key), ['Left forearm', 'Neck']);
+      // A label that was never there is not an error.
+      await repo.forget('Scalp');
+      expect(repo.read(), ['Left forearm', 'Neck']);
+    });
+
     test('keeps the newest of two labels that differ only in case', () async {
       final repo = RecentLabelsRepository(prefs);
 
@@ -90,6 +121,17 @@ void main() {
       await container.read(recentLabelsProvider.notifier).remember(['back']);
 
       expect(container.read(recentLabelsProvider), ['back', 'Left forearm']);
+    });
+
+    test('forget updates the state and persists', () async {
+      // A guess that keeps coming back is worse than no guess.
+      final container = containerWith(prefs);
+      await container.read(recentLabelsProvider.notifier).remember(['Left forearm', 'Back']);
+
+      await container.read(recentLabelsProvider.notifier).forget('LEFT FOREARM');
+
+      expect(container.read(recentLabelsProvider), ['Back']);
+      expect(RecentLabelsRepository(prefs).read(), ['Back']);
     });
   });
 }

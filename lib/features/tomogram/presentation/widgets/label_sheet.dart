@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
+import 'package:hms_uploader/features/tomogram/application/recent_labels_controller.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/suggestion_chips.dart';
 
 /// What a description may run to. Long enough for "Left forearm, lateral" and
@@ -24,7 +28,7 @@ Future<String?> showLabelSheet(
       ],
     );
 
-class _LabelSheet extends StatefulWidget {
+class _LabelSheet extends ConsumerStatefulWidget {
   const _LabelSheet({
     required this.sheetContext,
     required this.initial,
@@ -39,10 +43,10 @@ class _LabelSheet extends StatefulWidget {
   final List<String> suggestions;
 
   @override
-  State<_LabelSheet> createState() => _LabelSheetState();
+  ConsumerState<_LabelSheet> createState() => _LabelSheetState();
 }
 
-class _LabelSheetState extends State<_LabelSheet> {
+class _LabelSheetState extends ConsumerState<_LabelSheet> {
   late final TextEditingController _controller = TextEditingController(text: widget.initial);
 
   @override
@@ -64,6 +68,9 @@ class _LabelSheetState extends State<_LabelSheet> {
   Widget build(BuildContext context) {
     final type = context.dsType;
     final l10n = context.l10n;
+    // Which of the offered chips came from this device rather than from the
+    // patient's uploads: only those can be un-offered.
+    final recent = ref.watch(recentLabelsProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(DsSpace.gutter, DsSpace.x2, DsSpace.gutter, 0),
       child: Column(
@@ -82,7 +89,17 @@ class _LabelSheetState extends State<_LabelSheet> {
           ),
           if (widget.suggestions.isNotEmpty) ...[
             const SizedBox(height: DsSpace.x3),
-            SuggestionChips(suggestions: widget.suggestions, onPick: _pick, wrap: true),
+            SuggestionChips(
+              suggestions: widget.suggestions,
+              onPick: _pick,
+              removable: {for (final label in recent) label.toLowerCase()},
+              onLongPress: (suggestion) => unawaited(confirmForgetSuggestion(
+                context,
+                ref.read(recentLabelsProvider.notifier),
+                suggestion,
+              )),
+              wrap: true,
+            ),
           ],
           const SizedBox(height: DsSpace.x4),
           // Wrapped rather than a row: three buttons at a large text size

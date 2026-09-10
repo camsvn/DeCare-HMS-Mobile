@@ -1,6 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
+import 'package:hms_uploader/features/tomogram/application/recent_labels_controller.dart';
+
+/// Asks whether to stop offering [suggestion] on this device, and forgets it
+/// when the answer is yes.
+///
+/// Shared by every place chips are shown, so the question is worded once and
+/// the answer means the same thing everywhere.
+Future<void> confirmForgetSuggestion(
+  BuildContext context,
+  RecentLabelsController labels,
+  String suggestion,
+) async {
+  final l10n = context.l10n;
+  final forget = await showDsDialog(
+    context,
+    title: l10n.suggestionForgetTitle,
+    body: l10n.suggestionForgetBody,
+    confirmLabel: l10n.suggestionForget,
+    destructive: true,
+  );
+  if (!forget) return;
+  await labels.forget(suggestion);
+}
 
 /// The smallest a thumb should have to hit. A chip is drawn smaller than this;
 /// its tap target is not.
@@ -17,6 +40,8 @@ class SuggestionChips extends StatelessWidget {
     super.key,
     required this.suggestions,
     required this.onPick,
+    this.onLongPress,
+    this.removable = const {},
     this.wrap = false,
     this.onShell = false,
   });
@@ -33,6 +58,14 @@ class SuggestionChips extends StatelessWidget {
 
   /// Chips styled for the camera's shell rather than a card.
   final bool onShell;
+
+  /// A chip was held down. Only ever called for a [removable] one.
+  final ValueChanged<String>? onLongPress;
+
+  /// Which suggestions this device could stop offering, lower-cased — its own
+  /// recent labels. The patient's uploaded narrations are not among them:
+  /// they are what the server says, and nothing here can unsay it.
+  final Set<String> removable;
 
   @override
   Widget build(BuildContext context) {
@@ -60,20 +93,25 @@ class SuggestionChips extends StatelessWidget {
     );
   }
 
-  Widget _chip(String suggestion) => MergeSemantics(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(DsRadius.full),
-          onTap: () => onPick(suggestion),
-          // A chip is a small thing to draw and a normal thing to hit: the
-          // target grows to 44 dp with the chip centred inside it.
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: _chipTapTarget),
-            child: Align(
-              widthFactor: 1,
-              heightFactor: 1,
-              child: DsChip(text: suggestion, onShell: onShell),
-            ),
+  Widget _chip(String suggestion) {
+    final onLongPress = this.onLongPress;
+    final canForget = onLongPress != null && removable.contains(suggestion.toLowerCase());
+    return MergeSemantics(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(DsRadius.full),
+        onTap: () => onPick(suggestion),
+        onLongPress: canForget ? () => onLongPress(suggestion) : null,
+        // A chip is a small thing to draw and a normal thing to hit: the
+        // target grows to 44 dp with the chip centred inside it.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _chipTapTarget),
+          child: Align(
+            widthFactor: 1,
+            heightFactor: 1,
+            child: DsChip(text: suggestion, onShell: onShell),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
