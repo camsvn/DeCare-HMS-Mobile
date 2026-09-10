@@ -87,10 +87,18 @@ while Done is handing the shots over, like everything else on that screen.
 (`shotPreviewLabelKey`), always present: this shot's description in `type.body`, or "Add a label"
 (`captureAddLabel`, kept for exactly this) muted, with a leading `Icons.edit_outlined` when it has
 one and `Icons.label_outline` when it does not. The whole row is the button, two lines deep and
-ellipsised, and the image area is `Expanded` above it so the photo gives up the room a long
-description needs — as a chip beside the counter it read as metadata about the photo rather than as
-its caption, and truncated most real descriptions. The header keeps only the close button and the
-mono counter, and Remove stays a compact destructive button, right-aligned under the caption. It opens the
+ellipsised — as a chip beside the counter it read as metadata about the photo rather than as its
+caption, and truncated most real descriptions.
+
+The screen around it is a photo viewer rather than a form. The photo runs edge to edge from the top
+of the screen to the bottom bar, `BoxFit.contain` on `ds.shell`, with no margins of its own; the
+header (close left, mono counter right) floats over the top of it on a `ds.shell` scrim that fades
+to nothing, costing no layout height and — being `IgnorePointer` outside its buttons — no swipe.
+Everything else lives in one bottom bar on `ds.shell` under `SafeArea`, at least 56 dp deep: the
+caption takes the width, and the only other control is a trash `IconButton` (`Icons.delete_outline`
+in `ds.danger`, 48 dp target, tooltip and semantics label `captureRemove`) on the same row, asking
+the same "Remove this photo?" as before. The standalone Remove button, the side margins and the dead
+band between them are gone. It opens the
 same label sheet, prefilled with the shot's own label and offering the same suggestions
 (`descriptionSuggestionsProvider(opid)` — so `ShotPreviewScreen` now takes `opid`, passed from
 `CaptureScreen`). A result goes to `CaptureController.relabel(path, label)`, which trims and sets
@@ -102,8 +110,10 @@ chip and the strip's tag dot both follow, since the screen watches the session.
 New ARB keys: `captureLabelNext`, `captureNextPhotos` (String `label`). Tests: `label_pill_test.dart`
 (copy, the × vs. the text, both targets, both semantics nodes), the capture screen (× clears in one
 tap and the next shot is unlabelled; × inert while finishing), the controller (`relabel` scope,
-trimming, unknown path, `state.label` untouched) and the preview (chip copy, prefilled sheet,
-relabels only the shot on screen, Clear, cancel, suggestions from a stubbed history).
+trimming, unknown path, `state.label` untouched) and the preview (caption copy, the edge-to-edge photo
+with its overlay header, the one bottom bar, a swipe that still turns the page through the overlay,
+a 120-character description over two lines, the prefilled sheet, relabelling only the shot on
+screen, Clear, cancel, and suggestions from a stubbed history).
 
 ## 4. Architecture
 

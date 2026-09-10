@@ -113,7 +113,9 @@ void main() {
   /// The caption row under the photo: the label, and the way to change it.
   Finder caption() => find.byKey(shotPreviewLabelKey);
 
-  Finder removeButton() => find.widgetWithText(DsButton, 'Remove');
+  /// The bin in the bottom bar. The dialog's confirm is the labelled button,
+  /// so the two are told apart by which is an icon.
+  Finder removeButton() => find.byIcon(Icons.delete_outline);
 
   testWidgets('opens on the shot it was asked for and swipes through the set', (tester) async {
     await open(tester, index: 1);
@@ -147,17 +149,49 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('the caption is a full-width row under the image, above Remove', (tester) async {
+  testWidgets('the photo runs edge to edge with the header floating on it', (tester) async {
     await open(tester, count: 1, label: 'Left forearm');
 
-    // Read as a caption, not as metadata beside the counter: the whole width
-    // of the screen, directly under the photo.
-    expect(tester.getSize(caption()).width, 400);
-    expect(tester.getTopLeft(caption()).dx, 0);
-    expect(tester.getBottomLeft(find.byType(PageView)).dy, tester.getTopLeft(caption()).dy);
-    // Remove sits below it, at the right-hand end.
-    expect(tester.getTopLeft(removeButton()).dy, greaterThan(tester.getBottomLeft(caption()).dy));
-    expect(tester.getTopRight(removeButton()).dx, closeTo(400 - DsSpace.gutter, 0.5));
+    // A photo viewer, not a form: no side margins, and nothing above the
+    // picture taking a band of its own.
+    final photo = tester.getRect(find.byType(PageView));
+    expect(photo.width, 400);
+    expect(photo.left, 0);
+    expect(photo.top, 0);
+    // The header is drawn over the top of it rather than beside it.
+    expect(tester.getRect(find.byTooltip('Close')).top, greaterThanOrEqualTo(photo.top));
+    expect(tester.getRect(find.byTooltip('Close')).bottom, lessThan(photo.bottom));
+    expect(tester.getRect(find.text('1 of 1')).top, lessThan(photo.bottom));
+  });
+
+  testWidgets('the caption and the bin share one bar under the photo', (tester) async {
+    await open(tester, count: 1, label: 'Left forearm');
+
+    final captionRect = tester.getRect(caption());
+    final bin = tester.getRect(removeButton());
+    // One row: the bin's centre is inside the caption's own band.
+    expect(bin.center.dy, greaterThanOrEqualTo(captionRect.top));
+    expect(bin.center.dy, lessThanOrEqualTo(captionRect.bottom));
+    // The caption takes the width the bin leaves, and between them they take
+    // all of it.
+    expect(captionRect.left, 0);
+    expect(captionRect.right, lessThanOrEqualTo(bin.left));
+    expect(captionRect.width + tester.getSize(find.byType(IconButton).last).width, 400);
+    // And the bar sits under the photo, not over it.
+    expect(captionRect.top, greaterThanOrEqualTo(tester.getRect(find.byType(PageView)).bottom));
+  });
+
+  testWidgets('a swipe still turns the page with the header over it', (tester) async {
+    await open(tester, index: 0);
+    expect(find.text('1 of 3'), findsOneWidget);
+
+    // Started inside the header's own band, between the close button and the
+    // counter: the scrim is ignored for pointers and the row has nothing
+    // there, so the swipe reaches the photo underneath.
+    await tester.dragFrom(const Offset(200, 40), const Offset(-300, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 of 3'), findsOneWidget);
   });
 
   testWidgets('the header carries the close button and the counter, nothing else', (tester) async {
@@ -292,11 +326,12 @@ void main() {
     expect(shots().single.label, 'Right cheek');
   });
 
-  testWidgets('Remove asks first, then drops the shot and deletes its file', (tester) async {
+  testWidgets('the bin asks first, then drops the shot and deletes its file', (tester) async {
     await open(tester);
     final path = shots().first.path;
+    expect(find.byTooltip('Remove'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(DsButton, 'Remove'));
+    await tester.tap(removeButton());
     await tester.pumpAndSettle();
 
     expect(find.text('Remove this photo?'), findsOneWidget);
@@ -316,7 +351,7 @@ void main() {
   testWidgets('declining the question leaves the shot alone', (tester) async {
     await open(tester);
 
-    await tester.tap(find.widgetWithText(DsButton, 'Remove'));
+    await tester.tap(removeButton());
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(DsButton, 'Cancel'));
     await tester.pumpAndSettle();
@@ -329,7 +364,7 @@ void main() {
     await open(tester, index: 2);
     expect(find.text('3 of 3'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(DsButton, 'Remove'));
+    await tester.tap(removeButton());
     await tester.pumpAndSettle();
     await tester.tap(dialogRemove());
     await tester.pumpAndSettle();
@@ -341,7 +376,7 @@ void main() {
   testWidgets('removing the only shot leaves the preview', (tester) async {
     await open(tester, count: 1);
 
-    await tester.tap(find.widgetWithText(DsButton, 'Remove'));
+    await tester.tap(removeButton());
     await tester.pumpAndSettle();
     await tester.tap(dialogRemove());
     await tester.pumpAndSettle();
