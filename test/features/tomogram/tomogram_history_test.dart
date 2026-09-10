@@ -4,8 +4,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
+import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MockDio extends Mock implements Dio {}
 
@@ -147,12 +149,15 @@ void main() {
     late MockTomogramApi upload;
     late ProviderContainer container;
 
-    setUp(() {
+    setUp(() async {
       history = MockTomogramHistoryApi();
       upload = MockTomogramApi();
+      // A finished upload also remembers its descriptions, which reads prefs.
+      SharedPreferences.setMockInitialValues({});
       container = ProviderContainer(overrides: [
         tomogramHistoryApiProvider.overrideWithValue(history),
         tomogramApiProvider.overrideWithValue(upload),
+        sharedPreferencesProvider.overrideWithValue(await SharedPreferences.getInstance()),
         uuidProvider.overrideWithValue(() => 'id'),
       ]);
       addTearDown(container.dispose);

@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/tomogram/data/tomogram_draft.dart';
+import 'package:hms_uploader/features/tomogram/presentation/widgets/suggestion_chips.dart';
 
 /// One draft photo: 16:10 preview with a mono "n of total" chip and a
-/// destructive delete, plus the description field and — when there is more
-/// than one photo — an "Apply to all" shortcut under it.
+/// destructive delete, plus the description field — with the description it
+/// will inherit as its placeholder, and tap-to-fill suggestions under it while
+/// it is empty.
 class TomogramCard extends StatefulWidget {
   const TomogramCard({
     super.key,
@@ -16,7 +18,9 @@ class TomogramCard extends StatefulWidget {
     required this.total,
     required this.onDelete,
     required this.onDescriptionChanged,
-    this.onApplyToAll,
+    this.inheritedDescription,
+    this.suggestions = const [],
+    this.onSuggestion,
   });
 
   final TomogramDraft draft;
@@ -25,9 +29,18 @@ class TomogramCard extends StatefulWidget {
   final VoidCallback onDelete;
   final ValueChanged<String> onDescriptionChanged;
 
-  /// Copies this photo's description onto the others. Null hides the button,
-  /// which is what a single-photo list wants.
-  final VoidCallback? onApplyToAll;
+  /// What this photo would upload with if left blank — the previous photo's
+  /// effective description — shown as the field's placeholder so the
+  /// inheritance is visible and a single tap to type over. Null when there is
+  /// nothing to inherit.
+  final String? inheritedDescription;
+
+  /// Descriptions worth offering, newest first. Shown under the field only
+  /// while it is empty: a field with text in it has nothing left to suggest.
+  final List<String> suggestions;
+
+  /// A suggestion was tapped. Null leaves the chips out entirely.
+  final ValueChanged<String>? onSuggestion;
 
   @override
   State<TomogramCard> createState() => _TomogramCardState();
@@ -36,9 +49,9 @@ class TomogramCard extends StatefulWidget {
 class _TomogramCardState extends State<TomogramCard> {
   late final TextEditingController _controller = TextEditingController(text: widget.draft.description);
 
-  /// "Apply to all" rewrites the draft from outside this card, so the field has
-  /// to follow. Only a change in the draft moves the controller: while the user
-  /// is typing the two already agree, so their cursor is left alone.
+  /// A suggestion chip rewrites the draft from outside this card, so the field
+  /// has to follow. Only a change in the draft moves the controller: while the
+  /// user is typing the two already agree, so their cursor is left alone.
   @override
   void didUpdateWidget(TomogramCard oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -58,6 +71,8 @@ class _TomogramCardState extends State<TomogramCard> {
   Widget build(BuildContext context) {
     final ds = context.ds;
     final l10n = context.l10n;
+    final inherited = widget.inheritedDescription;
+    final onSuggestion = widget.onSuggestion;
     return DsCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -112,17 +127,17 @@ class _TomogramCardState extends State<TomogramCard> {
           DsTextField(
             controller: _controller,
             label: l10n.tomogramDescription,
+            hint: inherited == null ? null : l10n.tomogramSameAsPrevious(inherited),
             maxLines: 3,
             maxLength: 200,
             showCounter: true,
             keyboardType: TextInputType.multiline,
             onChanged: widget.onDescriptionChanged,
           ),
-          if (widget.onApplyToAll != null)
-            Align(
-              alignment: Alignment.centerRight,
-              child: DsButton.ghost(label: l10n.tomogramApplyToAll, onPressed: widget.onApplyToAll),
-            ),
+          if (onSuggestion != null && widget.draft.description.isEmpty && widget.suggestions.isNotEmpty) ...[
+            const SizedBox(height: DsSpace.x2),
+            SuggestionChips(suggestions: widget.suggestions, onPick: onSuggestion),
+          ],
         ],
       ),
     );

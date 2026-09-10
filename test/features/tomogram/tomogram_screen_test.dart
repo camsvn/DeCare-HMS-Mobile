@@ -94,9 +94,9 @@ void main() {
   }
 
   /// Two cards do not fit the default 800x600 surface, which would leave the
-  /// second card unbuilt and the first card's "Apply to all" off-screen. Only
-  /// the height changes: a narrower surface would overflow the dialog's buttons
-  /// under the test font, whose glyphs are all em squares.
+  /// second card unbuilt and its description field off-screen. Only the height
+  /// changes: a narrower surface would overflow the dialog's buttons under the
+  /// test font, whose glyphs are all em squares.
   void tallSurface(WidgetTester tester) {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1.0;
@@ -107,16 +107,38 @@ void main() {
   String descriptionAt(WidgetTester tester, int i) =>
       tester.widget<TextField>(find.byType(TextField).at(i)).controller!.text;
 
-  Finder applyToAllOn(int card) =>
-      find.descendant(of: find.byType(TomogramCard).at(card), matching: find.text('Apply to all'));
+  /// The description field's placeholder on card [i], or null when it has
+  /// none. Read off the field so no other text on the card can stand in for it.
+  String? hintAt(WidgetTester tester, int i) =>
+      tester.widget<TextField>(find.byType(TextField).at(i)).decoration?.hintText;
+
+  /// Text inside card [card] only: the history card above the list renders the
+  /// same narrations, so an unscoped finder would match twice.
+  Finder textOn(int card, String text) =>
+      find.descendant(of: find.byType(TomogramCard).at(card), matching: find.text(text));
+
+  Finder chipsOn(int card) =>
+      find.descendant(of: find.byType(TomogramCard).at(card), matching: find.byType(SuggestionChips));
+
+  /// One uploaded set for OP 42 whose only narration is [narration].
+  void historyWith(String narration) => when(() => history.list(42)).thenAnswer((_) async => [
+        TomogramSet(
+          id: 9,
+          dateTime: DateTime(2026, 9, 8, 14, 32),
+          doctorId: 1,
+          tomogramTypeId: 1,
+          details: [TomogramSetDetail(id: 1, tomogramPartId: 1, narration: narration)],
+        ),
+      ]);
 
   File jpeg(String name) => File('${dir.path}/$name')..writeAsBytesSync([0xFF, 0xD8, 0xFF]);
 
-  /// Captures two photos through the injected capture route.
-  Future<void> pumpTwoDrafts(WidgetTester tester) async {
+  /// Captures two photos through the injected capture route: the first taken
+  /// under [label], the second without one.
+  Future<void> pumpTwoDrafts(WidgetTester tester, {String label = ''}) async {
     tallSurface(tester);
-    final paths = [jpeg('a.jpg').path, jpeg('b.jpg').path];
-    await pump(tester, uuid: ids(), onCapture: (_) async => shotsFor(paths));
+    final shots = [Shot(path: jpeg('a.jpg').path, label: label), Shot(path: jpeg('b.jpg').path)];
+    await pump(tester, uuid: ids(), onCapture: (_) async => shots);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -515,50 +537,95 @@ void main() {
     expect(find.text('Upload'), findsNothing);
   });
 
-  testWidgets('a single photo has nothing to apply its description to', (tester) async {
-    await pump(tester, onCapture: (_) async => shotsFor([jpeg('a.jpg').path]));
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('capture labels arrive as descriptions and inherit forward', (tester) async {
+    when(() => api.upload(42, any())).thenAnswer((_) async => const []);
+    await pumpTwoDrafts(tester, label: 'Left forearm');
+
+    // The label the photos were taken under is already in the first field, and
+    // the blank second card says what it will upload with.
+    expect(descriptionAt(tester, 0), 'Left forearm');
+    expect(descriptionAt(tester, 1), '');
+    expect(hintAt(tester, 0), isNull);
+    expect(hintAt(tester, 1), 'Same as previous photo: Left forearm');
+    expect(find.text('Same as previous photo: Left forearm'), findsOneWidget);
+
+    await tester.tap(find.text('Upload'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final posted = verify(() => api.upload(42, captureAny())).captured.single as List<TomogramDraft>;
+    expect(posted.map((d) => d.description), ['Left forearm', 'Left forearm']);
+    // The set's descriptions are offered on the next patient.
+    expect(prefs.getStringList(RecentLabelsRepository.key), ['Left forearm']);
+    await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Take Photo'));
+  });
+
+  testWidgets('typing on the second photo replaces the inherited placeholder', (tester) async {
+    await pumpTwoDrafts(tester, label: 'Left forearm');
+    expect(hintAt(tester, 1), 'Same as previous photo: Left forearm');
+
+    await tester.enterText(find.byType(TextField).at(1), 'Back');
+    await tester.pump();
+
+    expect(hintAt(tester, 1), isNull);
+    expect(find.text('Same as previous photo: Left forearm'), findsNothing);
+  });
+
+  testWidgets('a blank first photo has nothing to inherit', (tester) async {
+    await pumpTwoDrafts(tester);
+
+    expect(hintAt(tester, 0), isNull);
+    expect(hintAt(tester, 1), isNull);
+    expect(find.textContaining('Same as previous photo'), findsNothing);
+  });
+
+  testWidgets('an empty card offers the patient history and recent labels as chips', (tester) async {
+    historyWith('Back');
+    await prefs.setStringList(RecentLabelsRepository.key, ['Neck']);
+    await pumpTwoDrafts(tester);
     await tester.pumpAndSettle();
 
-    expect(find.byType(TomogramCard), findsOneWidget);
+    // This patient's own narration first, then the device's recent labels.
+    expect(textOn(0, 'Back'), findsOneWidget);
+    expect(textOn(0, 'Neck'), findsOneWidget);
+
+    await tester.tap(textOn(0, 'Back'));
+    await tester.pumpAndSettle();
+
+    expect(descriptionAt(tester, 0), 'Back');
+    // A field with text in it has nothing left to suggest.
+    expect(chipsOn(0), findsNothing);
+    expect(chipsOn(1), findsOneWidget);
+  });
+
+  testWidgets('no chips when there is nothing to suggest', (tester) async {
+    await pumpTwoDrafts(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SuggestionChips), findsNothing);
+  });
+
+  testWidgets('Apply to all is gone', (tester) async {
+    await pumpTwoDrafts(tester, label: 'Left forearm');
+
     expect(find.text('Apply to all'), findsNothing);
-  });
-
-  testWidgets('Apply to all copies one description onto the other photo', (tester) async {
-    await pumpTwoDrafts(tester);
-    expect(find.text('Apply to all'), findsNWidgets(2));
-
-    await tester.enterText(find.byType(TextField).at(0), 'left arm');
-    await tester.pump();
-    await tester.tap(applyToAllOn(0));
-    await tester.pumpAndSettle();
-
-    // Nothing would be overwritten, so it applies without asking.
     expect(find.text('Apply to all photos?'), findsNothing);
-    expect(descriptionAt(tester, 0), 'left arm');
-    expect(descriptionAt(tester, 1), 'left arm');
   });
 
-  testWidgets('replacing another description asks first', (tester) async {
-    await pumpTwoDrafts(tester);
-    await tester.enterText(find.byType(TextField).at(0), 'left arm');
-    await tester.enterText(find.byType(TextField).at(1), 'other');
+  testWidgets('queueing offline stores the resolved descriptions and remembers them', (tester) async {
+    when(() => api.upload(any(), any())).thenThrow(const CannotConnectFailure());
+    await pumpTwoDrafts(tester, label: 'Left forearm');
+
+    await tester.tap(find.text('Upload'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
-    await tester.tap(applyToAllOn(0));
+    expect(find.text('Saved offline. It will upload when the server is reachable.'), findsOneWidget);
+    final queued = queueOf(tester).single;
+    expect(queued.files.map((f) => f.description), ['Left forearm', 'Left forearm']);
+    expect(prefs.getStringList(RecentLabelsRepository.key), ['Left forearm']);
+    await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
-    expect(find.text('Apply to all photos?'), findsOneWidget);
-    expect(find.text('This replaces the descriptions of the other photos.'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    expect(descriptionAt(tester, 1), 'other');
-
-    await tester.tap(applyToAllOn(0));
-    await tester.pumpAndSettle();
-    await tester.tap(find.descendant(of: find.byType(Dialog), matching: find.text('Apply to all')));
-    await tester.pumpAndSettle();
-    expect(descriptionAt(tester, 1), 'left arm');
   });
 }

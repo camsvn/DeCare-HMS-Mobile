@@ -3,23 +3,29 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
+import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MockTomogramApi extends Mock implements TomogramApi {}
 
 void main() {
   late Directory dir;
   late MockTomogramApi api;
+  late SharedPreferences prefs;
   late ProviderContainer container;
   var counter = 0;
 
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('tomo_ctrl');
     api = MockTomogramApi();
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
     counter = 0;
     container = ProviderContainer(overrides: [
       tomogramApiProvider.overrideWithValue(api),
+      sharedPreferencesProvider.overrideWithValue(prefs),
       uuidProvider.overrideWithValue(() => 'id${++counter}'),
     ]);
     addTearDown(container.dispose);
@@ -44,39 +50,64 @@ void main() {
     sub.close();
   });
 
-  test('applyDescriptionToAll copies the source description onto every draft', () async {
+  test('addDrafts keeps the order and the descriptions it was given', () async {
     final a = make('a.jpg');
     final b = make('b.jpg');
-    final c = make('c.jpg');
     final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
     final ctrl = container.read(tomogramControllerProvider(42).notifier);
-    ctrl.addFiles([a.path, b.path, c.path]);
-    ctrl.updateDescription('id1', 'left arm');
-    ctrl.updateDescription('id3', 'other');
 
-    ctrl.applyDescriptionToAll('id1');
+    ctrl.addDrafts([(path: a.path, description: 'Left forearm'), (path: b.path, description: '')]);
+
+    final drafts = container.read(tomogramControllerProvider(42)).drafts;
+    expect(drafts.map((d) => d.id), ['id1', 'id2']);
+    expect(drafts.map((d) => d.filePath), [a.path, b.path]);
+    expect(drafts.map((d) => d.description), ['Left forearm', '']);
+    sub.close();
+  });
+
+  test('addFiles is addDrafts without descriptions', () async {
+    final a = make('a.jpg');
+    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    container.read(tomogramControllerProvider(42).notifier).addFiles([a.path]);
+    expect(container.read(tomogramControllerProvider(42)).drafts.single.description, '');
+    sub.close();
+  });
+
+  test('resolvedDrafts inherits the previous photo description forward', () async {
+    final files = [for (final n in ['a', 'b', 'c', 'd', 'e']) make('$n.jpg')];
+    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final ctrl = container.read(tomogramControllerProvider(42).notifier);
+    ctrl.addDrafts([
+      (path: files[0].path, description: 'Left forearm'),
+      (path: files[1].path, description: ''),
+      (path: files[2].path, description: '   '),
+      (path: files[3].path, description: 'Back'),
+      (path: files[4].path, description: ''),
+    ]);
 
     expect(
+      ctrl.resolvedDrafts.map((d) => d.description),
+      ['Left forearm', 'Left forearm', 'Left forearm', 'Back', 'Back'],
+    );
+    // Ids and paths ride along untouched, and the stored drafts keep the blanks
+    // the user can still type over.
+    expect(ctrl.resolvedDrafts.map((d) => d.id), ['id1', 'id2', 'id3', 'id4', 'id5']);
+    expect(ctrl.resolvedDrafts.map((d) => d.filePath), files.map((f) => f.path));
+    expect(
       container.read(tomogramControllerProvider(42)).drafts.map((d) => d.description),
-      ['left arm', 'left arm', 'left arm'],
+      ['Left forearm', '', '   ', 'Back', ''],
     );
     sub.close();
   });
 
-  test('applyDescriptionToAll is a no-op for an unknown id', () async {
+  test('resolvedDrafts leaves a blank first photo blank', () async {
     final a = make('a.jpg');
     final b = make('b.jpg');
     final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
     final ctrl = container.read(tomogramControllerProvider(42).notifier);
-    ctrl.addFiles([a.path, b.path]);
-    ctrl.updateDescription('id1', 'left arm');
+    ctrl.addDrafts([(path: a.path, description: ''), (path: b.path, description: 'Back')]);
 
-    ctrl.applyDescriptionToAll('nope');
-
-    expect(
-      container.read(tomogramControllerProvider(42)).drafts.map((d) => d.description),
-      ['left arm', ''],
-    );
+    expect(ctrl.resolvedDrafts.map((d) => d.description), ['', 'Back']);
     sub.close();
   });
 
@@ -91,6 +122,34 @@ void main() {
     expect(container.read(tomogramControllerProvider(42)).drafts, isEmpty);
     expect(container.read(tomogramControllerProvider(42)).uploading, isFalse);
     expect(a.existsSync(), isFalse);
+    sub.close();
+  });
+
+  test('upload posts the resolved descriptions and remembers them', () async {
+    final files = [for (final n in ['a', 'b', 'c', 'd', 'e']) make('$n.jpg')];
+    when(() => api.upload(42, any())).thenAnswer((_) async => const []);
+    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final ctrl = container.read(tomogramControllerProvider(42).notifier);
+    ctrl.addDrafts([
+      (path: files[0].path, description: 'Left forearm'),
+      (path: files[1].path, description: ''),
+      (path: files[2].path, description: ''),
+      (path: files[3].path, description: 'Back'),
+      (path: files[4].path, description: ''),
+    ]);
+
+    await ctrl.upload();
+
+    final posted = verify(() => api.upload(42, captureAny())).captured.single as List<TomogramDraft>;
+    expect(
+      posted.map((d) => d.description),
+      ['Left forearm', 'Left forearm', 'Left forearm', 'Back', 'Back'],
+    );
+    // The set's descriptions are offered on the next patient, newest first and
+    // distinct: the repository takes the first of what it is given as the most
+    // recent.
+    expect(container.read(recentLabelsProvider), ['Left forearm', 'Back']);
+    expect(prefs.getStringList(RecentLabelsRepository.key), ['Left forearm', 'Back']);
     sub.close();
   });
 

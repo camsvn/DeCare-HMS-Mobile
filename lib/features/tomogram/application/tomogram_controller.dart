@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/utils/temp_files.dart';
+import 'package:hms_uploader/features/tomogram/application/recent_labels_controller.dart';
 import 'package:hms_uploader/features/tomogram/application/tomogram_history_controller.dart';
 import 'package:hms_uploader/features/tomogram/data/tomogram_api.dart';
 import 'package:hms_uploader/features/tomogram/data/tomogram_draft.dart';
@@ -30,12 +31,36 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
     return const TomogramState();
   }
 
-  void addFiles(List<String> paths) {
+  /// Appends [items] as drafts, keeping their order and the description each
+  /// arrived with — the label the photo was taken under, on the capture path.
+  void addDrafts(Iterable<({String path, String description})> items) {
     final newId = ref.read(uuidProvider);
     state = state.copyWith(drafts: [
       ...state.drafts,
-      for (final p in paths) TomogramDraft(id: newId(), filePath: p),
+      for (final item in items)
+        TomogramDraft(id: newId(), filePath: item.path, description: item.description),
     ]);
+  }
+
+  /// Appends [paths] with no description, which is all a gallery pick knows.
+  void addFiles(List<String> paths) =>
+      addDrafts([for (final p in paths) (path: p, description: '')]);
+
+  /// The drafts as they will be sent: a blank description inherits the
+  /// previous photo's effective one, since a burst of one site is shot under a
+  /// single label and typing it again per card is the part staff skip. The
+  /// first photo has no previous, so blank stays blank. Ids and paths are
+  /// untouched, and [state] keeps the blanks the user can still type over —
+  /// the card shows the inherited text as its placeholder instead.
+  List<TomogramDraft> get resolvedDrafts {
+    final resolved = <TomogramDraft>[];
+    var previous = '';
+    for (final d in state.drafts) {
+      final effective = d.description.trim().isEmpty ? previous : d.description;
+      resolved.add(effective == d.description ? d : d.copyWith(description: effective));
+      previous = effective;
+    }
+    return resolved;
   }
 
   Future<void> remove(String id) async {
@@ -50,18 +75,6 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
     );
   }
 
-  /// Copies draft [id]'s description onto every draft. Photos of the same area
-  /// usually share one narration, so the screen offers this instead of asking
-  /// the user to retype it per photo. Unknown ids leave the drafts untouched.
-  void applyDescriptionToAll(String id) {
-    final source = state.drafts.where((d) => d.id == id).toList();
-    if (source.isEmpty) return;
-    final description = source.first.description;
-    state = state.copyWith(
-      drafts: [for (final d in state.drafts) d.copyWith(description: description)],
-    );
-  }
-
   Future<void> clearAll() async {
     final paths = state.drafts.map((d) => d.filePath).toList();
     state = state.copyWith(drafts: const []);
@@ -71,7 +84,9 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
   /// Uploads all drafts. On success drafts are cleared and files deleted.
   /// Throws [ApiFailure] on failure, leaving drafts intact for a retry.
   Future<void> upload() async {
-    final drafts = state.drafts;
+    // What the server is sent, and so what "recent labels" learns from: the
+    // inherited descriptions, not the blanks on screen.
+    final drafts = resolvedDrafts;
     if (drafts.isEmpty) return;
     state = state.copyWith(uploading: true);
     try {
@@ -81,6 +96,10 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
       throw ApiFailure.from(e);
     }
     state = const TomogramState();
+    // These are the descriptions this device just used, so they lead the
+    // suggestions on the next patient. The repository trims, drops the blanks
+    // and dedupes.
+    await ref.read(recentLabelsProvider.notifier).remember(drafts.map((d) => d.description));
     // The patient now has one more uploaded set; drop the cached history so the
     // screen's history card reflects the upload.
     ref.invalidate(tomogramHistoryProvider(arg));

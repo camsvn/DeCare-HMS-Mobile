@@ -385,23 +385,11 @@ abstract class AppLocalizations {
   /// **'Description'**
   String get tomogramDescription;
 
-  /// No description provided for @tomogramApplyToAll.
+  /// No description provided for @tomogramSameAsPrevious.
   ///
   /// In en, this message translates to:
-  /// **'Apply to all'**
-  String get tomogramApplyToAll;
-
-  /// No description provided for @tomogramApplyAllTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Apply to all photos?'**
-  String get tomogramApplyAllTitle;
-
-  /// No description provided for @tomogramApplyAllBody.
-  ///
-  /// In en, this message translates to:
-  /// **'This replaces the descriptions of the other photos.'**
-  String get tomogramApplyAllBody;
+  /// **'Same as previous photo: {text}'**
+  String tomogramSameAsPrevious(String text);
 
   /// No description provided for @tomogramEmptyTitle.
   ///

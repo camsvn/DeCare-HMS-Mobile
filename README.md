@@ -3,9 +3,15 @@
 Companion uploader for a self-hosted DeCare HMS installation. Staff configure the
 server URL, log in and look up a patient by OP number, then attach tomograms: a
 burst of photos taken in the in-app capture screen, or up to two JPEGs picked
-from the gallery. Each photo carries its own description, with "Apply to all" to
-copy one description across the set, and the whole set uploads together (or is
-queued when the server is unreachable). Flutter port of the React Native
+from the gallery. Descriptions are set while shooting rather than typed
+afterwards: a label on the capture screen rides along with every shot taken
+under it and lands in the draft list as that photo's description. In the draft
+list a blank description inherits the previous photo's — shown as the field's
+placeholder, "Same as previous photo: Left forearm", so it is visible and a tap
+to type over — and an empty field offers tap-to-fill chips built from this
+patient's earlier narrations and the last labels used on the device. The whole
+set uploads together (or is queued when the server is unreachable) with those
+inherited descriptions as its narrations. Flutter port of the React Native
 `HMSUploader` app.
 
 ## Requirements

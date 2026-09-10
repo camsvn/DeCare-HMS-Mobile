@@ -8,11 +8,12 @@ import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/utils/temp_files.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
 import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
+import 'package:hms_uploader/features/tomogram/application/description_suggestions.dart';
 import 'package:hms_uploader/features/tomogram/application/media_picker_service.dart';
+import 'package:hms_uploader/features/tomogram/application/recent_labels_controller.dart';
 import 'package:hms_uploader/features/tomogram/application/tomogram_controller.dart';
 import 'package:hms_uploader/features/tomogram/application/upload_queue_controller.dart';
 import 'package:hms_uploader/features/tomogram/data/shot.dart';
-import 'package:hms_uploader/features/tomogram/data/tomogram_draft.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/add_source_sheet.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/pending_line.dart';
 import 'package:hms_uploader/features/tomogram/presentation/widgets/tomogram_card.dart';
@@ -81,30 +82,15 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
       await deleteFiles(paths);
       return;
     }
-    ref.read(tomogramControllerProvider(_opid).notifier).addFiles(paths);
+    // The label each shot was taken under becomes its description, so a
+    // labelled burst needs no typing here at all.
+    ref
+        .read(tomogramControllerProvider(_opid).notifier)
+        .addDrafts([for (final shot in shots) (path: shot.path, description: shot.label)]);
   }
 
   Future<List<Shot>?> _pushCapture(BuildContext context) =>
       context.push<List<Shot>>(RoutePaths.capture(_opid));
-
-  /// Copies [source]'s description onto every draft. Only asks first when that
-  /// would replace something the user typed on another photo.
-  Future<void> _applyToAll(TomogramDraft source) async {
-    final notifier = ref.read(tomogramControllerProvider(_opid).notifier);
-    final others = ref.read(tomogramControllerProvider(_opid)).drafts.where(
-        (d) => d.id != source.id && d.description.trim().isNotEmpty && d.description != source.description);
-    if (others.isNotEmpty) {
-      final l10n = context.l10n;
-      final confirmed = await showDsDialog(
-        context,
-        title: l10n.tomogramApplyAllTitle,
-        body: l10n.tomogramApplyAllBody,
-        confirmLabel: l10n.tomogramApplyToAll,
-      );
-      if (!confirmed || !mounted) return;
-    }
-    notifier.applyDescriptionToAll(source.id);
-  }
 
   void _pushPermission(List<Permission> denied) => context.push(RoutePaths.permission, extra: denied);
 
@@ -134,12 +120,11 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
       // Anything the server actively refused is the user's to fix, so those
       // drafts stay put.
       if (e is CannotConnectFailure || e is TimeoutFailure) {
+        // The queue stores a description per file, so it takes the inherited
+        // ones the upload would have sent rather than the blanks on screen.
+        final resolved = notifier.resolvedDrafts;
         try {
-          await ref.read(uploadQueueProvider.notifier).enqueue(
-                _opid,
-                widget.patient.name,
-                ref.read(tomogramControllerProvider(_opid)).drafts,
-              );
+          await ref.read(uploadQueueProvider.notifier).enqueue(_opid, widget.patient.name, resolved);
         } catch (_) {
           // The photos could not even be copied aside (an evicted picker cache,
           // a full disk). Report the upload failure and keep the drafts, which
@@ -148,6 +133,9 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
           showDsBanner(context, l10n.tomogramUploadError(e.describe(l10n)), kind: DsBannerKind.danger);
           return;
         }
+        // Queued counts as used: these descriptions lead the suggestions on
+        // the next patient without waiting for the queue to drain.
+        await ref.read(recentLabelsProvider.notifier).remember(resolved.map((d) => d.description));
         // The queue owns its own copies now, so this only drops the originals.
         await notifier.clearAll();
         if (!mounted) return;
@@ -185,6 +173,18 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
     final state = ref.watch(tomogramControllerProvider(_opid));
     final notifier = ref.read(tomogramControllerProvider(_opid).notifier);
     final drafts = state.drafts;
+    // Inherit-forward lives in the controller; the cards only display what it
+    // resolved, so what is shown and what is uploaded cannot drift apart.
+    final resolved = notifier.resolvedDrafts;
+    final suggestions = ref.watch(descriptionSuggestionsProvider(_opid));
+
+    // The description card i would upload with if left blank, or null when it
+    // has text of its own or nothing to inherit (the first card).
+    String? inheritedFor(int i) {
+      if (drafts[i].description.trim().isNotEmpty) return null;
+      final inherited = resolved[i].description;
+      return inherited.isEmpty ? null : inherited;
+    }
 
     return PopScope(
       canPop: drafts.isEmpty,
@@ -235,8 +235,9 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
                         total: drafts.length,
                         onDelete: () => notifier.remove(drafts[i].id),
                         onDescriptionChanged: (text) => notifier.updateDescription(drafts[i].id, text),
-                        // Nothing to copy onto with a single photo.
-                        onApplyToAll: drafts.length > 1 ? () => _applyToAll(drafts[i]) : null,
+                        inheritedDescription: inheritedFor(i),
+                        suggestions: suggestions,
+                        onSuggestion: (text) => notifier.updateDescription(drafts[i].id, text),
                       ),
                     ),
             ),
