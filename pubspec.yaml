@@ -61,11 +61,16 @@ flutter:
           weight: 700
 
 flutter_native_splash:
+  # Rendered from assets/images/hms_circle.svg with ImageMagick:
+  #   magick -background none -density 600 hms_circle.svg -resize 768x768 splash_logo.png
+  #   magick -size 1152x1152 xc:none splash_logo.png -gravity center -composite splash_icon_a12.png
+  # Android 12 masks the splash icon to the inner two thirds of a 240 dp square,
+  # so the logo sits in the centre 768 px of a 1152 px canvas.
   color: "#151D28"
-  image: assets/images/hms_square.png
+  image: assets/images/splash_logo.png
   android_12:
     color: "#151D28"
-    image: assets/images/hms_square.png
+    image: assets/images/splash_icon_a12.png
   android: true
   ios: true
   web: false
