@@ -31,7 +31,7 @@ void main() {
   test('search returns the patient and leaves recents alone', () async {
     const jane = Patient(id: 1, opid: 42, name: 'Jane');
     when(() => api.getByOpId(42)).thenAnswer((_) async => jane);
-    final sub = container.listen(patientLookupControllerProvider, (_, __) {});
+    final sub = container.listen(patientLookupControllerProvider, (_, _) {});
     final before = container.read(recentSearchesControllerProvider);
     final result = await container.read(patientLookupControllerProvider.notifier).search(42);
     expect(result, jane);
@@ -43,7 +43,7 @@ void main() {
 
   test('search failure exposes error and records nothing', () async {
     when(() => api.getByOpId(any())).thenThrow(const NotFoundFailure('Invalid OP Number'));
-    final sub = container.listen(patientLookupControllerProvider, (_, __) {});
+    final sub = container.listen(patientLookupControllerProvider, (_, _) {});
     final result = await container.read(patientLookupControllerProvider.notifier).search(1);
     expect(result, isNull);
     expect(container.read(patientLookupControllerProvider).error, isA<NotFoundFailure>());

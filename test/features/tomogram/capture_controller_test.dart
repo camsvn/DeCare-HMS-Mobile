@@ -18,7 +18,7 @@ void main() {
     container = ProviderContainer(overrides: [cameraServiceProvider.overrideWithValue(fake)]);
     addTearDown(container.dispose);
     // The controller is autoDispose: a listener keeps it alive across reads.
-    container.listen(captureControllerProvider, (_, __) {});
+    container.listen(captureControllerProvider, (_, _) {});
   });
 
   tearDown(() async {
@@ -369,7 +369,7 @@ void main() {
         return fake;
       }),
     ]);
-    popped.listen(captureControllerProvider, (_, __) {});
+    popped.listen(captureControllerProvider, (_, _) {});
     fake.startGate = Completer<void>();
     final pending = popped.read(captureControllerProvider.notifier).start();
 
@@ -425,7 +425,7 @@ void main() {
       }),
     ]);
     addTearDown(linked.dispose);
-    linked.listen(captureControllerProvider, (_, __) {});
+    linked.listen(captureControllerProvider, (_, _) {});
     final session = linked.read(captureControllerProvider.notifier);
 
     // `pump` lets Riverpod run its pending auto-dispose pass between calls,

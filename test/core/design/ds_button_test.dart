@@ -1,5 +1,6 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/design/design.dart';
 
@@ -73,8 +74,8 @@ void main() {
     expect(opacity.opacity, 0.5);
     final node = tester.getSemantics(find.byType(DsButton));
     expect(node.label, 'Go');
-    expect(node.hasFlag(SemanticsFlag.isButton), isTrue);
-    expect(node.hasFlag(SemanticsFlag.isEnabled), isFalse);
+    expect(node.flagsCollection.isButton, isTrue);
+    expect(node.flagsCollection.isEnabled, isNot(Tristate.isTrue));
     handle.dispose();
   });
 
@@ -86,7 +87,7 @@ void main() {
     ));
     final node = tester.getSemantics(find.byType(DsButton));
     expect(node.label, 'Go');
-    expect(node.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(node.flagsCollection.isButton, isTrue);
     handle.dispose();
   });
 
@@ -118,8 +119,8 @@ void main() {
       expect(opacity.opacity, 0.5, reason: '$label is not dimmed');
       final node = tester.getSemantics(button);
       expect(node.label, label);
-      expect(node.hasFlag(SemanticsFlag.isButton), isTrue);
-      expect(node.hasFlag(SemanticsFlag.isEnabled), isFalse, reason: '$label does not read disabled');
+      expect(node.flagsCollection.isButton, isTrue);
+      expect(node.flagsCollection.isEnabled, isNot(Tristate.isTrue), reason: '$label does not read disabled');
     }
     handle.dispose();
   });

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -339,7 +340,7 @@ void main() {
     await open(tester);
 
     final pill = tester.getSemantics(find.byKey(labelPillTextKey));
-    expect(pill.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(pill.flagsCollection.isButton, isTrue);
     // The node replaces everything under it, so the tap action has to be on
     // the node itself: without it the reader is handed an inert button.
     expect(pill.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
@@ -608,15 +609,15 @@ void main() {
     // A switch, and announced as one: an icon that swaps is no help to a
     // reader that cannot see which icon it is.
     final off = tester.getSemantics(find.byTooltip('Show grid'));
-    expect(off.hasFlag(SemanticsFlag.hasToggledState), isTrue);
-    expect(off.hasFlag(SemanticsFlag.isToggled), isFalse);
+    expect(off.flagsCollection.isToggled, isNot(Tristate.none));
+    expect(off.flagsCollection.isToggled, Tristate.isFalse);
 
     await tester.tap(find.byTooltip('Show grid'));
     await tester.pumpAndSettle();
 
     final on = tester.getSemantics(find.byTooltip('Hide grid'));
-    expect(on.hasFlag(SemanticsFlag.hasToggledState), isTrue);
-    expect(on.hasFlag(SemanticsFlag.isToggled), isTrue);
+    expect(on.flagsCollection.isToggled, isNot(Tristate.none));
+    expect(on.flagsCollection.isToggled, Tristate.isTrue);
     handle.dispose();
 
     expect(find.byKey(captureGridKey), findsOneWidget);
@@ -736,8 +737,8 @@ void main() {
     // A switch, and announced as one: an icon that swaps is no help to a
     // reader that cannot see which icon it is.
     final off = tester.getSemantics(find.byTooltip('Turn torch on'));
-    expect(off.hasFlag(SemanticsFlag.hasToggledState), isTrue);
-    expect(off.hasFlag(SemanticsFlag.isToggled), isFalse);
+    expect(off.flagsCollection.isToggled, isNot(Tristate.none));
+    expect(off.flagsCollection.isToggled, Tristate.isFalse);
 
     await tester.tap(find.byTooltip('Turn torch on'));
     await tester.pumpAndSettle();
@@ -747,8 +748,8 @@ void main() {
     expect(fake.torchCalls, [true]);
 
     final on = tester.getSemantics(find.byTooltip('Turn torch off'));
-    expect(on.hasFlag(SemanticsFlag.hasToggledState), isTrue);
-    expect(on.hasFlag(SemanticsFlag.isToggled), isTrue);
+    expect(on.flagsCollection.isToggled, isNot(Tristate.none));
+    expect(on.flagsCollection.isToggled, Tristate.isTrue);
     handle.dispose();
   });
 

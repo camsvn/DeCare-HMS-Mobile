@@ -42,7 +42,7 @@ void main() {
   test('addFiles, updateDescription, remove', () async {
     final a = make('a.jpg');
     final b = make('b.jpg');
-    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(42), (_, _) {});
     final c = container.read(tomogramControllerProvider(42).notifier);
     c.addFiles([a.path, b.path]);
     expect(container.read(tomogramControllerProvider(42)).drafts.map((d) => d.id), ['id1', 'id2']);
@@ -58,7 +58,7 @@ void main() {
   test('addDrafts keeps the order and the descriptions it was given', () async {
     final a = make('a.jpg');
     final b = make('b.jpg');
-    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(42), (_, _) {});
     final ctrl = container.read(tomogramControllerProvider(42).notifier);
 
     ctrl.addDrafts([(path: a.path, description: 'Left forearm'), (path: b.path, description: '')]);
@@ -72,7 +72,7 @@ void main() {
 
   test('addFiles is addDrafts without descriptions', () async {
     final a = make('a.jpg');
-    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(42), (_, _) {});
     container.read(tomogramControllerProvider(42).notifier).addFiles([a.path]);
     expect(container.read(tomogramControllerProvider(42)).drafts.single.description, '');
     sub.close();
@@ -80,7 +80,7 @@ void main() {
 
   test('resolvedDrafts inherits the previous photo description forward', () async {
     final files = [for (final n in ['a', 'b', 'c', 'd', 'e']) make('$n.jpg')];
-    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(42), (_, _) {});
     final ctrl = container.read(tomogramControllerProvider(42).notifier);
     ctrl.addDrafts([
       (path: files[0].path, description: 'Left forearm'),
@@ -107,7 +107,7 @@ void main() {
 
   test('inheritedDescriptionFor says what a blank photo would upload with', () async {
     final files = [for (final n in ['a', 'b', 'c', 'd']) make('$n.jpg')];
-    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(42), (_, _) {});
     final ctrl = container.read(tomogramControllerProvider(42).notifier);
     ctrl.addDrafts([
       (path: files[0].path, description: ''),
@@ -134,7 +134,7 @@ void main() {
   test('resolvedDrafts posts trimmed descriptions and inherits the trimmed text', () async {
     final a = make('a.jpg');
     final b = make('b.jpg');
-    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(42), (_, _) {});
     final ctrl = container.read(tomogramControllerProvider(42).notifier);
     ctrl.addDrafts([(path: a.path, description: 'Left forearm '), (path: b.path, description: '')]);
 
@@ -147,7 +147,7 @@ void main() {
   test('resolvedDrafts leaves a blank first photo blank', () async {
     final a = make('a.jpg');
     final b = make('b.jpg');
-    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(42), (_, _) {});
     final ctrl = container.read(tomogramControllerProvider(42).notifier);
     ctrl.addDrafts([(path: a.path, description: ''), (path: b.path, description: 'Back')]);
 
@@ -158,7 +158,7 @@ void main() {
   test('upload sends drafts, deletes files and clears state', () async {
     final a = make('a.jpg');
     when(() => api.upload(42, any())).thenAnswer((_) async => const []);
-    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(42), (_, _) {});
     final c = container.read(tomogramControllerProvider(42).notifier);
     c.addFiles([a.path]);
     await c.upload();
@@ -172,7 +172,7 @@ void main() {
   test('upload posts the resolved descriptions and remembers them', () async {
     final files = [for (final n in ['a', 'b', 'c', 'd', 'e']) make('$n.jpg')];
     when(() => api.upload(42, any())).thenAnswer((_) async => const []);
-    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(42), (_, _) {});
     final ctrl = container.read(tomogramControllerProvider(42).notifier);
     ctrl.addDrafts([
       (path: files[0].path, description: 'Left forearm'),
@@ -212,8 +212,8 @@ void main() {
       uuidProvider.overrideWithValue(() => 'id1'),
     ]);
     addTearDown(local.dispose);
-    final historySub = local.listen(tomogramHistoryProvider(42), (_, __) {});
-    final sub = local.listen(tomogramControllerProvider(42), (_, __) {});
+    final historySub = local.listen(tomogramHistoryProvider(42), (_, _) {});
+    final sub = local.listen(tomogramControllerProvider(42), (_, _) {});
     await local.read(tomogramHistoryProvider(42).future);
     final ctrl = local.read(tomogramControllerProvider(42).notifier);
     ctrl.addDrafts([(path: a.path, description: 'Left forearm')]);
@@ -235,7 +235,7 @@ void main() {
   test('upload failure keeps drafts and files and rethrows', () async {
     final a = make('a.jpg');
     when(() => api.upload(any(), any())).thenThrow(const TimeoutFailure());
-    final sub = container.listen(tomogramControllerProvider(42), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(42), (_, _) {});
     final c = container.read(tomogramControllerProvider(42).notifier);
     c.addFiles([a.path]);
     await expectLater(c.upload(), throwsA(isA<TimeoutFailure>()));
@@ -247,7 +247,7 @@ void main() {
 
   test('clearAll deletes files', () async {
     final a = make('a.jpg');
-    final sub = container.listen(tomogramControllerProvider(1), (_, __) {});
+    final sub = container.listen(tomogramControllerProvider(1), (_, _) {});
     final c = container.read(tomogramControllerProvider(1).notifier);
     c.addFiles([a.path]);
     await c.clearAll();

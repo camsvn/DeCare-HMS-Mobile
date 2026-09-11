@@ -57,7 +57,7 @@ void main() {
               MaterialPageRoute<void>(
                 builder: (_) => ValueListenableBuilder<List<ViewerPhoto>>(
                   valueListenable: list,
-                  builder: (_, value, __) => PhotoViewer(
+                  builder: (_, value, _) => PhotoViewer(
                     photos: value,
                     initialIndex: initialIndex,
                     onEditCaption: (index) async => edited.add(index),
@@ -125,7 +125,7 @@ void main() {
     await swipeForward(tester);
     final row = tester.getSemantics(caption());
     expect(row.label, 'Scalp');
-    expect(row.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(row.flagsCollection.isButton, isTrue);
     expect(row.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
 
     await tester.tap(caption());
@@ -231,7 +231,7 @@ void main() {
                       MaterialPageRoute<void>(
                         builder: (_) => ValueListenableBuilder<List<ViewerPhoto>>(
                           valueListenable: list,
-                          builder: (_, value, __) => PhotoViewer(
+                          builder: (_, value, _) => PhotoViewer(
                             photos: value,
                             initialIndex: 0,
                             onEditCaption: (_) async {},

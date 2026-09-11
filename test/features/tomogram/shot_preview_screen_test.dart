@@ -92,7 +92,7 @@ void main() {
     container = ProviderScope.containerOf(tester.element(find.text('host')));
     // Nothing on the host route listens to the session, and an autoDispose
     // provider with no listeners is torn down between the shots and the push.
-    final keepAlive = container.listen(captureControllerProvider, (_, __) {});
+    final keepAlive = container.listen(captureControllerProvider, (_, _) {});
     addTearDown(keepAlive.close);
     final capture = container.read(captureControllerProvider.notifier);
     await capture.start();
@@ -236,7 +236,7 @@ void main() {
 
     final row = tester.getSemantics(caption());
     expect(row.label, 'Add a label');
-    expect(row.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(row.flagsCollection.isButton, isTrue);
     expect(row.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
     // Whatever it draws, the whole row is a thumb-sized target.
     expect(tester.getSize(caption()).height, greaterThanOrEqualTo(44));

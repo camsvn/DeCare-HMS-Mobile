@@ -41,7 +41,7 @@ Future<({ProviderContainer container, InMemorySecureStore store})> signedInConta
   List<Override> overrides = const [],
 }) async {
   SharedPreferences.setMockInitialValues({
-    if (url != null) 'server_url': url,
+    'server_url': ?url,
     ...extraPrefs,
   });
   final prefs = await SharedPreferences.getInstance();

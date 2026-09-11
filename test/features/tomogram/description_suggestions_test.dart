@@ -89,7 +89,7 @@ void main() {
     test('the uploaded narrations in the order the API returned them, then the recent labels', () async {
       when(() => history.list(42)).thenAnswer((_) async => [setWith(9, ['a']), setWith(8, ['b'])]);
       final container = await containerWith(['c', 'a']);
-      container.listen(descriptionSuggestionsProvider(42), (_, __) {});
+      container.listen(descriptionSuggestionsProvider(42), (_, _) {});
 
       await container.read(tomogramHistoryProvider(42).future);
 
@@ -108,7 +108,7 @@ void main() {
     test('only the recent labels when the history fetch failed', () async {
       when(() => history.list(42)).thenThrow(const TimeoutFailure());
       final container = await containerWith(['c']);
-      container.listen(descriptionSuggestionsProvider(42), (_, __) {});
+      container.listen(descriptionSuggestionsProvider(42), (_, _) {});
 
       await expectLater(container.read(tomogramHistoryProvider(42).future), throwsA(isA<TimeoutFailure>()));
 
@@ -118,7 +118,7 @@ void main() {
     test('a new recent label shows up without refetching the history', () async {
       when(() => history.list(42)).thenAnswer((_) async => [setWith(9, ['a'])]);
       final container = await containerWith(const []);
-      container.listen(descriptionSuggestionsProvider(42), (_, __) {});
+      container.listen(descriptionSuggestionsProvider(42), (_, _) {});
       await container.read(tomogramHistoryProvider(42).future);
       expect(container.read(descriptionSuggestionsProvider(42)), ['a']);
 

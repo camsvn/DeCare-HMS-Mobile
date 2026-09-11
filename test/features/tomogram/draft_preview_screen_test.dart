@@ -70,7 +70,7 @@ void main() {
     container = ProviderScope.containerOf(tester.element(find.text('host')));
     // Nothing on the host listens to the list, and an autoDispose provider
     // with no listeners is torn down between seeding it and the push.
-    final keepAlive = container.listen(tomogramControllerProvider(_opid), (_, __) {});
+    final keepAlive = container.listen(tomogramControllerProvider(_opid), (_, _) {});
     addTearDown(keepAlive.close);
     container.read(tomogramControllerProvider(_opid).notifier).addDrafts([
       for (var i = 0; i < descriptions.length; i++)

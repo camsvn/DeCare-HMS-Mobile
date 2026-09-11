@@ -34,7 +34,7 @@ void main() {
       connectivityServiceProvider.overrideWithValue(connectivity),
     ]);
     // Keep the provider alive for the whole test, as the dashboard does.
-    container.listen(connectionStatusProvider, (_, __) {});
+    container.listen(connectionStatusProvider, (_, _) {});
     addTearDown(container.dispose);
     addTearDown(connectivity.close);
   });

@@ -75,7 +75,7 @@ void main() {
     await tester.pumpAndSettle();
     final scrim = scrimOf(tester);
     expect(scrim.computeLuminance(), lessThan(0.2));
-    expect(scrim.value, DsColors.light.scrim.withOpacity(0.45).value);
+    expect(scrim.toARGB32(), DsColors.light.scrim.withValues(alpha: 0.45).toARGB32());
   });
 
   testWidgets('lifts its content clear of the soft keyboard', (tester) async {
@@ -132,6 +132,6 @@ void main() {
     // lay a haze over the app instead of dimming it.
     final scrim = scrimOf(tester);
     expect(scrim.computeLuminance(), lessThan(0.2));
-    expect(scrim.value, DsColors.dark.scrim.withOpacity(0.45).value);
+    expect(scrim.toARGB32(), DsColors.dark.scrim.withValues(alpha: 0.45).toARGB32());
   });
 }

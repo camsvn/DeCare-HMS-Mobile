@@ -1,5 +1,6 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/design/design.dart';
 
@@ -21,8 +22,8 @@ void main() {
     expect(presses, 1);
     final node = tester.getSemantics(find.byType(DsFab));
     expect(node.label, contains('Add photo'));
-    expect(node.hasFlag(SemanticsFlag.isButton), isTrue);
-    expect(node.hasFlag(SemanticsFlag.isEnabled), isTrue);
+    expect(node.flagsCollection.isButton, isTrue);
+    expect(node.flagsCollection.isEnabled, Tristate.isTrue);
     expect(find.descendant(of: find.byType(DsFab), matching: find.byType(Opacity)), findsNothing);
     handle.dispose();
   });
@@ -42,8 +43,8 @@ void main() {
     expect((container.decoration! as BoxDecoration).boxShadow, isNull);
     final node = tester.getSemantics(find.byType(DsFab));
     expect(node.label, contains('Add photo'));
-    expect(node.hasFlag(SemanticsFlag.isButton), isTrue);
-    expect(node.hasFlag(SemanticsFlag.isEnabled), isFalse);
+    expect(node.flagsCollection.isButton, isTrue);
+    expect(node.flagsCollection.isEnabled, isNot(Tristate.isTrue));
     handle.dispose();
   });
 }

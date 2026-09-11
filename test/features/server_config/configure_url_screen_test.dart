@@ -67,8 +67,8 @@ void main() {
     final router = GoRouter(
       initialLocation: RoutePaths.configure,
       routes: [
-        GoRoute(path: RoutePaths.configure, builder: (_, __) => const ConfigureUrlScreen()),
-        GoRoute(path: RoutePaths.login, builder: (_, __) => const Scaffold(body: Text('signed in area'))),
+        GoRoute(path: RoutePaths.configure, builder: (_, _) => const ConfigureUrlScreen()),
+        GoRoute(path: RoutePaths.login, builder: (_, _) => const Scaffold(body: Text('signed in area'))),
       ],
     );
     addTearDown(router.dispose);

@@ -85,12 +85,12 @@ void main() {
     await pumpPill(tester, label: 'Left forearm');
 
     final text = tester.getSemantics(find.byKey(labelPillTextKey));
-    expect(text.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(text.flagsCollection.isButton, isTrue);
     expect(text.label, 'Next photos: Left forearm');
     expect(text.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
 
     final clear = tester.getSemantics(find.byKey(labelPillClearKey));
-    expect(clear.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(clear.flagsCollection.isButton, isTrue);
     expect(clear.label, 'Clear label');
     expect(clear.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
 

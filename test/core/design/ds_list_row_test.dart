@@ -1,3 +1,5 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,7 +39,7 @@ void main() {
     expect(row.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
     final action = tester.getSemantics(find.byIcon(Icons.delete_outline));
     expect(action.tooltip, 'Remove from recent');
-    expect(action.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(action.flagsCollection.isButton, isTrue);
     handle.dispose();
   });
 
@@ -117,8 +119,8 @@ void main() {
         ]),
       ),
     ));
-    expect(tester.getSemantics(find.text('Dark')).hasFlag(SemanticsFlag.isSelected), isTrue);
-    expect(tester.getSemantics(find.text('Light')).hasFlag(SemanticsFlag.isSelected), isFalse);
+    expect(tester.getSemantics(find.text('Dark')).flagsCollection.isSelected, Tristate.isTrue);
+    expect(tester.getSemantics(find.text('Light')).flagsCollection.isSelected, isNot(Tristate.isTrue));
     handle.dispose();
   });
 }

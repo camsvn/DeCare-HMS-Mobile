@@ -192,8 +192,8 @@ void main() {
       when(() => history.list(42)).thenAnswer((_) async => [set(9)]);
       when(() => upload.upload(42, any())).thenAnswer((_) async => const []);
 
-      final historySub = container.listen(tomogramHistoryProvider(42), (_, __) {});
-      final draftSub = container.listen(tomogramControllerProvider(42), (_, __) {});
+      final historySub = container.listen(tomogramHistoryProvider(42), (_, _) {});
+      final draftSub = container.listen(tomogramControllerProvider(42), (_, _) {});
       await container.read(tomogramHistoryProvider(42).future);
 
       final drafts = container.read(tomogramControllerProvider(42).notifier);

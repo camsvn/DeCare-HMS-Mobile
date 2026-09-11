@@ -188,7 +188,7 @@ void main() {
     final queue = await notifier();
     await queue.enqueue(42, 'Jane Doe', draftsFrom('a.jpg'));
     // A live listener, so the invalidation actually refetches.
-    container.listen(tomogramHistoryProvider(42), (_, __) {}, fireImmediately: true);
+    container.listen(tomogramHistoryProvider(42), (_, _) {}, fireImmediately: true);
     await container.read(tomogramHistoryProvider(42).future);
     verify(() => history.list(42)).called(1);
     when(() => api.upload(any(), any())).thenAnswer((_) async => const []);

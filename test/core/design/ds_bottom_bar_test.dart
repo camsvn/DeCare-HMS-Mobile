@@ -1,5 +1,6 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/design/design.dart';
 
@@ -22,9 +23,9 @@ void main() {
     await tester.tap(find.text('Settings'));
     expect(tapped, 1);
     final home = tester.getSemantics(find.text('Home'));
-    expect(home.hasFlag(SemanticsFlag.isSelected), isTrue);
+    expect(home.flagsCollection.isSelected, Tristate.isTrue);
     final settings = tester.getSemantics(find.text('Settings'));
-    expect(settings.hasFlag(SemanticsFlag.isSelected), isFalse);
+    expect(settings.flagsCollection.isSelected, isNot(Tristate.isTrue));
   });
 
   testWidgets('grows for large text without overflowing, and clamps the scale at 1.3', (tester) async {
