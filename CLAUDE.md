@@ -47,7 +47,7 @@ the old one is uninstalled (which wipes app data: server URL, login, recent pati
 - Design system `lib/core/design/`: all colours, spacing, radii and durations come from tokens
   (`context.ds`, `context.dsType`, `DsSpace`, `DsRadius`, `DsMotion`) and `Ds*` widgets. No literal
   colours or sizes in features; a new size becomes a named constant.
-- Every user-visible string goes through `context.l10n` (ARB + `flutter gen-l10n`).
+- Every user-visible string goes through `context.l10n` (ARB + `fvm flutter gen-l10n`).
 - Dark mode is real: pump widget tests with `buildDsTheme(Brightness.dark)` where colour matters.
 - Tests are behavioural (real temp files, rendered text, geometry, semantics), not mock choreography.
   Fakes live in `test/helpers/`.
