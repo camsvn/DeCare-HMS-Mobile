@@ -115,3 +115,34 @@ User ran the state-heavy flows on the Riverpod 3 build — connect, sign in and 
 capture with a removed shot, gallery upload into history, offline queue (stop server → queued →
 start server → drained, label kept for suggestions), sign out/in — and reported **all good**.
 The forced-401 sign-out was not exercised on the device (covered by `session_expiry_test`).
+
+## Whole-branch review (`flutter-upgrade` vs `flutter-port`)
+
+Verified on 2026-09-11 after the second device pass:
+- `.fvmrc` 3.47.3; `fvm flutter --version` → Flutter 3.47.3 / Dart 3.13.3.
+- `pub outdated`: every direct **and transitive** dependency at its latest resolvable version.
+- Android: Gradle 9.4.1, AGP 9.2.1, Kotlin 2.4.0, Java 17 (source/target/jvmTarget),
+  `compileSdk 37`, `minSdk`/`targetSdk` from Flutter (24/36), migrator flags + `kotlin.incremental=false`.
+- Stale-version scan (`3.19`, `Dart 3.3`, Corretto, AGP/Gradle 7, Kotlin 1.7.10, `VERSION_1_8`,
+  Riverpod 2 API names, `encryptedSharedPreferences`, `synthetic-package`): only comments that
+  explain a decision, SVG path data, and the one intended `legacy.dart` `StateProvider` in a test.
+- CI's exact sequence from a clean tree: `pub get`, `gen-l10n` (no diff), `analyze` → No issues,
+  `test` → 495 pass, `build apk --debug` → built. Working tree clean; 16 commits on the branch.
+- Read-through of the substantive `lib/` diff: the Riverpod 3 changes are confined to the eight
+  `keepingPrevious` sites, the four notifier class headers (+ constructor args), `_ownedPaths`
+  mirroring in the two file-owning controllers, `ref.mounted` guards after awaits, the
+  `AuthFailureCounter`, and `retry: noRetry` in `main.dart`. No behaviour change beyond those.
+
+Rulings:
+- The behaviour change accepted by the spec stands: v9→v11 secure storage means one re-login on
+  existing installs; minSdk 24 drops Android 5.x/6.x. Release notes must say both.
+- `keepingPrevious` (single `// ignore: invalid_use_of_internal_member`) stays — parked for
+  Riverpod 4, when a public transition API is expected.
+- Automatic retry is disabled globally to keep 2.x behaviour; turning it on for specific
+  providers is a product decision for later, not part of this upgrade.
+
+Parked findings:
+- Migration to AGP 9's built-in Kotlin / new DSL (Flutter warns at build time; not failing).
+- `flutter install` wipes app data (uninstalls first) — use `adb install -r` when the upgrade
+  path over an existing install is what is being tested.
+- The forced-401 sign-out was verified by `session_expiry_test` only, not on a device.
