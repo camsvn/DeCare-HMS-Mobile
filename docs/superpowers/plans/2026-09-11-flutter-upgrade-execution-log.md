@@ -96,3 +96,15 @@ Parked (for the branch review): `keepingPrevious` wraps Riverpod's `@internal`
 "loading, keep the data" transition in 3.4. Revisit at Riverpod 4.
 
 Ruling: proceed to device pass #2.
+
+## Task 8 — device pass #2 (Riverpod 3), preliminaries
+
+Two scares, both cleared before handing the device over:
+- The Riverpod 3 build came up on the Configure screen with the pass-#1 URL and session gone.
+  `dumpsys package` showed `firstInstallTime` equal to that install: Flutter's `install` command
+  uninstalls an existing app before installing (`android_device.dart:419`), so the wipe was the
+  tool's, not the app's. Subsequent installs use `adb install -r`, which keeps app data.
+- Warm start looked slow (~16 s, later ~33 s). Measured back to back on the same emulator from
+  streamed logcat (`am start` → `Fully drawn`): Riverpod 2 build 32.6 s / 42.6 s, Riverpod 3 build
+  32.5 s / 34.2 s / 34.2 s — identical within noise; the time is the x86 emulator running a debug
+  (JIT) build under host load, not the migration. Not a regression.
