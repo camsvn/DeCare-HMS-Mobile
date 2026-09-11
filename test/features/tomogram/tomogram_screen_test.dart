@@ -101,12 +101,25 @@ void main() {
     UploadQueueController Function()? queue,
     RecentLabelsRepository? labels,
     GlobalKey<HostState>? host,
+    bool inTabShell = false,
   }) {
     final screen =
         TomogramScreen(patient: jane, onPermissionsDenied: onPermissionsDenied, onCapture: onCapture);
+    final hosted = host == null ? screen : Host(key: host, child: screen);
     return pumpApp(
         tester,
-        host == null ? screen : Host(key: host, child: screen),
+        // The app shows this screen inside a tab branch: a nested Navigator
+        // under a persistent bottom bar. Anything pushed on that nested
+        // navigator stays under the bar; only the root navigator covers it.
+        inTabShell
+            ? Scaffold(
+                body: Navigator(
+                  onGenerateRoute: (_) => MaterialPageRoute<void>(builder: (_) => hosted),
+                  onDidRemovePage: (_) {},
+                ),
+                bottomNavigationBar: const SizedBox(height: 56, child: Center(child: Text('tab bar'))),
+              )
+            : hosted,
         overrides: [
           tomogramApiProvider.overrideWithValue(api),
           mediaPickerServiceProvider.overrideWithValue(picker),
@@ -177,10 +190,10 @@ void main() {
 
   /// Captures two photos through the injected capture route: the first taken
   /// under [label], the second without one.
-  Future<void> pumpTwoDrafts(WidgetTester tester, {String label = ''}) async {
+  Future<void> pumpTwoDrafts(WidgetTester tester, {String label = '', bool inTabShell = false}) async {
     tallSurface(tester);
     final shots = [Shot(path: jpeg('a.jpg').path, label: label), Shot(path: jpeg('b.jpg').path)];
-    await pump(tester, uuid: ids(), onCapture: (_) async => shots);
+    await pump(tester, uuid: ids(), onCapture: (_) async => shots, inTabShell: inTabShell);
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Take Photo'));
@@ -708,6 +721,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(DraftPreviewScreen), findsNothing);
+    expect(find.byType(TomogramCard), findsNWidgets(2));
+  });
+
+  testWidgets('the draft preview covers the tab bar, and closing brings it back', (tester) async {
+    await pumpTwoDrafts(tester, inTabShell: true);
+    expect(find.text('tab bar'), findsOneWidget);
+
+    await tester.tap(find.descendant(of: find.byType(TomogramCard).first, matching: find.byType(Image)));
+    await tester.pumpAndSettle();
+
+    // A full-screen photo has no business sharing the screen with Home and
+    // Settings: the preview goes on the root navigator, above the shell, so
+    // the bar is offstage beneath an opaque route rather than still showing.
+    expect(find.byType(DraftPreviewScreen), findsOneWidget);
+    expect(find.text('tab bar'), findsNothing);
+
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DraftPreviewScreen), findsNothing);
+    expect(find.text('tab bar'), findsOneWidget);
     expect(find.byType(TomogramCard), findsNWidgets(2));
   });
 

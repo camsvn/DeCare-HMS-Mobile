@@ -48,9 +48,11 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
   int get _opid => widget.patient.opid;
 
   /// Opens the draft at [index] full screen, the way the capture screen opens
-  /// a shot: a fade, because it is the same photo the card was showing.
+  /// a shot: a fade, because it is the same photo the card was showing. On the
+  /// root navigator: this screen lives in a tab branch, and a photo viewer
+  /// pushed on the branch's own navigator would sit under the tab bar.
   void _openDraft(int index) {
-    Navigator.of(context).push(
+    Navigator.of(context, rootNavigator: true).push(
       PageRouteBuilder<void>(
         opaque: true,
         transitionDuration: DsMotion.of(context, DsMotion.base),
