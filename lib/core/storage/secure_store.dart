@@ -8,11 +8,11 @@ abstract class SecureStore {
 }
 
 class FlutterSecureStore implements SecureStore {
-  FlutterSecureStore([FlutterSecureStorage? storage])
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-            );
+  // flutter_secure_storage 11 encrypts with its own cipher on Android; the
+  // `encryptedSharedPreferences` option v9 needed no longer exists. Data
+  // written by v9 is not readable by v11 — accepted: the only thing stored
+  // here is the session, and testers log in once more after the upgrade.
+  FlutterSecureStore([FlutterSecureStorage? storage]) : _storage = storage ?? const FlutterSecureStorage();
 
   final FlutterSecureStorage _storage;
 

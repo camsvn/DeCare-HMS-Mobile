@@ -48,3 +48,10 @@ app.*.map.json
 # Release signing (local only; back these up outside the repo)
 android/key.properties
 android/upload-keystore.jks
+
+# FVM Version Cache
+.fvm/
+# FVM SDK symlink (the pin itself, .fvmrc, is committed)
+.fvm/
+# Kotlin 2.x session data
+android/.kotlin/

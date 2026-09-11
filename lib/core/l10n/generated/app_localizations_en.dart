@@ -1,6 +1,9 @@
+// ignore: unused_import
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
 
 /// The translations for English (`en`).
 class AppLocalizationsEn extends AppLocalizations {
@@ -55,7 +58,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get configureUrlHeading => 'Connect to your server';
 
   @override
-  String get configureUrlBody => 'Input server URL of your self-hosted DeCare-HMS installation.';
+  String get configureUrlBody =>
+      'Input server URL of your self-hosted DeCare-HMS installation.';
 
   @override
   String get configureUrlPlaceholder => 'Eg: http://your-hms-server-url.com';
@@ -133,7 +137,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeEmptyTitle => 'There is no patient selected.';
 
   @override
-  String get homeEmptyBody => 'Once you choose a patient, they\'ll appear here.';
+  String get homeEmptyBody =>
+      'Once you choose a patient, they\'ll appear here.';
 
   @override
   String get homeSearchPlaceholder => 'Enter OP Number';
@@ -179,7 +184,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramEmptyTitle => 'There is no tomogram added.';
 
   @override
-  String get tomogramEmptyBody => 'You can add tomogram photos with the \'+\' button. They will appear here as you add them.';
+  String get tomogramEmptyBody =>
+      'You can add tomogram photos with the \'+\' button. They will appear here as you add them.';
 
   @override
   String get tomogramUpload => 'Upload';
@@ -251,7 +257,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tomogramSuggestions => 'Suggestions';
 
   @override
-  String get tomogramQueued => 'Saved offline. It will upload when the server is reachable.';
+  String get tomogramQueued =>
+      'Saved offline. It will upload when the server is reachable.';
 
   @override
   String tomogramPendingLine(int count) {
@@ -292,7 +299,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get captureRemoveTitle => 'Remove this photo?';
 
   @override
-  String get captureRemoveBody => 'It has not been added yet and will be deleted.';
+  String get captureRemoveBody =>
+      'It has not been added yet and will be deleted.';
 
   @override
   String get captureRemove => 'Remove';
@@ -301,7 +309,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get captureErrorTitle => 'Camera unavailable';
 
   @override
-  String get captureErrorBody => 'Could not start the camera. Check that no other app is using it and try again.';
+  String get captureErrorBody =>
+      'Could not start the camera. Check that no other app is using it and try again.';
 
   @override
   String get captureRetry => 'Try again';
@@ -357,7 +366,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get suggestionForgetTitle => 'Forget this suggestion?';
 
   @override
-  String get suggestionForgetBody => 'It will no longer be offered on this device.';
+  String get suggestionForgetBody =>
+      'It will no longer be offered on this device.';
 
   @override
   String get suggestionForget => 'Forget';
@@ -391,7 +401,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get permissionBody => 'It looks like you have turned off permissions required for this feature. It can be enabled under Phone Settings > Apps > HMS > Permissions';
+  String get permissionBody =>
+      'It looks like you have turned off permissions required for this feature. It can be enabled under Phone Settings > Apps > HMS > Permissions';
 
   @override
   String get permissionGrant => 'Grant Permission';
@@ -418,7 +429,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsChangeUrl => 'Change Installation URL';
 
   @override
-  String get settingsChangeUrlBody => 'Re-configure the connection URL of your self-hosted DeCare HMS. This process will log you out of the app.';
+  String get settingsChangeUrlBody =>
+      'Re-configure the connection URL of your self-hosted DeCare HMS. This process will log you out of the app.';
 
   @override
   String get settingsAbout => 'About';
@@ -488,17 +500,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aboutLicense => 'DecareHMS is licensed to the hospital as part of DeCare\'s Hospital ERP software, and its support is tied to the ERP\'s support licence. Support for the DecareHMS app is available only as long as the ERP\'s support licence is active.';
+  String get aboutLicense =>
+      'DecareHMS is licensed to the hospital as part of DeCare\'s Hospital ERP software, and its support is tied to the ERP\'s support licence. Support for the DecareHMS app is available only as long as the ERP\'s support licence is active.';
 
   @override
-  String get aboutParaIntro => 'Decare Software Solution is a company that specializes in developing innovative and user-friendly software solutions for the health care sector. We have a team of experienced and qualified software engineers, designers, and testers who are passionate about creating products that can improve the quality and efficiency of health care services.';
+  String get aboutParaIntro =>
+      'Decare Software Solution is a company that specializes in developing innovative and user-friendly software solutions for the health care sector. We have a team of experienced and qualified software engineers, designers, and testers who are passionate about creating products that can improve the quality and efficiency of health care services.';
 
   @override
-  String get aboutParaTwo => 'Our mobile app, DecareHMS, is one of our flagship products that aims to help clinics diagnose and treat skin diseases more effectively. DecareHMS is a simple and convenient app that allows clinics to upload skin disease images to their DeCare\'s Hospital ERP software with just a few clicks. The app also integrates seamlessly with the ERP software (that manage their patient records, inventory, billing, appointments, etc in one place). The app provides an easy-to-use interface for doctors to review the images and make accurate diagnoses.';
+  String get aboutParaTwo =>
+      'Our mobile app, DecareHMS, is one of our flagship products that aims to help clinics diagnose and treat skin diseases more effectively. DecareHMS is a simple and convenient app that allows clinics to upload skin disease images to their DeCare\'s Hospital ERP software with just a few clicks. The app also integrates seamlessly with the ERP software (that manage their patient records, inventory, billing, appointments, etc in one place). The app provides an easy-to-use interface for doctors to review the images and make accurate diagnoses.';
 
   @override
-  String get aboutParaThree => 'DecareHMS is designed to be compatible with all major mobile platforms and devices. The app is secure, fast, and easy to use. With DecareHMS, clinics can save time and money, enhance their reputation, and provide better care for their patients.';
+  String get aboutParaThree =>
+      'DecareHMS is designed to be compatible with all major mobile platforms and devices. The app is secure, fast, and easy to use. With DecareHMS, clinics can save time and money, enhance their reputation, and provide better care for their patients.';
 
   @override
-  String get aboutParaFinale => 'If you want to learn more about our company or products, please visit our website or contact us. We would be happy to answer any questions you may have.';
+  String get aboutParaFinale =>
+      'If you want to learn more about our company or products, please visit our website or contact us. We would be happy to answer any questions you may have.';
 }
