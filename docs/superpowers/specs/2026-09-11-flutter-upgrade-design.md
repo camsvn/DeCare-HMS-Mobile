@@ -18,8 +18,11 @@ Move the project to the current stable Flutter and the current releases of its d
 the app verified working end to end on a device — same behaviour as today, no feature changes.
 
 Decisions taken with the user:
-- **Riverpod stays on 2.6.1.** Riverpod 3 is not required by the SDK upgrade and would touch ~10
-  files with ~126 mechanical API renames; it becomes its own spec afterwards.
+- **Riverpod 3 is included, as the last task.** It is not required by the SDK upgrade (2.6.1 resolves
+  and works on 3.47), and it is the one bump that rewrites application code (~10 controller files,
+  ~126 mechanical API renames) rather than configuration. So the toolchain tasks land and pass the
+  device check first on Riverpod 2, then Riverpod 3 follows in its own commits with a second, shorter
+  device pass — the two changes stay separable in git even though they ship together.
 - **`flutter_secure_storage` goes straight from 9 to 11.** v11 removes the EncryptedSharedPreferences
   backend the app uses, so the saved session on existing installs is lost: every tester logs in once
   after updating. Server URL and recent patients live in `shared_preferences` and are unaffected.
@@ -32,7 +35,7 @@ In: SDK pin via fvm, Android toolchain, dependency bumps, the code changes they 
 clean-up, the one test the new SDK breaks, CI workflow pins, CLAUDE.md/README toolchain notes,
 `.gitignore`, device verification.
 
-Out: Riverpod 3, migrating to Flutter's built-in Kotlin / new Android DSL (a warning today, not a
+Out: migrating to Flutter's built-in Kotlin / new Android DSL (a warning today, not a
 failure), iOS verification (configured, not built here), any feature or UI change, the release
 itself (version bump and tag follow the README "Release" procedure once this is merged).
 
@@ -53,7 +56,7 @@ Dependencies (all direct; `pub upgrade --major-versions` output from the spike):
 
 | Package | From | To | Notes |
 |---|---|---|---|
-| flutter_riverpod | ^2.6.1 | ^2.6.1 | deliberately held; comment says why |
+| flutter_riverpod | ^2.6.1 | ^3.4.3 | last task only; see §5a |
 | go_router | ^14.6.2 | ^18.0.1 | URLs case-sensitive since 15 (all paths lowercase); ShellRoute observer change in 17 (no observers registered) |
 | flutter_secure_storage | ^9.2.4 | ^11.1.0 | `AndroidOptions(encryptedSharedPreferences:)` removed; see §2 |
 | permission_handler | ^11.3.1 | ^13.0.2 | 14.1 Android: `Permission.status` never reports `permanentlyDenied`; the gateway only tests `isGranted`/`isLimited`, unaffected |
@@ -91,6 +94,24 @@ Dependencies (all direct; `pub upgrade --major-versions` output from the spike):
     cache and the project sit on different Windows drives; harmless on CI.
 - `.gitignore`: `.fvm/`, `android/.kotlin/`.
 
+## 5a. Riverpod 2.6 → 3.4 (final task)
+
+Bump `flutter_riverpod` to `^3.4.3` and apply the 3.0 API changes; behaviour is unchanged:
+- `AsyncValue.valueOrNull` → `value` (which is now nullable and returns the previous value during
+  loading/error, matching what `valueOrNull` did).
+- `AutoDisposeNotifier` / `AutoDisposeAsyncNotifier` / `AutoDisposeFamilyNotifier` /
+  `AutoDisposeFamilyAsyncNotifier` → plain `Notifier` / `AsyncNotifier`; family arguments become a
+  constructor parameter of the notifier, and `NotifierProvider.autoDispose.family<N, S, Arg>(N.new)`
+  → `NotifierProvider.autoDispose.family<N, S, Arg>(N.new)` with `N(this.arg)`.
+- `StateProvider` moves to `package:flutter_riverpod/legacy.dart`; the three uses either import it
+  or become a `Notifier<int>`/`Notifier<T>` (preferred where trivial).
+- `Override` type is unchanged in name but lives in `package:flutter_riverpod/flutter_riverpod.dart`;
+  the test helpers' imports are corrected.
+- `AsyncValue.copyWithPrevious` is internal in 3.x; error states are set with
+  `AsyncError(e, st)` and Riverpod keeps the previous value itself.
+- `ProviderContainer`/`overrideWith` deprecations in tests use the 3.x replacements.
+Analyzer must be clean and the suite green; then the second device pass (§7).
+
 ## 6. Process, CI and docs
 
 - `.fvmrc` pins `3.47.3`; every command in CLAUDE.md and README becomes `fvm flutter …`.
@@ -98,7 +119,8 @@ Dependencies (all direct; `pub upgrade --major-versions` output from the spike):
 - CLAUDE.md "Toolchain" section rewritten for the new pins: SDK via fvm, JDK 17 (`fvm flutter config
   --jdk-dir` to the Android Studio JBR on this machine), AGP/Gradle/Kotlin versions, the two
   machine quirks (JVM cannot reach github.com for Gradle downloads — seed the wrapper cache with
-  curl; cross-drive Kotlin incremental) and the rule that Riverpod stays 2.x until its own spec.
+  curl; cross-drive Kotlin incremental). The Riverpod notes in "Architecture rules" are updated
+  for 3.x (unified `Notifier`/`AsyncNotifier`, `legacy.dart` for `StateProvider`).
 - README "Requirements" updated to match.
 - Execution follows the project convention: plan in `docs/superpowers/plans/`, task-by-task with a
   review after each, execution log alongside.
@@ -118,6 +140,9 @@ current debug build (same debug signature, so data is kept — this is the reali
 4. Gallery pick, descriptions incl. "Apply to all", upload; the set appears in history.
 5. Offline queue: upload with the server stopped, restart it, queue drains.
 6. Settings, About, dark mode, portrait lock, splash still correct.
+
+This pass runs twice: once after the toolchain tasks (Riverpod 2), and again — steps 1, 3, 4 and 5,
+the state-heavy flows — after the Riverpod 3 task.
 
 ## 8. Risks
 
