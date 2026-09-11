@@ -81,4 +81,29 @@ void main() {
     when(() => api.check(any())).thenThrow(Exception('down'));
     expect(await container.read(connectionStatusProvider.future), isFalse);
   });
+
+  test('a stream that replays the current state on every subscription settles', () async {
+    // connectivity_plus on Android reports the current network to every new
+    // listener. The controller re-subscribes on each rebuild, so an unfiltered
+    // "any event → rebuild" turns that into an endless loop: the dashboard
+    // shows "checking" forever and the server is polled without pause.
+    final replaying = FakeConnectivityService(replayOnListen: true);
+    final local = ProviderContainer(retry: noRetry, overrides: [
+      sharedPreferencesProvider.overrideWithValue(await SharedPreferences.getInstance()),
+      healthCheckApiProvider.overrideWithValue(api),
+      connectivityServiceProvider.overrideWithValue(replaying),
+    ]);
+    addTearDown(local.dispose);
+    addTearDown(replaying.close);
+    local.listen(connectionStatusProvider, (_, _) {});
+
+    // Real time, not microtask turns: a rebuild loop spins through many
+    // iterations in this window, a healthy controller settles in two.
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    expect(local.read(connectionStatusProvider).isLoading, isFalse);
+    expect(local.read(connectionStatusProvider).value, isTrue);
+    expect(replaying.subscriptions, lessThanOrEqualTo(2));
+    verify(() => api.check(any())).called(lessThanOrEqualTo(2));
+  });
 }
