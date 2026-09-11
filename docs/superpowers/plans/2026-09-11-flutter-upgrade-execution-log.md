@@ -108,3 +108,10 @@ Two scares, both cleared before handing the device over:
   streamed logcat (`am start` → `Fully drawn`): Riverpod 2 build 32.6 s / 42.6 s, Riverpod 3 build
   32.5 s / 34.2 s / 34.2 s — identical within noise; the time is the x86 emulator running a debug
   (JIT) build under host load, not the migration. Not a regression.
+
+## Task 8 — device pass #2 (Riverpod 3), result
+
+User ran the state-heavy flows on the Riverpod 3 build — connect, sign in and relaunch, in-app
+capture with a removed shot, gallery upload into history, offline queue (stop server → queued →
+start server → drained, label kept for suggestions), sign out/in — and reported **all good**.
+The forced-401 sign-out was not exercised on the device (covered by `session_expiry_test`).
