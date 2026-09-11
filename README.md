@@ -22,27 +22,28 @@ Branding assets (launcher icon, splash, wordmark) and how to regenerate them: `d
 
 ## Requirements
 
-- Flutter 3.19.x (Dart 3.3). Run `flutter --version` to confirm.
+- Flutter 3.47.3 (Dart 3.13) through [fvm](https://fvm.app): `fvm install` in the repo picks up `.fvmrc`. Run `fvm flutter --version` to confirm.
+- JDK 17 for the Android build (Android Studio's bundled JBR works).
 - Android SDK for the Android build. iOS is configured but not verified here.
 
 ## Run
 
 ```bash
-flutter pub get
-flutter gen-l10n          # regenerates lib/core/l10n/generated from app_en.arb
-flutter run
+fvm flutter pub get
+fvm flutter gen-l10n          # regenerates lib/core/l10n/generated from app_en.arb
+fvm flutter run
 ```
 
 Tests and analysis:
 
 ```bash
-flutter test
-flutter analyze
+fvm flutter test
+fvm flutter analyze
 ```
 
-Debug APK: `flutter build apk --debug` (output in `build/app/outputs/flutter-apk/`).
+Debug APK: `fvm flutter build apk --debug` (output in `build/app/outputs/flutter-apk/`).
 
-Note: re-running `dart run flutter_native_splash:create` rewrites
+Note: re-running `fvm dart run flutter_native_splash:create` rewrites
 `android/app/src/main/AndroidManifest.xml` and drops the
 `android:screenOrientation="portrait"` attribute from the launcher activity.
 Restore it afterwards, or the app will rotate out of portrait.
@@ -57,8 +58,8 @@ Restore it afterwards, or the app will rotate out of portrait.
 2. Build the signed artifacts:
 
    ```bash
-   flutter build appbundle --release   # Play Store upload
-   flutter build apk --release         # sideload/manual distribution
+   fvm flutter build appbundle --release   # Play Store upload
+   fvm flutter build apk --release         # sideload/manual distribution
    ```
 
 3. Signing reads `android/key.properties` (gitignored, local only), which points at
@@ -159,7 +160,7 @@ To register a new dashboard module:
 1. Define an `AppModule` (`lib/core/modules/app_module.dart`) in the feature's barrel file and
    add it to the `appModules` list in `lib/app/modules.dart`.
 2. Add ARB keys for the module's dashboard title and subtitle to `lib/core/l10n/app_en.arb`
-   and run `flutter gen-l10n`; `AppModule.title`/`subtitle` read them off `AppLocalizations`.
+   and run `fvm flutter gen-l10n`; `AppModule.title`/`subtitle` read them off `AppLocalizations`.
 3. Add the module's paths to `RoutePaths` (`lib/core/navigation/route_paths.dart`).
 4. Give every route in `AppModule.routes` a `pageBuilder` returning
    `FadeThroughPage(key: state.pageKey, child: ...)` so it matches the rest of the app.
@@ -186,7 +187,7 @@ To register a new dashboard module:
    nests every module's routes under the Home branch of the shell on its own, so it needs no
    edit. Only a route that lives outside the tab shell is listed in `lib/app/router.dart`
    itself, the way `configureRoute` and `loginRoute` are.
-5. Add strings to `lib/core/l10n/app_en.arb` and run `flutter gen-l10n`.
+5. Add strings to `lib/core/l10n/app_en.arb` and run `fvm flutter gen-l10n`.
 6. Add tests under `test/features/<name>/`.
 
 ## Server contract

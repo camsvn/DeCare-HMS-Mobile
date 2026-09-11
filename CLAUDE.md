@@ -7,19 +7,28 @@ replaces; reference only).
 
 ## Toolchain (pinned; do not upgrade without a decision)
 
-- Flutter 3.19.0 / Dart 3.3 — the installed SDK. Never run `flutter upgrade`.
-- `camera ^0.11.0+2` is the last release that supports this Flutter; `connectivity_plus ^6.1.5`
-  because 7.x needs a newer Gradle plugin. Check pub constraints before adding or bumping anything.
-- Java: Amazon Corretto 11 locally; CI uses Temurin 17 with AGP 7.3.0 / Gradle 7.6.3.
+- Flutter 3.47.3 / Dart 3.13, managed by **fvm** (`.fvmrc`). Always `fvm flutter …`; the bare
+  `flutter` on PATH may be a different install. Never run `flutter upgrade`.
+- Android: Gradle 9.4.1, AGP 9.2.1, Kotlin 2.4.0, Java 17, `compileSdk 37` (required by
+  `permission_handler_android` 14), `minSdk` = Flutter's default (24). CI uses Temurin 17.
+- Local JDK: Android Studio's JBR 17 — `fvm flutter config --jdk-dir "C:\Program Files\Android\Android Studio\jbr"`
+  once, or set `JAVA_HOME` to it per shell. Corretto 11 on PATH is too old for AGP 9.
+- Machine quirks (this Windows box): the JVM cannot reach github.com, so a new Gradle wrapper
+  version must be fetched with curl into `~/.gradle/wrapper/dists/<name>/<hash>/`; the pub cache
+  (C:) and the project (E:) are on different drives, which is why `kotlin.incremental=false` is
+  set in `android/gradle.properties`.
+- After a major SDK move, `fvm flutter pub upgrade` the transitives before the first Gradle build
+  (old plugin versions may still use the removed v1 embedding). Check pub constraints before
+  adding or bumping anything.
 
 ## Commands
 
 ```bash
-flutter gen-l10n            # after editing lib/core/l10n/app_en.arb (generated files are committed)
-flutter analyze             # must be clean before every commit
-flutter test                # must be green before every commit
-flutter build apk --debug   # what CI builds
-flutter build apk --release # signed only when android/key.properties exists (see README "Release")
+fvm flutter gen-l10n            # after editing lib/core/l10n/app_en.arb (generated files are committed)
+fvm flutter analyze             # must be clean before every commit
+fvm flutter test                # must be green before every commit
+fvm flutter build apk --debug   # what CI builds
+fvm flutter build apk --release # signed only when android/key.properties exists (see README "Release")
 ```
 
 Debug and release builds have different signatures; installing one over the other fails until
@@ -31,7 +40,7 @@ the old one is uninstalled (which wipes app data: server URL, login, recent pati
   `lib/features/<name>/<name>.dart`. Cross-feature imports go through barrels only.
 - `lib/core/` never imports `lib/features/`. `lib/app/` wires features together (router, modules,
   session listener). Feature code never imports `lib/app/` (shared keys live in `lib/core/navigation/`).
-- Riverpod 2.6: prefer `Notifier`/`AsyncNotifier`; `ref.watch` in `build`, `ref.read` only in
+- Riverpod (2.6 until the Riverpod 3 task lands): prefer `Notifier`/`AsyncNotifier`; `ref.watch` in `build`, `ref.read` only in
   callbacks and before the first `await`; never `ref.read` an autoDispose provider from a getter
   (it disposes the provider). Providers overridden in `main.dart` are mirrored by
   `test/helpers/signed_in_container.dart`; keep them in sync.
@@ -63,7 +72,7 @@ the old one is uninstalled (which wipes app data: server URL, login, recent pati
   releases are distributed to. The React Native app was `com.decare.hmsuploader`, so the two install
   side by side and testers remove the old one by hand.
 - Branding (icon, splash, wordmark) is documented in `docs/branding.md`;
-  `dart run flutter_native_splash:create` strips the portrait lock from the manifest — restore it.
+  `fvm dart run flutter_native_splash:create` strips the portrait lock from the manifest — restore it.
 
 ## Process conventions
 
