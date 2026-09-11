@@ -12,9 +12,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: any
-  # Riverpod 3 is a separate migration (see the upgrade spec, §5a); the rest of
-  # the toolchain lands on 2.x first so a regression can be attributed.
-  flutter_riverpod: ^2.6.1
+  flutter_riverpod: ^3.4.3
   go_router: ^18.0.1
   dio: ^5.11.1
   shared_preferences: ^2.5.5
