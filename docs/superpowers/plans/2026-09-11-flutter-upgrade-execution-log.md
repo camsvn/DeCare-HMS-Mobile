@@ -63,3 +63,16 @@ The README sentence describing what CI runs keeps bare `flutter` — the runner 
 `subosito/flutter-action`, not fvm. Riverpod bullet marked as 2.6-until-Task-7. Analyzer clean, 493 pass.
 
 Ruling: proceed to the device pass.
+
+## Task 6 — device pass #1 (Riverpod 2)
+
+Emulator `emulator-5554` (Android 14, API 34), dev server on `10.0.2.2:4041`. The package was not
+previously installed there, so this was a fresh install: the "URL kept, session lost" upgrade
+path was not observable on this device (it will be on any tester phone carrying the old build).
+Boot → splash → Configure screen with no Flutter errors in logcat; URL entry + Connect (driven via
+adb) reached Sign-in with the `10.0.2.2` chip. The user then ran the full checklist — sign in and
+relaunch, patient lookup and recents, in-app capture (virtual camera; plugin loads and the flow
+completes), gallery pick with "Apply to all" and upload into history, offline queue drain,
+Settings/About, dark mode, portrait lock, splash — and reported **all good**.
+
+Ruling: proceed to Riverpod 3.
