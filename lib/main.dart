@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:hms_uploader/app/app.dart';
 import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
@@ -23,12 +24,12 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   // Where the offline upload queue keeps its staged photos.
   final documentsDir = await getApplicationDocumentsDirectory();
-  final container = ProviderContainer(overrides: [
+  final container = ProviderContainer(retry: noRetry, overrides: [
     sharedPreferencesProvider.overrideWithValue(prefs),
     appDocumentsDirProvider.overrideWithValue(documentsDir),
     // Bridge feature state into the core network layer without core importing features.
-    serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).valueOrNull),
-    accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).valueOrNull?.accessToken),
+    serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).value),
+    accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).value?.accessToken),
     refreshAccessTokenProvider
         .overrideWith((ref) => () => ref.read(sessionControllerProvider.notifier).refreshAccessToken()),
   ]);

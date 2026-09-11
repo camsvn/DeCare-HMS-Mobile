@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
@@ -11,6 +12,7 @@ void main() {
     SharedPreferences.setMockInitialValues(stored);
     prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
+      retry: noRetry,
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
     );
     addTearDown(container.dispose);

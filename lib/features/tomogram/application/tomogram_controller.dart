@@ -21,12 +21,21 @@ class TomogramState {
 
 /// Per-patient draft list, keyed by OP number. Lives only while the tomogram
 /// screen is mounted; leftover files are deleted on dispose.
-class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
+class TomogramController extends Notifier<TomogramState> {
+  TomogramController(this.opid);
+
+  final int opid;
+
+  /// Paths of the drafts currently held. `onDispose` runs once the notifier
+  /// is unmounted, when `state` may no longer be read, so the list is mirrored
+  /// here as the state changes.
+  List<String> _ownedPaths = const [];
+
   @override
-  TomogramState build(int arg) {
+  TomogramState build() {
+    listenSelf((_, next) => _ownedPaths = next.drafts.map((d) => d.filePath).toList());
     ref.onDispose(() {
-      final paths = state.drafts.map((d) => d.filePath).toList();
-      if (paths.isNotEmpty) deleteFiles(paths);
+      if (_ownedPaths.isNotEmpty) deleteFiles(_ownedPaths);
     });
     return const TomogramState();
   }
@@ -82,6 +91,7 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
   }
 
   Future<void> remove(String id) async {
+    if (!ref.mounted) return; // disposed: onDispose already deleted the files
     final target = state.drafts.where((d) => d.id == id).toList();
     state = state.copyWith(drafts: state.drafts.where((d) => d.id != id).toList());
     await deleteFiles(target.map((d) => d.filePath));
@@ -94,6 +104,10 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
   }
 
   Future<void> clearAll() async {
+    // The screen may call this after an await that outlived it (handing the
+    // drafts to the offline queue); a disposed notifier has already deleted
+    // its files in onDispose and its state can no longer be read.
+    if (!ref.mounted) return;
     final paths = state.drafts.map((d) => d.filePath).toList();
     state = state.copyWith(drafts: const []);
     await deleteFiles(paths);
@@ -108,20 +122,24 @@ class TomogramController extends AutoDisposeFamilyNotifier<TomogramState, int> {
     if (drafts.isEmpty) return;
     state = state.copyWith(uploading: true);
     try {
-      await ref.read(tomogramApiProvider).upload(arg, drafts);
+      await ref.read(tomogramApiProvider).upload(opid, drafts);
     } catch (e) {
-      state = state.copyWith(uploading: false);
+      if (ref.mounted) state = state.copyWith(uploading: false);
       throw ApiFailure.from(e);
     }
+    // The screen closed mid-upload: the files are already gone with the
+    // dispose, and a disposed notifier has no state or ref left to touch.
+    if (!ref.mounted) return;
     state = const TomogramState();
     // The patient now has one more uploaded set; drop the cached history so the
     // screen's history card reflects the upload.
-    ref.invalidate(tomogramHistoryProvider(arg));
+    ref.invalidate(tomogramHistoryProvider(opid));
     await deleteFiles(drafts.map((d) => d.filePath));
     // Last, and best-effort: these descriptions lead the suggestions on the
     // next patient (the repository trims, drops the blanks and dedupes), but a
     // device that cannot write its prefs must not turn a finished upload into a
     // failure the user is asked to retry.
+    if (!ref.mounted) return;
     try {
       await ref.read(recentLabelsProvider.notifier).remember(drafts.map((d) => d.description));
     } catch (_) {}

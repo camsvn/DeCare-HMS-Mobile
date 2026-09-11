@@ -40,10 +40,17 @@ the old one is uninstalled (which wipes app data: server URL, login, recent pati
   `lib/features/<name>/<name>.dart`. Cross-feature imports go through barrels only.
 - `lib/core/` never imports `lib/features/`. `lib/app/` wires features together (router, modules,
   session listener). Feature code never imports `lib/app/` (shared keys live in `lib/core/navigation/`).
-- Riverpod (2.6 until the Riverpod 3 task lands): prefer `Notifier`/`AsyncNotifier`; `ref.watch` in `build`, `ref.read` only in
-  callbacks and before the first `await`; never `ref.read` an autoDispose provider from a getter
-  (it disposes the provider). Providers overridden in `main.dart` are mirrored by
-  `test/helpers/signed_in_container.dart`; keep them in sync.
+- Riverpod 3.4: `Notifier`/`AsyncNotifier` only (no `AutoDispose*`/`Family*` classes — family
+  notifiers take the argument in their constructor); `ref.watch` in `build`, `ref.read` only in
+  callbacks and before the first `await`, and check `ref.mounted` after every `await` in an
+  autoDispose notifier (a disposed notifier's `state`/`ref` throw); never `ref.read` an autoDispose
+  provider from a getter (it disposes the provider); never read `state` inside `ref.onDispose`
+  (mirror what dispose needs into a field via `listenSelf`); `AsyncValue.value` carries the
+  previous value through loading/error, and a method that starts an operation keeps it with
+  `keepingPrevious` from `lib/core/riverpod/riverpod_compat.dart`; automatic retry is off
+  (`noRetry`) in every container and scope; `StateProvider` only from `legacy.dart`, and only in
+  tests; the `Override` type comes from `package:flutter_riverpod/misc.dart`. Providers overridden
+  in `main.dart` are mirrored by `test/helpers/signed_in_container.dart`; keep them in sync.
 - Design system `lib/core/design/`: all colours, spacing, radii and durations come from tokens
   (`context.ds`, `context.dsType`, `DsSpace`, `DsRadius`, `DsMotion`) and `Ds*` widgets. No literal
   colours or sizes in features; a new size becomes a named constant.

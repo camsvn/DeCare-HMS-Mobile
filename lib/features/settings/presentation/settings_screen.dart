@@ -57,11 +57,11 @@ class SettingsScreen extends ConsumerWidget {
     final type = context.dsType;
     final ds = context.ds;
 
-    final url = ref.watch(serverConfigControllerProvider).valueOrNull;
+    final url = ref.watch(serverConfigControllerProvider).value;
     final host = url == null ? '' : (Uri.tryParse(url)?.host ?? url);
-    final token = ref.watch(sessionControllerProvider).valueOrNull?.accessToken;
+    final token = ref.watch(sessionControllerProvider).value?.accessToken;
     final username = token == null ? null : jwtClaim(token, 'username');
-    final version = ref.watch(appVersionProvider).valueOrNull ?? '';
+    final version = ref.watch(appVersionProvider).value ?? '';
     final appearance = ref.watch(appearanceProvider);
 
     return Scaffold(

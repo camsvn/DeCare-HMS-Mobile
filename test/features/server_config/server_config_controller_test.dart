@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
@@ -16,7 +17,7 @@ void main() {
     SharedPreferences.setMockInitialValues(savedUrl == null ? {} : {'server_url': savedUrl});
     final prefs = await SharedPreferences.getInstance();
     api = MockHealthCheckApi();
-    container = ProviderContainer(overrides: [
+    container = ProviderContainer(retry: noRetry, overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       healthCheckApiProvider.overrideWithValue(api),
     ]);

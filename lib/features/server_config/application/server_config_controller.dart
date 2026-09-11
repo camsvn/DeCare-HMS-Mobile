@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:hms_uploader/core/utils/url_validator.dart';
 import 'package:hms_uploader/features/server_config/data/health_check_api.dart';
 import 'package:hms_uploader/features/server_config/data/server_config_repository.dart';
@@ -16,16 +17,16 @@ class ServerConfigController extends AsyncNotifier<String?> {
     final url = normalizeServerUrl(rawUrl);
     if (url == null) {
       state = AsyncError<String?>(const InvalidServerUrlException(), StackTrace.current)
-          .copyWithPrevious(state);
+          .keepingPrevious(state);
       return;
     }
-    state = const AsyncLoading<String?>().copyWithPrevious(state);
+    state = const AsyncLoading<String?>().keepingPrevious(state);
     try {
       await ref.read(healthCheckApiProvider).check(url);
       await ref.read(serverConfigRepositoryProvider).save(url);
       state = AsyncData(url);
     } catch (e, st) {
-      state = AsyncError<String?>(e, st).copyWithPrevious(state);
+      state = AsyncError<String?>(e, st).keepingPrevious(state);
     }
   }
 

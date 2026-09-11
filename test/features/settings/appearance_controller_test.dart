@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/features/settings/settings.dart';
@@ -12,6 +13,7 @@ void main() {
     SharedPreferences.setMockInitialValues(values);
     prefs = await SharedPreferences.getInstance();
     final container = ProviderContainer(
+      retry: noRetry,
       overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
     );
     addTearDown(container.dispose);

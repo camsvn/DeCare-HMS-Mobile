@@ -127,7 +127,7 @@ void main() {
       ProviderScope.containerOf(tester.element(find.byType(TomogramScreen)));
 
   List<PendingUpload> queueOf(WidgetTester tester) =>
-      containerOf(tester).read(uploadQueueProvider).valueOrNull ?? const [];
+      containerOf(tester).read(uploadQueueProvider).value ?? const [];
 
   /// Distinct draft ids, so two photos are two cards rather than one key clash.
   String Function() ids() {

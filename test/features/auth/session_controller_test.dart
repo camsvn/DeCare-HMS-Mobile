@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/storage/secure_store.dart';
@@ -34,7 +35,7 @@ void main() {
   setUp(() {
     api = MockAuthApi();
     store = InMemorySecureStore();
-    container = ProviderContainer(overrides: [
+    container = ProviderContainer(retry: noRetry, overrides: [
       secureStoreProvider.overrideWithValue(store),
       authApiProvider.overrideWithValue(api),
     ]);
@@ -148,7 +149,7 @@ void main() {
     final slow = GatedSecureStore(gate.future);
     await slow.write('access_token', 'a');
     await slow.write('refresh_token', 'r');
-    final c = ProviderContainer(overrides: [
+    final c = ProviderContainer(retry: noRetry, overrides: [
       secureStoreProvider.overrideWithValue(slow),
       authApiProvider.overrideWithValue(api),
     ]);

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/core/network/connectivity_service.dart';
@@ -186,7 +187,7 @@ class UploadQueueController extends AsyncNotifier<List<PendingUpload>> {
     await _replace(id, null);
   }
 
-  List<PendingUpload> get _entries => state.valueOrNull ?? const [];
+  List<PendingUpload> get _entries => state.value ?? const [];
 
   /// Swaps one entry for [replacement], or removes it when that is null, and
   /// persists the result.
@@ -205,7 +206,7 @@ class UploadQueueController extends AsyncNotifier<List<PendingUpload>> {
 
   void _publish(List<PendingUpload> entries) {
     final data = AsyncData(entries);
-    state = _running ? const AsyncLoading<List<PendingUpload>>().copyWithPrevious(data) : data;
+    state = _running ? const AsyncLoading<List<PendingUpload>>().keepingPrevious(data) : data;
   }
 }
 
@@ -213,12 +214,12 @@ final uploadQueueProvider =
     AsyncNotifierProvider<UploadQueueController, List<PendingUpload>>(UploadQueueController.new);
 
 /// How many uploads are waiting, for the dashboard's pending chip.
-final pendingCountProvider = Provider<int>((ref) => ref.watch(uploadQueueProvider).valueOrNull?.length ?? 0);
+final pendingCountProvider = Provider<int>((ref) => ref.watch(uploadQueueProvider).value?.length ?? 0);
 
 /// How many photos are waiting for one OP number, across every entry it has —
 /// two failed uploads for the same patient are one waiting count to the user.
 final pendingFileCountForOpidProvider = Provider.family<int, int>((ref, opid) {
-  final entries = ref.watch(uploadQueueProvider).valueOrNull ?? const <PendingUpload>[];
+  final entries = ref.watch(uploadQueueProvider).value ?? const <PendingUpload>[];
   var count = 0;
   for (final entry in entries) {
     if (entry.opid == opid) count += entry.files.length;
@@ -228,7 +229,7 @@ final pendingFileCountForOpidProvider = Provider.family<int, int>((ref, opid) {
 
 /// The queued entry for one OP number, if there is one.
 final pendingForOpidProvider = Provider.family<PendingUpload?, int>((ref, opid) {
-  final entries = ref.watch(uploadQueueProvider).valueOrNull ?? const <PendingUpload>[];
+  final entries = ref.watch(uploadQueueProvider).value ?? const <PendingUpload>[];
   for (final entry in entries) {
     if (entry.opid == opid) return entry;
   }

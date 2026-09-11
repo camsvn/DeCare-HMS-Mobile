@@ -26,7 +26,7 @@ class _PendingUploads extends ConsumerWidget {
     final ds = context.ds;
     final type = context.dsType;
     final queue = ref.watch(uploadQueueProvider);
-    final entries = queue.valueOrNull ?? const <PendingUpload>[];
+    final entries = queue.value ?? const <PendingUpload>[];
     final notifier = ref.read(uploadQueueProvider.notifier);
 
     // showDsSheet caps the sheet at [dsSheetMaxHeightFactor] of the screen and

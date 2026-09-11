@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hms_uploader/core/l10n/generated/app_localizations.dart';
@@ -72,7 +73,7 @@ void main() {
       ],
     );
     addTearDown(router.dispose);
-    final container = ProviderContainer(overrides: [
+    final container = ProviderContainer(retry: noRetry, overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       healthCheckApiProvider.overrideWithValue(api),
     ]);

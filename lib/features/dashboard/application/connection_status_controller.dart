@@ -11,7 +11,7 @@ import 'package:hms_uploader/features/server_config/server_config.dart';
 class ConnectionStatusController extends AsyncNotifier<bool> {
   @override
   Future<bool> build() async {
-    final url = ref.watch(serverConfigControllerProvider).valueOrNull;
+    final url = ref.watch(serverConfigControllerProvider).value;
     final connectivity = ref.watch(connectivityServiceProvider);
     // Any change of route (lost, regained, switched) is a reason to look again.
     final sub = connectivity.onlineChanges.listen((_) => ref.invalidateSelf());

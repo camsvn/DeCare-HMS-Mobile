@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/connectivity_service.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
@@ -28,7 +29,7 @@ void main() {
     api = MockHealthCheckApi();
     when(() => api.check(any())).thenAnswer((_) async {});
     connectivity = FakeConnectivityService();
-    container = ProviderContainer(overrides: [
+    container = ProviderContainer(retry: noRetry, overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       healthCheckApiProvider.overrideWithValue(api),
       connectivityServiceProvider.overrideWithValue(connectivity),
@@ -54,7 +55,7 @@ void main() {
     expect(await container.read(connectionStatusProvider.future), isTrue);
     connectivity.emit(false);
     await settle();
-    expect(container.read(connectionStatusProvider).valueOrNull, isFalse);
+    expect(container.read(connectionStatusProvider).value, isFalse);
     verify(() => api.check(any())).called(1);
   });
 
@@ -63,7 +64,7 @@ void main() {
     expect(await container.read(connectionStatusProvider.future), isFalse);
     connectivity.emit(true);
     await settle();
-    expect(container.read(connectionStatusProvider).valueOrNull, isTrue);
+    expect(container.read(connectionStatusProvider).value, isTrue);
     verify(() => api.check(any())).called(1);
   });
 
@@ -72,7 +73,7 @@ void main() {
     when(() => api.check(any())).thenThrow(Exception('down'));
     container.read(connectionStatusProvider.notifier).refresh();
     await settle();
-    expect(container.read(connectionStatusProvider).valueOrNull, isFalse);
+    expect(container.read(connectionStatusProvider).value, isFalse);
     verify(() => api.check(any())).called(2);
   });
 

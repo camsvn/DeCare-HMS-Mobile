@@ -40,7 +40,7 @@ List<String> mergeSuggestions(List<String> history, List<String> recent, {int ma
 /// still loading, or one that failed, simply contributes nothing — the recent
 /// labels alone are still worth offering.
 final descriptionSuggestionsProvider = Provider.autoDispose.family<List<String>, int>((ref, opid) {
-  final sets = ref.watch(tomogramHistoryProvider(opid)).valueOrNull ?? const <TomogramSet>[];
+  final sets = ref.watch(tomogramHistoryProvider(opid)).value ?? const <TomogramSet>[];
   final history = [for (final set in sets) for (final detail in set.details) detail.narration];
   return mergeSuggestions(history, ref.watch(recentLabelsProvider));
 });

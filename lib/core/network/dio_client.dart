@@ -29,7 +29,14 @@ final refreshAccessTokenProvider = Provider<TokenRefresher>(
 
 /// Bumped whenever a protected request stays 401 after a refresh attempt.
 /// `SessionExpiryListener` watches it and signs the user out.
-final authFailureProvider = StateProvider<int>((ref) => 0);
+class AuthFailureCounter extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() => state++;
+}
+
+final authFailureProvider = NotifierProvider<AuthFailureCounter, int>(AuthFailureCounter.new);
 
 Dio buildDio({
   required String baseUrl,
@@ -64,7 +71,7 @@ final dioProvider = Provider<Dio>((ref) {
     baseUrl: apiBaseUrl(url),
     tokenReader: () => ref.read(accessTokenProvider),
     refresher: () => ref.read(refreshAccessTokenProvider)(),
-    onAuthFailure: () => ref.read(authFailureProvider.notifier).state++,
+    onAuthFailure: () => ref.read(authFailureProvider.notifier).bump(),
   );
   ref.onDispose(dio.close);
   return dio;

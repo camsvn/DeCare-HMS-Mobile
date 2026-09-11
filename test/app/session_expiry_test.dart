@@ -21,7 +21,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Modules'), findsOneWidget);
 
-    c.read(authFailureProvider.notifier).state++;
+    c.read(authFailureProvider.notifier).bump();
     await tester.pumpAndSettle();
 
     expect(find.text('Sign In'), findsOneWidget);
@@ -43,9 +43,9 @@ void main() {
     expect(find.text('Modules'), findsOneWidget);
 
     // Three parallel requests all coming back 401.
-    c.read(authFailureProvider.notifier).state++;
-    c.read(authFailureProvider.notifier).state++;
-    c.read(authFailureProvider.notifier).state++;
+    c.read(authFailureProvider.notifier).bump();
+    c.read(authFailureProvider.notifier).bump();
+    c.read(authFailureProvider.notifier).bump();
     await tester.pumpAndSettle();
 
     expect(find.text('Sign In'), findsOneWidget);
@@ -67,7 +67,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Sign In'), findsOneWidget);
 
-    c.read(authFailureProvider.notifier).state++;
+    c.read(authFailureProvider.notifier).bump();
     await tester.pumpAndSettle();
 
     expect(find.text('Sign In'), findsOneWidget);

@@ -30,7 +30,7 @@ class _SessionExpiryListenerState extends ConsumerState<SessionExpiryListener> {
       // Already signed out: a manual sign-out, or a later 401 from the same
       // burst — `logout` drops the session synchronously, so every bump after
       // the first stops here and the user gets one sign-out and one banner.
-      final session = ref.read(sessionControllerProvider).valueOrNull;
+      final session = ref.read(sessionControllerProvider).value;
       if (session == null) return;
       _handled = next;
       ref.read(sessionControllerProvider.notifier).logout();

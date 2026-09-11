@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
@@ -154,7 +155,7 @@ void main() {
       upload = MockTomogramApi();
       // A finished upload also remembers its descriptions, which reads prefs.
       SharedPreferences.setMockInitialValues({});
-      container = ProviderContainer(overrides: [
+      container = ProviderContainer(retry: noRetry, overrides: [
         tomogramHistoryApiProvider.overrideWithValue(history),
         tomogramApiProvider.overrideWithValue(upload),
         sharedPreferencesProvider.overrideWithValue(await SharedPreferences.getInstance()),

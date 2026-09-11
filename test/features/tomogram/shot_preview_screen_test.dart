@@ -20,12 +20,12 @@ const int _opid = 581;
 /// from it, so a test can put a narration in front of the sheet with no
 /// server behind it.
 class _FakeHistory extends TomogramHistoryController {
-  _FakeHistory(this.narrations);
+  _FakeHistory(super.opid, this.narrations);
 
   final List<String> narrations;
 
   @override
-  Future<List<TomogramSet>> build(int arg) async => [
+  Future<List<TomogramSet>> build() async => [
         TomogramSet(
           id: 1,
           dateTime: DateTime(2026, 9, 1),
@@ -86,7 +86,7 @@ void main() {
         // The sheet's suggestions are this patient's own narrations plus the
         // device's recent labels; both are stubbed rather than fetched.
         sharedPreferencesProvider.overrideWithValue(prefs),
-        tomogramHistoryProvider.overrideWith(() => _FakeHistory(narrations)),
+        tomogramHistoryProvider.overrideWith2((opid) => _FakeHistory(opid, narrations)),
       ],
     );
     container = ProviderScope.containerOf(tester.element(find.text('host')));

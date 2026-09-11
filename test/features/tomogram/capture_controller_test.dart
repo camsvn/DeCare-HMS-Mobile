@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/features/tomogram/tomogram.dart';
 
@@ -15,7 +16,7 @@ void main() {
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('capture');
     fake = FakeCameraService(dir: dir);
-    container = ProviderContainer(overrides: [cameraServiceProvider.overrideWithValue(fake)]);
+    container = ProviderContainer(retry: noRetry, overrides: [cameraServiceProvider.overrideWithValue(fake)]);
     addTearDown(container.dispose);
     // The controller is autoDispose: a listener keeps it alive across reads.
     container.listen(captureControllerProvider, (_, _) {});
@@ -363,7 +364,7 @@ void main() {
     // Its own container: `overrideWithValue` replaces the provider's body, and
     // with it the `onDispose` that hands the device back, so the release this
     // test is about would never happen. The override mirrors that body.
-    final popped = ProviderContainer(overrides: [
+    final popped = ProviderContainer(retry: noRetry, overrides: [
       cameraServiceProvider.overrideWith((ref) {
         ref.onDispose(() => unawaited(fake.stop().catchError((Object _) {})));
         return fake;
@@ -417,7 +418,7 @@ void main() {
   test('the session holds one camera for its whole life', () async {
     var created = 0;
     var disposed = 0;
-    final linked = ProviderContainer(overrides: [
+    final linked = ProviderContainer(retry: noRetry, overrides: [
       cameraServiceProvider.overrideWith((ref) {
         created++;
         ref.onDispose(() => disposed++);

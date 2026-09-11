@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/features/auth/data/auth_api.dart';
 import 'package:hms_uploader/features/auth/data/session.dart';
@@ -9,13 +10,13 @@ class SessionController extends AsyncNotifier<Session?> {
   Future<Session?> build() => ref.watch(sessionRepositoryProvider).read();
 
   Future<void> login(String username, String password) async {
-    state = const AsyncLoading<Session?>().copyWithPrevious(state);
+    state = const AsyncLoading<Session?>().keepingPrevious(state);
     try {
       final session = await ref.read(authApiProvider).login(username, password);
       await ref.read(sessionRepositoryProvider).save(session);
       state = AsyncData(session);
     } catch (e, st) {
-      state = AsyncError<Session?>(e, st).copyWithPrevious(state);
+      state = AsyncError<Session?>(e, st).keepingPrevious(state);
     }
   }
 
@@ -31,13 +32,13 @@ class SessionController extends AsyncNotifier<Session?> {
   /// Deliberately uses `ref.read`: watching the session here would rebuild this
   /// notifier on the very state change it writes.
   Future<String?> refreshAccessToken() async {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return null;
     try {
       final token = await ref.read(authApiProvider).refresh(current.refreshToken);
       // The session changed while the refresh was in flight — a sign-out, or a
       // sign-in as somebody else. Saving now would resurrect a dead session.
-      if (state.valueOrNull?.refreshToken != current.refreshToken) return null;
+      if (state.value?.refreshToken != current.refreshToken) return null;
       final next = Session(accessToken: token, refreshToken: current.refreshToken);
       await ref.read(sessionRepositoryProvider).save(next);
       state = AsyncData(next);

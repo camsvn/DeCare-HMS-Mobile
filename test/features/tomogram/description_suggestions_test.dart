@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
@@ -78,7 +79,7 @@ void main() {
     Future<ProviderContainer> containerWith(List<String> recent) async {
       // Given newest first, so `remember` is handed them in that order.
       await RecentLabelsRepository(prefs).remember(recent);
-      final container = ProviderContainer(overrides: [
+      final container = ProviderContainer(retry: noRetry, overrides: [
         tomogramHistoryApiProvider.overrideWithValue(history),
         sharedPreferencesProvider.overrideWithValue(prefs),
       ]);

@@ -66,7 +66,7 @@ class CaptureState {
 /// so far. Files the session still owns when it is disposed are deleted,
 /// mirroring `TomogramController`, so a screen closed by the back gesture or a
 /// route change does not leave photos in the cache.
-class CaptureController extends AutoDisposeNotifier<CaptureState> {
+class CaptureController extends Notifier<CaptureState> {
   /// Resolved once, in [build]. Reading `cameraServiceProvider` per call would
   /// not do: `read` on an `autoDispose` provider that nothing listens to
   /// schedules its disposal, so mid-session the app would build a second
@@ -79,16 +79,21 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   double? _pendingZoom;
   bool _zooming = false;
 
+  /// Paths of the shots currently held. `onDispose` runs once the notifier
+  /// is unmounted, when `state` may no longer be read, so the list is mirrored
+  /// here as the state changes.
+  List<String> _ownedPaths = const [];
+
   @override
   CaptureState build() {
     _camera = ref.watch(cameraServiceProvider);
+    listenSelf((_, next) => _ownedPaths = next.shots.map((s) => s.path).toList());
     ref.onDispose(() {
-      final paths = state.shots.map((s) => s.path).toList();
       // Best effort and synchronous: a dispose callback cannot wait for the
       // camera's background post-processing, so a bake still in flight may
       // leave its `.tmp` sibling behind. Both names go, and `deleteFiles`
       // shrugs at the ones that are not there.
-      if (paths.isNotEmpty) deleteFiles(_withTempSiblings(paths));
+      if (_ownedPaths.isNotEmpty) deleteFiles(_withTempSiblings(_ownedPaths));
     });
     return const CaptureState();
   }
@@ -99,6 +104,10 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
     state = state.copyWith(status: CaptureStatus.starting);
     try {
       await _camera.start();
+      // The screen may have gone while the camera was opening; a disposed
+      // notifier's state cannot be written (the camera service is disposed
+      // with it).
+      if (!ref.mounted) return;
       // Readiness comes from the camera, not from "the call returned": a
       // `stop` racing into a cold start cancels it, and the session must not
       // then offer a shutter for a device that is closed.
@@ -114,7 +123,7 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
         await _camera.setZoom(clamped);
       }
     } catch (_) {
-      state = state.copyWith(status: CaptureStatus.failed);
+      if (ref.mounted) state = state.copyWith(status: CaptureStatus.failed);
     }
   }
 
@@ -157,13 +166,19 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
     state = state.copyWith(busy: true);
     try {
       final path = await _camera.takePicture();
+      // Shot after the screen went: the session cannot hold it, so the file is
+      // dropped rather than leaked into the cache.
+      if (!ref.mounted) {
+        await deleteFiles(_withTempSiblings([path]));
+        return false;
+      }
       state = state.copyWith(
         shots: [...state.shots, Shot(path: path, label: state.label)],
         busy: false,
       );
       return true;
     } catch (_) {
-      state = state.copyWith(busy: false);
+      if (ref.mounted) state = state.copyWith(busy: false);
       return false;
     }
   }
@@ -248,7 +263,7 @@ class CaptureController extends AutoDisposeNotifier<CaptureState> {
   Future<List<Shot>> takeAll() async {
     final shots = List<Shot>.of(state.shots);
     await _flush();
-    state = state.copyWith(shots: const []);
+    if (ref.mounted) state = state.copyWith(shots: const []);
     return shots;
   }
 

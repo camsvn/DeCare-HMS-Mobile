@@ -50,7 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     });
     final signingIn = ref.watch(sessionControllerProvider).isLoading;
-    final host = Uri.tryParse(ref.watch(serverConfigControllerProvider).valueOrNull ?? '')?.host ?? '';
+    final host = Uri.tryParse(ref.watch(serverConfigControllerProvider).value ?? '')?.host ?? '';
 
     return ExitOnDoubleBack(
       child: DsOnboardingScaffold(

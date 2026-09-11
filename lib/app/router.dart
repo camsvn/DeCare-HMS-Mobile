@@ -45,8 +45,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: refresh,
     redirect: (context, state) => computeRedirect(
       location: state.matchedLocation,
-      hasServerUrl: ref.read(serverConfigControllerProvider).valueOrNull != null,
-      sessionValid: ref.read(sessionControllerProvider).valueOrNull?.isValid() ?? false,
+      hasServerUrl: ref.read(serverConfigControllerProvider).value != null,
+      sessionValid: ref.read(sessionControllerProvider).value?.isValid() ?? false,
     ),
     routes: [
       configureRoute,

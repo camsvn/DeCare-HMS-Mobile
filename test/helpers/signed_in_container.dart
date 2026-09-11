@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:hms_uploader/core/network/dio_client.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/core/storage/secure_store.dart';
@@ -52,13 +54,13 @@ Future<({ProviderContainer container, InMemorySecureStore store})> signedInConta
   }
   final health = MockHealthCheckApi();
   when(() => health.check(any())).thenAnswer((_) async {});
-  final container = ProviderContainer(overrides: [
+  final container = ProviderContainer(retry: noRetry, overrides: [
     sharedPreferencesProvider.overrideWithValue(prefs),
     secureStoreProvider.overrideWithValue(store),
     healthCheckApiProvider.overrideWithValue(health),
     appDocumentsDirProvider.overrideWithValue(docs),
-    serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).valueOrNull),
-    accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).valueOrNull?.accessToken),
+    serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).value),
+    accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).value?.accessToken),
     refreshAccessTokenProvider
         .overrideWith((ref) => () => ref.read(sessionControllerProvider.notifier).refreshAccessToken()),
     ...overrides,

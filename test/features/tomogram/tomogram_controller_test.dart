@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
@@ -28,7 +29,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
     counter = 0;
-    container = ProviderContainer(overrides: [
+    container = ProviderContainer(retry: noRetry, overrides: [
       tomogramApiProvider.overrideWithValue(api),
       sharedPreferencesProvider.overrideWithValue(prefs),
       uuidProvider.overrideWithValue(() => 'id${++counter}'),
@@ -205,7 +206,7 @@ void main() {
     when(() => labels.remember(any())).thenThrow(Exception('prefs are full'));
     when(() => historyApi.list(42)).thenAnswer((_) async => const []);
     when(() => api.upload(42, any())).thenAnswer((_) async => const []);
-    final local = ProviderContainer(overrides: [
+    final local = ProviderContainer(retry: noRetry, overrides: [
       tomogramApiProvider.overrideWithValue(api),
       tomogramHistoryApiProvider.overrideWithValue(historyApi),
       recentLabelsRepositoryProvider.overrideWithValue(labels),

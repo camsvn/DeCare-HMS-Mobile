@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
@@ -19,7 +20,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     api = MockOpRegisterApi();
-    container = ProviderContainer(overrides: [
+    container = ProviderContainer(retry: noRetry, overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       opRegisterApiProvider.overrideWithValue(api),
     ]);

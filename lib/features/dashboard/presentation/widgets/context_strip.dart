@@ -46,14 +46,14 @@ class _ContextStripState extends ConsumerState<ContextStrip> with WidgetsBinding
     final ds = context.ds;
     final type = context.dsType;
     final l10n = context.l10n;
-    final url = ref.watch(serverConfigControllerProvider).valueOrNull;
+    final url = ref.watch(serverConfigControllerProvider).value;
     final host = url == null ? '' : (Uri.tryParse(url)?.host ?? url);
-    final token = ref.watch(sessionControllerProvider).valueOrNull?.accessToken;
+    final token = ref.watch(sessionControllerProvider).value?.accessToken;
     final user = token == null ? null : jwtClaim(token, 'username');
     final status = ref.watch(connectionStatusProvider);
     final pending = ref.watch(pendingCountProvider);
     final checking = status.isLoading;
-    final ok = status.valueOrNull ?? false;
+    final ok = status.value ?? false;
     final statusLabel = checking
         ? l10n.dashboardChecking
         : ok

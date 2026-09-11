@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/network/dio_client.dart';
@@ -70,7 +72,7 @@ void main() {
 
   /// Built lazily so a test can seed prefs before the notifier reads them.
   ProviderContainer build({PendingUploadsRepository? repo}) {
-    container = ProviderContainer(overrides: [
+    container = ProviderContainer(retry: noRetry, overrides: [
       sharedPreferencesProvider.overrideWithValue(prefs),
       appDocumentsDirProvider.overrideWithValue(docs),
       tomogramApiProvider.overrideWithValue(api),
