@@ -55,8 +55,8 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
         opaque: true,
         transitionDuration: DsMotion.of(context, DsMotion.base),
         reverseTransitionDuration: DsMotion.of(context, DsMotion.base),
-        pageBuilder: (_, __, ___) => DraftPreviewScreen(opid: _opid, initialIndex: index),
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+        pageBuilder: (_, _, _) => DraftPreviewScreen(opid: _opid, initialIndex: index),
+        transitionsBuilder: (_, animation, _, child) => FadeTransition(
           opacity: animation,
           child: child,
         ),
@@ -213,7 +213,7 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
 
     return PopScope(
       canPop: drafts.isEmpty,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _back();
       },
       child: Scaffold(
@@ -252,7 +252,7 @@ class _TomogramScreenState extends ConsumerState<TomogramScreen> {
                       padding: const EdgeInsets.fromLTRB(
                           DsSpace.gutter, DsSpace.x3, DsSpace.gutter, _fabClearance),
                       itemCount: drafts.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: DsSpace.x3),
+                      separatorBuilder: (_, _) => const SizedBox(height: DsSpace.x3),
                       itemBuilder: (_, i) => TomogramCard(
                         key: ValueKey(drafts[i].id),
                         draft: drafts[i],

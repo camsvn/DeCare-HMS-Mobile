@@ -37,7 +37,7 @@ class _TomogramHistoryCardState extends ConsumerState<TomogramHistoryCard> {
   Widget build(BuildContext context) {
     return ref.watch(tomogramHistoryProvider(widget.opid)).when(
           loading: () => _shell(child: DsSkeleton.row()),
-          error: (_, __) => _shell(
+          error: (_, _) => _shell(
             child: Text(
               context.l10n.tomogramHistoryError,
               style: context.dsType.body.withColor(context.ds.textSecondary),

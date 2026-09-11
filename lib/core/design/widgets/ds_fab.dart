@@ -22,7 +22,7 @@ class DsFab extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: ds.accentGradient,
         boxShadow: enabled
-            ? [BoxShadow(color: ds.accentSolid.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3))]
+            ? [BoxShadow(color: ds.accentSolid.withValues(alpha: 0.25), blurRadius: 8, offset: const Offset(0, 3))]
             : null,
       ),
       child: Material(

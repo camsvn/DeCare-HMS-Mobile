@@ -41,9 +41,7 @@ abstract class MediaPickerService {
 }
 
 class DefaultMediaPickerService implements MediaPickerService {
-  DefaultMediaPickerService({required ImagePicker picker, required PermissionGateway permissions})
-      : _picker = picker,
-        _permissions = permissions;
+  DefaultMediaPickerService({required this._picker, required this._permissions});
 
   final ImagePicker _picker;
   final PermissionGateway _permissions;

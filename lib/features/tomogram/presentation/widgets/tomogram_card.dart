@@ -99,7 +99,7 @@ class _TomogramCardState extends State<TomogramCard> {
           // full-resolution camera JPEG. Upload bytes are read from the file
           // separately and stay untouched.
           cacheWidth: 1080,
-          errorBuilder: (_, __, ___) => ColoredBox(
+          errorBuilder: (_, _, _) => ColoredBox(
             color: ds.canvas,
             child: Center(child: Icon(Icons.broken_image_outlined, color: ds.textSecondary, size: 40)),
           ),
@@ -150,7 +150,7 @@ class _TomogramCardState extends State<TomogramCard> {
                 top: DsSpace.x2,
                 // Translucent disc so the icon stays legible over a light photo.
                 child: DecoratedBox(
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: ds.card.withOpacity(0.85)),
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: ds.card.withValues(alpha: 0.85)),
                   child: SizedBox(
                     width: 28,
                     height: 28,

@@ -30,8 +30,8 @@ String? computeRedirect({required String location, required bool hasServerUrl, r
 /// Notifies the router when the server URL or the session changes.
 class RouterRefreshNotifier extends ChangeNotifier {
   RouterRefreshNotifier(Ref ref) {
-    ref.listen(serverConfigControllerProvider, (_, __) => notifyListeners());
-    ref.listen(sessionControllerProvider, (_, __) => notifyListeners());
+    ref.listen(serverConfigControllerProvider, (_, _) => notifyListeners());
+    ref.listen(sessionControllerProvider, (_, _) => notifyListeners());
   }
 }
 

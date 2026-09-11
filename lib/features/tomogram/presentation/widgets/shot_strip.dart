@@ -78,7 +78,7 @@ class _ShotStripState extends State<ShotStrip> {
         controller: _controller,
         scrollDirection: Axis.horizontal,
         itemCount: shots.length,
-        separatorBuilder: (_, __) => const SizedBox(width: DsSpace.x2),
+        separatorBuilder: (_, _) => const SizedBox(width: DsSpace.x2),
         itemBuilder: (context, i) {
           final shot = shots[i];
           return MergeSemantics(
@@ -112,7 +112,7 @@ class _ShotStripState extends State<ShotStrip> {
                           // A cache the OS cleared under storage pressure, or
                           // a file the camera wrote badly: show the gap, do
                           // not throw.
-                          errorBuilder: (context, _, __) => ColoredBox(
+                          errorBuilder: (context, _, _) => ColoredBox(
                             color: ds.shellRaised,
                             child: Icon(Icons.broken_image_outlined, color: ds.textOnShellMuted),
                           ),

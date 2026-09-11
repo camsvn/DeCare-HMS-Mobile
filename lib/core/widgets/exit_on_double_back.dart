@@ -62,7 +62,7 @@ class ExitOnDoubleBackState extends State<ExitOnDoubleBack> {
     // pushed from Login has a route below it and should just pop.
     return PopScope(
       canPop: Navigator.of(context).canPop(),
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, _) {
         if (!didPop) handleBack();
       },
       child: widget.child,

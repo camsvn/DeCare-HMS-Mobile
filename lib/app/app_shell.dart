@@ -34,7 +34,7 @@ class _AppShellState extends State<AppShell> {
     final l10n = context.l10n;
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (widget.navigationShell.currentIndex != 0) {
           _goBranch(0);

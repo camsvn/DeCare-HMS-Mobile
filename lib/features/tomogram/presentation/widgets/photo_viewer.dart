@@ -220,8 +220,8 @@ class _PhotoViewerState extends State<PhotoViewer> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  ds.shell.withOpacity(_headerScrimOpacity),
-                  ds.shell.withOpacity(0),
+                  ds.shell.withValues(alpha: _headerScrimOpacity),
+                  ds.shell.withValues(alpha: 0),
                 ],
               ),
             ),
@@ -390,7 +390,7 @@ class _PhotoViewerState extends State<PhotoViewer> {
           cacheWidth: cacheWidth,
           // A file the camera wrote badly, or one the OS cleared: show the
           // gap, do not throw on the frame that is meant to reassure.
-          errorBuilder: (context, _, __) => Center(
+          errorBuilder: (context, _, _) => Center(
             child: Icon(Icons.broken_image_outlined, color: context.ds.textOnShellMuted),
           ),
         ),

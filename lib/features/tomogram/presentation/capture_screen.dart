@@ -251,10 +251,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
         opaque: true,
         transitionDuration: DsMotion.of(context, DsMotion.base),
         reverseTransitionDuration: DsMotion.of(context, DsMotion.base),
-        pageBuilder: (_, __, ___) => ShotPreviewScreen(initialIndex: index, opid: widget.opid),
+        pageBuilder: (_, _, _) => ShotPreviewScreen(initialIndex: index, opid: widget.opid),
         // A fade, not a slide: the preview is the same photo the thumbnail
         // was showing, made big.
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+        transitionsBuilder: (_, animation, _, child) => FadeTransition(
           opacity: animation,
           child: child,
         ),
@@ -348,7 +348,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
 
     return PopScope(
       canPop: view.shots.isEmpty,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_close());
       },
       child: Scaffold(
@@ -401,7 +401,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen> with WidgetsBindi
                   child: CustomPaint(
                     key: captureGridKey,
                     painter: _GridPainter(
-                      color: context.ds.textOnShell.withOpacity(_gridOpacity),
+                      color: context.ds.textOnShell.withValues(alpha: _gridOpacity),
                     ),
                   ),
                 ),

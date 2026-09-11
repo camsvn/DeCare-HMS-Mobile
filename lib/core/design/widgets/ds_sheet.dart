@@ -26,7 +26,7 @@ Future<T?> showDsSheet<T>(
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
-    barrierColor: ds.scrim.withOpacity(0.45),
+    barrierColor: ds.scrim.withValues(alpha: 0.45),
     backgroundColor: ds.card,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(DsRadius.large))),
     builder: (sheetContext) => Padding(
