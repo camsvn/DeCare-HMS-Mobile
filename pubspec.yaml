@@ -1,7 +1,7 @@
 name: hms_uploader
 description: DeCare HMS tomogram uploader.
 publish_to: 'none'
-version: 2026.9.2+4
+version: 2026.9.3+5
 
 environment:
   sdk: ^3.13.0
