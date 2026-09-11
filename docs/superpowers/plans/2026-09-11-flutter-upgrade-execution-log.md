@@ -76,3 +76,23 @@ completes), gallery pick with "Apply to all" and upload into history, offline qu
 Settings/About, dark mode, portrait lock, splash — and reported **all good**.
 
 Ruling: proceed to Riverpod 3.
+
+## Task 7 — Riverpod 2.6 → 3.4
+
+As planned, with three findings the plan did not have:
+- `Override` is not exported by `flutter_riverpod.dart` in 3.x; it lives in
+  `package:flutter_riverpod/misc.dart` (imported with `show Override` in the three helpers).
+- The suite caught one real 3.x behaviour: `TomogramScreen._upload` calls `clearAll()` after
+  awaiting the offline queue's `enqueue`, and by then the screen — and its autoDispose notifier —
+  may be gone; `state` on an unmounted notifier now throws `UnmountedRefException` (2.x let it
+  through). `clearAll`/`remove` return early when `!ref.mounted`: the files were already deleted by
+  `onDispose`. `CaptureController.shoot` deletes a photo that lands after the session is gone rather
+  than leaking it.
+- The mechanical `retry: noRetry` pass initially doubled the line in three files; fixed.
+Analyzer **No issues found**; suite **495 pass** (493 + 2 for the compat shim); debug APK built.
+
+Parked (for the branch review): `keepingPrevious` wraps Riverpod's `@internal`
+`copyWithPrevious` under a single `// ignore`; there is no public replacement for a manual
+"loading, keep the data" transition in 3.4. Revisit at Riverpod 4.
+
+Ruling: proceed to device pass #2.
