@@ -23,9 +23,20 @@ void main() {
       const f = TimeoutFailure();
       expect(ApiFailure.from(f), same(f));
     });
-    test('maps timeouts', () {
+    test('a connection that never opens is unreachable, not slow', () {
+      // A server whose host drops packets (machine off, wrong network) never
+      // answers the connect: that is "cannot reach", not "took too long".
+      expect(ApiFailure.from(_dio(DioExceptionType.connectionTimeout)), isA<CannotConnectFailure>());
+    });
+    test('a device with no network maps to offline, which is a kind of cannot-connect', () {
+      final failure = ApiFailure.from(_dio(DioExceptionType.connectionError, error: const DeviceOfflineException()));
+      expect(failure, isA<OfflineFailure>());
+      // Callers that queue uploads on CannotConnectFailure must keep doing so.
+      expect(failure, isA<CannotConnectFailure>());
+      expect(failure.describe(l10n), 'No network connection. Connect to Wi-Fi or mobile data.');
+    });
+    test('maps timeouts once connected', () {
       for (final t in [
-        DioExceptionType.connectionTimeout,
         DioExceptionType.sendTimeout,
         DioExceptionType.receiveTimeout,
         DioExceptionType.transformTimeout,
@@ -66,7 +77,8 @@ void main() {
     test('falls back to localized default messages', () {
       expect(ApiFailure.from(_dio(DioExceptionType.badResponse, status: 404)).describe(l10n), 'Not found');
       expect(ApiFailure.from(_dio(DioExceptionType.badResponse, status: 503)).describe(l10n), 'Server error');
-      expect(const CannotConnectFailure().describe(l10n), 'Could not reach the server');
+      expect(const CannotConnectFailure().describe(l10n),
+          "Can't reach the server. Check your connection and that the server is running.");
       expect(const TimeoutFailure().describe(l10n), 'The server took too long to respond');
       expect(const UnauthorizedFailure().describe(l10n), 'Session expired');
       expect(const RejectedFailure().describe(l10n), 'Request rejected');

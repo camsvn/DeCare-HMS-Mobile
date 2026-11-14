@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
+import 'package:hms_uploader/core/network/server_reachability.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/features/patient_lookup/patient_lookup.dart';
 import 'package:hms_uploader/features/patient_lookup/presentation/widgets/op_search_bar.dart';
@@ -42,6 +44,25 @@ void main() {
     await tester.pump();
     expect(find.text('Tomogram'), findsOneWidget);
     expect(find.text('There is no patient selected.'), findsOneWidget);
+    expect(find.text('Enter OP Number'), findsOneWidget);
+  });
+
+  testWidgets('says up front when the server cannot be reached', (tester) async {
+    final prefs = await prefsWith({});
+    await pumpApp(tester, PatientLookupScreen(onPatientSelected: (_) async {}), overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      opRegisterApiProvider.overrideWithValue(api),
+    ]);
+    await tester.pump();
+    expect(find.text("Can't reach the server"), findsNothing);
+
+    ProviderScope.containerOf(tester.element(find.byType(PatientLookupScreen)))
+        .read(serverReachabilityProvider.notifier)
+        .report(false);
+    await tester.pumpAndSettle();
+
+    expect(find.text("Can't reach the server"), findsOneWidget);
+    // The search stays usable: the signal may be stale.
     expect(find.text('Enter OP Number'), findsOneWidget);
   });
 

@@ -23,12 +23,18 @@ sealed class ApiFailure implements Exception {
 
   static ApiFailure _fromDio(DioException e) {
     switch (e.type) {
-      case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.transformTimeout:
         return const TimeoutFailure();
+      // A connect that times out never reached the server: the host is off,
+      // on another network, or behind a firewall that drops the packets. That
+      // is "cannot reach", not "slow to respond".
+      case DioExceptionType.connectionTimeout:
+        return const CannotConnectFailure();
       case DioExceptionType.connectionError:
+        if (e.error is DeviceOfflineException) return const OfflineFailure();
+        return const CannotConnectFailure();
       case DioExceptionType.badCertificate:
         return const CannotConnectFailure();
       case DioExceptionType.cancel:
@@ -70,6 +76,22 @@ class CannotConnectFailure extends ApiFailure {
   String describe(AppLocalizations l10n) => detail ?? l10n.errorCannotConnect;
 }
 
+/// The device has no network at all, so the request was never sent. A kind of
+/// [CannotConnectFailure], so callers that queue work for later treat it alike.
+class OfflineFailure extends CannotConnectFailure {
+  const OfflineFailure([super.detail]);
+  @override
+  String describe(AppLocalizations l10n) => detail ?? l10n.errorOffline;
+}
+
+/// Raised by the client's offline gate as the `error` of a connection error.
+class DeviceOfflineException implements Exception {
+  const DeviceOfflineException();
+  @override
+  String toString() => 'DeviceOfflineException';
+}
+
+/// The server accepted the connection but did not finish answering in time.
 class TimeoutFailure extends ApiFailure {
   const TimeoutFailure([super.detail]);
   @override

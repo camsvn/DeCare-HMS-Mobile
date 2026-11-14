@@ -118,6 +118,12 @@ abstract class AppLocalizations {
   /// **'Confirm'**
   String get commonConfirm;
 
+  /// No description provided for @commonRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get commonRetry;
+
   /// No description provided for @commonDiscard.
   ///
   /// In en, this message translates to:
@@ -133,8 +139,20 @@ abstract class AppLocalizations {
   /// No description provided for @errorCannotConnect.
   ///
   /// In en, this message translates to:
-  /// **'Could not reach the server'**
+  /// **'Can\'t reach the server. Check your connection and that the server is running.'**
   String get errorCannotConnect;
+
+  /// No description provided for @errorOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'No network connection. Connect to Wi-Fi or mobile data.'**
+  String get errorOffline;
+
+  /// No description provided for @serverUnreachableBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach the server'**
+  String get serverUnreachableBanner;
 
   /// No description provided for @errorTimeout.
   ///

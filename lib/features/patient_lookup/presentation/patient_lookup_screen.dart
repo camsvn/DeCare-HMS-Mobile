@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hms_uploader/core/design/design.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
 import 'package:hms_uploader/core/widgets/l10n_ext.dart';
+import 'package:hms_uploader/core/widgets/server_unreachable_banner.dart';
 import 'package:hms_uploader/features/patient_lookup/application/patient_lookup_controller.dart';
 import 'package:hms_uploader/features/patient_lookup/application/recent_searches_controller.dart';
 import 'package:hms_uploader/features/patient_lookup/data/patient.dart';
@@ -73,6 +74,7 @@ class _PatientLookupScreenState extends ConsumerState<PatientLookupScreen> {
       appBar: DsAppBar(title: l10n.tomogramModuleTitle),
       body: Column(
         children: [
+          const ServerUnreachableBanner(),
           OpSearchBar(onSubmit: _lookup, busy: busy),
           Expanded(
             // A lookup leaves the list exactly where it is: no skeletons, no

@@ -22,13 +22,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonConfirm => 'Confirm';
 
   @override
+  String get commonRetry => 'Retry';
+
+  @override
   String get commonDiscard => 'Discard';
 
   @override
   String get commonPressBackAgain => 'App: Press back again to exit';
 
   @override
-  String get errorCannotConnect => 'Could not reach the server';
+  String get errorCannotConnect =>
+      'Can\'t reach the server. Check your connection and that the server is running.';
+
+  @override
+  String get errorOffline =>
+      'No network connection. Connect to Wi-Fi or mobile data.';
+
+  @override
+  String get serverUnreachableBanner => 'Can\'t reach the server';
 
   @override
   String get errorTimeout => 'The server took too long to respond';

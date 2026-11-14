@@ -13,6 +13,8 @@ import 'package:hms_uploader/features/tomogram/tomogram.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'fake_connectivity.dart';
+
 class MockHealthCheckApi extends Mock implements HealthCheckApi {}
 
 /// A JWT-shaped token (unsigned, unverified) that is still well inside its
@@ -28,7 +30,9 @@ String liveToken() {
 /// [url] is the stored server URL; pass null for an unconfigured install.
 /// [session] seeds a live token pair, [extraPrefs] any other stored keys. The
 /// dashboard's context strip runs one health check on first build, so the
-/// health API is always mocked to succeed.
+/// health API is always mocked to succeed. Connectivity is faked as online: the
+/// plugin has no platform side in tests, and the client asks it before every
+/// request.
 ///
 /// [overrides] join the container's own, for a test that drives the real app
 /// and still needs one service faked (the camera, say). They belong here
@@ -58,6 +62,7 @@ Future<({ProviderContainer container, InMemorySecureStore store})> signedInConta
     sharedPreferencesProvider.overrideWithValue(prefs),
     secureStoreProvider.overrideWithValue(store),
     healthCheckApiProvider.overrideWithValue(health),
+    connectivityServiceProvider.overrideWithValue(FakeConnectivityService()),
     appDocumentsDirProvider.overrideWithValue(docs),
     serverUrlProvider.overrideWith((ref) => ref.watch(serverConfigControllerProvider).value),
     accessTokenProvider.overrideWith((ref) => ref.watch(sessionControllerProvider).value?.accessToken),

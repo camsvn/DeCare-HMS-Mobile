@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/api_failure.dart';
@@ -12,8 +14,16 @@ void main() {
     final dio = buildDio(baseUrl: 'http://x/api', tokenReader: () => null);
     expect(dio.options.baseUrl, 'http://x/api');
     expect(dio.options.headers['Accept'], 'application/json');
-    expect(dio.options.connectTimeout, jsonTimeout);
     expect(dio.options.receiveTimeout, jsonTimeout);
+  });
+
+  test('opening a connection gives up sooner than waiting for a response', () {
+    // An unreachable host should fail fast; a reachable but busy server still
+    // gets the full response window.
+    final dio = buildDio(baseUrl: 'http://x/api', tokenReader: () => null);
+    expect(dio.options.connectTimeout, connectTimeout);
+    expect(connectTimeout, lessThan(jsonTimeout));
+    expect(connectTimeout, const Duration(seconds: 5));
   });
 
   test('interceptor adds Bearer header only when a token exists', () async {
@@ -28,6 +38,94 @@ void main() {
     token = 'abc';
     await dio.get('/a');
     expect(seen.headers['Authorization'], 'Bearer abc');
+  });
+
+  group('offline gate', () {
+    test('with no network the request fails at once without being sent', () async {
+      final dio = buildDio(baseUrl: 'http://x/api', tokenReader: () => null, isOnline: () async => false);
+      var sent = 0;
+      dio.httpClientAdapter = _CapturingAdapter((_) => sent++);
+
+      await expectLater(
+        dio.get<dynamic>('/a'),
+        throwsA(isA<DioException>().having((e) => ApiFailure.from(e), 'failure', isA<OfflineFailure>())),
+      );
+      expect(sent, 0);
+    });
+
+    test('with a network the request goes out', () async {
+      final dio = buildDio(baseUrl: 'http://x/api', tokenReader: () => null, isOnline: () async => true);
+      var sent = 0;
+      dio.httpClientAdapter = _CapturingAdapter((_) => sent++);
+
+      await dio.get<dynamic>('/a');
+      expect(sent, 1);
+    });
+
+    test('a connectivity check that throws lets the request through', () async {
+      // The check is a shortcut, not a gate keeper: if the platform cannot
+      // answer, the request itself finds out.
+      final dio = buildDio(
+        baseUrl: 'http://x/api',
+        tokenReader: () => null,
+        isOnline: () async => throw StateError('no plugin'),
+      );
+      var sent = 0;
+      dio.httpClientAdapter = _CapturingAdapter((_) => sent++);
+
+      await dio.get<dynamic>('/a');
+      expect(sent, 1);
+    });
+  });
+
+  test('a connectivity check that never answers lets the request through', () async {
+    final dio = buildDio(
+      baseUrl: 'http://x/api',
+      tokenReader: () => null,
+      isOnline: () => Completer<bool>().future,
+    );
+    var sent = 0;
+    dio.httpClientAdapter = _CapturingAdapter((_) => sent++);
+
+    await dio.get<dynamic>('/a').timeout(onlineCheckTimeout * 3);
+    expect(sent, 1);
+  });
+
+  group('reachability reports', () {
+    Future<List<bool>> reportsFor(HttpClientAdapter adapter, {Future<bool> Function()? isOnline}) async {
+      final reports = <bool>[];
+      final dio = buildDio(
+        baseUrl: 'http://x/api',
+        tokenReader: () => null,
+        isOnline: isOnline,
+        onReachability: reports.add,
+      );
+      dio.httpClientAdapter = adapter;
+      try {
+        await dio.get<dynamic>('/a');
+      } catch (_) {}
+      return reports;
+    }
+
+    test('any response proves the server reachable, even an error status', () async {
+      expect(await reportsFor(_ScriptedAdapter([(200, '{}')])), [true]);
+      expect(await reportsFor(_ScriptedAdapter([(500, '{"status":"error","message":"x"}')])), [true]);
+    });
+
+    test('a connection that cannot open reports unreachable', () async {
+      expect(await reportsFor(_ThrowingAdapter(DioExceptionType.connectionError)), [false]);
+      expect(await reportsFor(_ThrowingAdapter(DioExceptionType.connectionTimeout)), [false]);
+    });
+
+    test('no network reports unreachable', () async {
+      expect(await reportsFor(_ScriptedAdapter([(200, '{}')]), isOnline: () async => false), [false]);
+    });
+
+    test('a slow response says nothing either way', () async {
+      // The server accepted the connection, so it is up; but it did not
+      // answer, so it is not proven healthy either.
+      expect(await reportsFor(_ThrowingAdapter(DioExceptionType.receiveTimeout)), isEmpty);
+    });
   });
 
   group('401 refresh', () {
@@ -268,6 +366,19 @@ class _CapturingAdapter implements HttpClientAdapter {
       Headers.contentTypeHeader: [Headers.jsonContentType],
     });
   }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+/// Fails every request the way the platform client would for [type].
+class _ThrowingAdapter implements HttpClientAdapter {
+  _ThrowingAdapter(this.type);
+  final DioExceptionType type;
+
+  @override
+  Future<ResponseBody> fetch(RequestOptions options, Stream<List<int>>? requestStream, Future<void>? cancelFuture) =>
+      Future.error(DioException(requestOptions: options, type: type));
 
   @override
   void close({bool force = false}) {}

@@ -547,7 +547,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.text('Tomogram Upload: Could not reach the server'), findsOneWidget);
+    expect(find.text("Tomogram Upload: Can't reach the server. Check your connection and that the server is running."), findsOneWidget);
     expect(find.text('Description'), findsOneWidget);
     expect(queueOf(tester), isEmpty);
     expect(Directory('${docs.path}/pending/id').existsSync(), isFalse);

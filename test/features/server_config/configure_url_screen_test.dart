@@ -55,7 +55,7 @@ void main() {
     await tester.tap(find.text('Connect'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Host: Could not reach the server'), findsOneWidget);
+    expect(find.text("Host: Can't reach the server. Check your connection and that the server is running."), findsOneWidget);
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
   });

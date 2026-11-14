@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hms_uploader/core/riverpod/riverpod_compat.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hms_uploader/core/network/connectivity_service.dart';
+import 'package:hms_uploader/core/network/server_reachability.dart';
 import 'package:hms_uploader/core/storage/prefs_store.dart';
 import 'package:hms_uploader/features/dashboard/dashboard.dart';
 import 'package:hms_uploader/features/server_config/server_config.dart';
@@ -80,6 +81,42 @@ void main() {
   test('a health check failure while online reads as unreachable', () async {
     when(() => api.check(any())).thenThrow(Exception('down'));
     expect(await container.read(connectionStatusProvider.future), isFalse);
+  });
+
+  group('shared reachability', () {
+    test('a healthy check is shared with the rest of the app', () async {
+      expect(await container.read(connectionStatusProvider.future), isTrue);
+      expect(container.read(serverReachabilityProvider), isTrue);
+    });
+
+    test('a failed check is shared with the rest of the app', () async {
+      when(() => api.check(any())).thenThrow(Exception('down'));
+      expect(await container.read(connectionStatusProvider.future), isFalse);
+      expect(container.read(serverReachabilityProvider), isFalse);
+    });
+
+    test('being offline is shared with the rest of the app', () async {
+      connectivity.online = false;
+      expect(await container.read(connectionStatusProvider.future), isFalse);
+      expect(container.read(serverReachabilityProvider), isFalse);
+    });
+
+    test('a request that cannot reach the server flips a connected status', () async {
+      expect(await container.read(connectionStatusProvider.future), isTrue);
+      container.read(serverReachabilityProvider.notifier).report(false);
+      await settle();
+      expect(container.read(connectionStatusProvider).value, isFalse);
+      // Traffic already answered the question; no extra health check.
+      verify(() => api.check(any())).called(1);
+    });
+
+    test('a request that reaches the server flips an unreachable status back', () async {
+      when(() => api.check(any())).thenThrow(Exception('down'));
+      expect(await container.read(connectionStatusProvider.future), isFalse);
+      container.read(serverReachabilityProvider.notifier).report(true);
+      await settle();
+      expect(container.read(connectionStatusProvider).value, isTrue);
+    });
   });
 
   test('a stream that replays the current state on every subscription settles', () async {
